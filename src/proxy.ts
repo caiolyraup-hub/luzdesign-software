@@ -42,6 +42,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // /gerencia/*: redirect HTTP de verdade para quem não é gerente (o layout também confere,
+  // mas redirect dentro de Suspense chega como 200). A barreira real continua sendo a RLS.
+  if (logada && request.nextUrl.pathname.startsWith("/gerencia")) {
+    const { data: perfil } = await supabase
+      .from("usuarios")
+      .select("perfil")
+      .eq("id", data!.claims.sub)
+      .maybeSingle();
+    if (perfil?.perfil !== "gerente") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return resposta;
 }
 

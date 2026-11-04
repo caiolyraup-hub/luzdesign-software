@@ -29,3 +29,10 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - As telas buscam dados com o cliente da própria usuária (cookies), então a RLS vale sempre. A tela `/orcamentos` não filtra por vendedora de propósito: o banco é quem limita.
 - `/gerencia/*` também é protegido na aplicação (redireciona vendedora para `/`), mas isso é só conforto: a barreira real são as políticas.
 - Teste automatizado: `pnpm test:rls` (`scripts/testar-isolamento.mts`) entra como Aline, Kely, Gerência e sem login, e confere tudo acima contra o banco real.
+
+## Estoque (dia 3)
+
+- `estoque_mapeamentos`: só a gerente lê e escreve (RLS). Vendedora e visitante não veem nada.
+- A importação escreve em `produtos` e `sync_estoque` com a service role, **no servidor**, e só depois de conferir que quem chamou é gerente (`exigirGerente` em cada ação). O navegador nunca recebe a service role.
+- `buscar_produtos` é `security invoker`: respeita a RLS de quem chama. Visitante sem login não executa a função.
+- `/gerencia/*` agora também é barrado no `proxy.ts` com redirect HTTP 307 para quem não é gerente (antes só o layout redirecionava, o que chega como 200 durante o streaming). A barreira real continua sendo a RLS.

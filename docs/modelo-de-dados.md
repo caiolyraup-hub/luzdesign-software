@@ -39,3 +39,9 @@ Somente documentação; o SQL entra no dia 2 (05/11). Nomes em português sem ac
 - Restrições: `motivo_perda` obrigatório quando `status = perdido`; item precisa de `codigo` ou ser `avulso`; `produtos.codigo` com 5 dígitos.
 - Índices: `orcamentos(vendedora_id, status)`, `orcamento_itens(orcamento_id)` e busca por texto (pg_trgm) em `produtos.descricao` e `produto_apelidos.texto`.
 - Regras de acesso: ver `docs/seguranca.md`.
+
+## Ajustes do dia 3 (`20261106000100_estoque.sql`)
+
+- `produtos.codigo`: de 1 a 5 dígitos (antes exatamente 5), porque os códigos reais têm 4 e 5 dígitos (`9520`, `12389`). Sem zeros à esquerda.
+- Nova tabela `estoque_mapeamentos` (id, nome, colunas jsonb, criado_em): mapeamento coluna da planilha -> campo, só a gerente lê e escreve. O mais recente pré-preenche a próxima importação.
+- Nova função `buscar_produtos(p_texto, p_categoria, p_marca, p_limite)` (security invoker): busca em código, descrição, marca, categoria e `produto_apelidos` (pg_trgm), só produtos ativos. Ver `docs/estoque.md`.

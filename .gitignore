@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Dados reais da loja (nomes de clientes, planilhas): fora do git
+/dados/orcamentos-37-extraidos.json
+/dados/estoque/

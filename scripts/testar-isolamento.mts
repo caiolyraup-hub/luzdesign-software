@@ -162,6 +162,47 @@ async function testarVendedora(nome: string, eu: Pessoa, outra: Pessoa) {
     const { error } = await eu.cliente.from("produtos").select("codigo").limit(1);
     assert.equal(error, null);
   });
+
+  await caso("não altera, apaga nem cria produtos nem apelidos", async () => {
+    const { data: alvoProd } = await admin
+      .from("produtos")
+      .select("codigo, preco_unitario")
+      .limit(1);
+    assert.ok(alvoProd?.length, "catálogo vazio: rode pnpm catalogo:provisorio antes");
+    const { codigo, preco_unitario } = alvoProd[0];
+
+    const up = await eu.cliente
+      .from("produtos")
+      .update({ preco_unitario: 0.01 })
+      .eq("codigo", codigo)
+      .select();
+    assert.ok(up.error || (up.data ?? []).length === 0, "update em produtos");
+    const del = await eu.cliente.from("produtos").delete().eq("codigo", codigo).select();
+    assert.ok(del.error || (del.data ?? []).length === 0, "delete em produtos");
+    const ins = await eu.cliente.from("produto_apelidos").insert({ codigo, texto: "intruso" });
+    assert.ok(ins.error, "insert em produto_apelidos");
+
+    const { data: depois } = await admin
+      .from("produtos")
+      .select("preco_unitario")
+      .eq("codigo", codigo);
+    assert.equal(Number(depois?.[0]?.preco_unitario), Number(preco_unitario));
+  });
+
+  await caso("não lê nem escreve estoque_mapeamentos", async () => {
+    const { data } = await eu.cliente.from("estoque_mapeamentos").select("*");
+    assert.deepEqual(data ?? [], []);
+    const ins = await eu.cliente
+      .from("estoque_mapeamentos")
+      .insert({ nome: "intruso", colunas: {} });
+    assert.ok(ins.error, "insert em estoque_mapeamentos");
+  });
+
+  await caso("busca produtos pela função buscar_produtos", async () => {
+    const { data, error } = await eu.cliente.rpc("buscar_produtos", { p_texto: "", p_limite: 5 });
+    assert.equal(error, null, error?.message);
+    assert.ok((data ?? []).length > 0);
+  });
 }
 
 async function testarGerencia(g: Pessoa, aline: Pessoa, kely: Pessoa) {
@@ -211,14 +252,61 @@ async function testarGerencia(g: Pessoa, aline: Pessoa, kely: Pessoa) {
   });
 }
 
+async function testarGerenciaEstoque(g: Pessoa) {
+  console.log("\nGerência (estoque)");
+  await caso("lê e escreve estoque_mapeamentos", async () => {
+    const ins = await g.cliente
+      .from("estoque_mapeamentos")
+      .insert({ nome: "teste rls", colunas: { codigo: "Cód" } })
+      .select("id")
+      .single();
+    assert.equal(ins.error, null, ins.error?.message);
+    const lido = await g.cliente.from("estoque_mapeamentos").select("id").eq("id", ins.data!.id);
+    assert.equal(lido.data?.length, 1);
+    const del = await g.cliente
+      .from("estoque_mapeamentos")
+      .delete()
+      .eq("id", ins.data!.id)
+      .select();
+    assert.equal(del.data?.length, 1);
+  });
+
+  await caso("escreve em produtos (e limpa)", async () => {
+    const ins = await g.cliente
+      .from("produtos")
+      .insert({ codigo: "99998", descricao: "TESTE RLS GERENCIA", preco_unitario: 1 })
+      .select("codigo");
+    assert.equal(ins.data?.length, 1, ins.error?.message);
+    const del = await g.cliente.from("produtos").delete().eq("codigo", "99998").select();
+    assert.equal(del.data?.length, 1);
+  });
+
+  await caso("não escreve em sync_estoque (só service role)", async () => {
+    const { error } = await g.cliente.from("sync_estoque").insert({ origem: "intruso" });
+    assert.ok(error);
+  });
+}
+
 async function anonimo() {
   console.log("\nSem login");
   await caso("não lê nada", async () => {
     const cliente = createClient(url, anon, opcoes);
-    for (const tabela of ["orcamentos", "clientes", "produtos", "usuarios"]) {
+    for (const tabela of [
+      "orcamentos",
+      "clientes",
+      "produtos",
+      "usuarios",
+      "estoque_mapeamentos",
+    ]) {
       const { data, error } = await cliente.from(tabela).select("*");
       assert.ok(error || (data ?? []).length === 0, tabela);
     }
+  });
+
+  await caso("não executa buscar_produtos", async () => {
+    const cliente = createClient(url, anon, opcoes);
+    const { data, error } = await cliente.rpc("buscar_produtos", { p_texto: "" });
+    assert.ok(error || (data ?? []).length === 0);
   });
 }
 
@@ -229,6 +317,7 @@ const gerencia = await entrar(exigir("SEED_EMAIL_GERENCIA"));
 await testarVendedora("Aline (contra Kely)", aline, kely);
 await testarVendedora("Kely (contra Aline)", kely, aline);
 await testarGerencia(gerencia, aline, kely);
+await testarGerenciaEstoque(gerencia);
 await anonimo();
 
 console.log(`\n${ok} verificações passaram${process.exitCode ? ", com FALHAS" : ""}.`);

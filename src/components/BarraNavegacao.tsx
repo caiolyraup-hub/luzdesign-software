@@ -9,12 +9,14 @@ const ITENS_VENDEDORA = [
   { href: "/orcamentos/novo", rotulo: "Novo" },
   { href: "/orcamentos", rotulo: "Orçamentos" },
   { href: "/meus-numeros", rotulo: "Números" },
+  { href: "/produtos", rotulo: "Produtos" },
 ];
 
 const ITENS_GERENTE = [
   { href: "/", rotulo: "Início" },
   { href: "/gerencia", rotulo: "Painel" },
   { href: "/gerencia/estoque", rotulo: "Estoque" },
+  { href: "/produtos", rotulo: "Produtos" },
   { href: "/gerencia/configuracoes", rotulo: "Ajustes" },
 ];
 
