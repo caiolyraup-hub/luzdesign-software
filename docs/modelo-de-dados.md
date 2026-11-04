@@ -26,3 +26,16 @@ Somente documentação; o SQL entra no dia 2 (05/11). Nomes em português sem ac
 - `orcamento_itens`: com `avulso = true`, `codigo` é nulo e o preço é digitado manualmente. Preço e descrição são congelados ao gerar o PDF.
 - `valor_fechado` pode diferir de `valor_total` (negociação); as métricas de "vendido" usam `valor_fechado`.
 - `uso_ia` alimenta o controle de custo (teste de custo em 18/11).
+
+## Ajustes do dia 2 (implementado em `supabase/migrations/`)
+
+- Enums no banco: `perfil`, `status_orcamento`, `motivo_perda`, `tipo_cliente`, `unidade` (`un`, `m`), com os mesmos valores de `src/lib/dominio.ts`.
+- `usuarios.id` referencia `auth.users(id)`.
+- `clientes.vendedora_id` (novo): o cliente pertence à vendedora que o cadastrou.
+- `orcamentos.numero` é texto sequencial por ano (`2026-0001`), gerado por gatilho (tabela de apoio `orcamento_contador`).
+- Dinheiro em `numeric(12,2)`; quantidade e estoque em `numeric(10,2)` (fita LED é vendida por metro).
+- `atualizado_em` com gatilho em `usuarios`, `produtos`, `clientes` e `orcamentos`.
+- Gatilho grava em `eventos` a cada mudança de status (e na criação, com `de_status` nulo); também carimba `gerado_em`, `enviado_em`, `fechado_em` e `perdido_em`.
+- Restrições: `motivo_perda` obrigatório quando `status = perdido`; item precisa de `codigo` ou ser `avulso`; `produtos.codigo` com 5 dígitos.
+- Índices: `orcamentos(vendedora_id, status)`, `orcamento_itens(orcamento_id)` e busca por texto (pg_trgm) em `produtos.descricao` e `produto_apelidos.texto`.
+- Regras de acesso: ver `docs/seguranca.md`.

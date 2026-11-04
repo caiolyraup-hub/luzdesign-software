@@ -4,8 +4,8 @@ Entrega final: 24/11/2026.
 
 | Dia       | Entrega                                                                   | Situação         |
 | --------- | ------------------------------------------------------------------------- | ---------------- |
-| Qua 04/11 | Fundação do repositório                                                   | **Em andamento** |
-| Qui 05/11 | Modelo de dados em SQL, RLS, login com 3 contas, ambiente de testes no ar | Pendente         |
+| Qua 04/11 | Fundação do repositório                                                   | Concluído        |
+| Qui 05/11 | Modelo de dados em SQL, RLS, login com 3 contas, ambiente de testes no ar | **Em andamento** |
 | Sex 06/11 | Conector de estoque v1 (importação de planilha) e busca de produtos       | Pendente         |
 | Seg 09/11 | Formulário das 10 perguntas e upload de até 4 anexos                      | Pendente         |
 | Ter 10/11 | Motor de IA com busca no catálogo e preços recalculados no servidor       | Pendente         |
