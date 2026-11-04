@@ -28,4 +28,4 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - A **service role key** ignora a RLS. Ela só existe no servidor (`src/lib/supabase/admin.ts` usa `server-only`) e em scripts. Nunca vai para o navegador nem monta telas.
 - As telas buscam dados com o cliente da própria usuária (cookies), então a RLS vale sempre. A tela `/orcamentos` não filtra por vendedora de propósito: o banco é quem limita.
 - `/gerencia/*` também é protegido na aplicação (redireciona vendedora para `/`), mas isso é só conforto: a barreira real são as políticas.
-- Teste automatizado: `pnpm test:rls` (`scripts/testar-isolamento.ts`) entra como Aline, Kely, Gerência e sem login, e confere tudo acima contra o banco real.
+- Teste automatizado: `pnpm test:rls` (`scripts/testar-isolamento.mts`) entra como Aline, Kely, Gerência e sem login, e confere tudo acima contra o banco real.

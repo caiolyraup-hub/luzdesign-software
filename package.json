@@ -11,8 +11,8 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "usuarios": "tsx --env-file=.env.local scripts/criar-usuarios.ts",
-    "test:rls": "tsx --env-file=.env.local scripts/testar-isolamento.ts"
+    "usuarios": "tsx --env-file=.env.local scripts/criar-usuarios.mts",
+    "test:rls": "tsx --env-file=.env.local scripts/testar-isolamento.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
