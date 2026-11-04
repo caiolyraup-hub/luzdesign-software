@@ -1,0 +1,10 @@
+project_id = "luz-design-orcamentos"
+
+[auth]
+site_url = "https://luzdesign-software.vercel.app"
+additional_redirect_urls = [
+  "http://localhost:3000",
+  "https://luzdesign-software.vercel.app",
+  "https://luzdesign-software-caiolyraup-3519s-projects.vercel.app",
+  "https://luzdesign-software-git-main-caiolyraup-3519s-projects.vercel.app",
+]
