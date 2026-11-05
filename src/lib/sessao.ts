@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import type { Perfil } from "@/lib/dominio";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -12,6 +13,8 @@ export interface UsuarioAtual {
 
 /** Usuária logada (lida do banco, sob RLS). Redireciona para /login se não houver sessão. */
 export const obterUsuarioAtual = cache(async (): Promise<UsuarioAtual> => {
+  // Sessão depende da requisição: nunca entra no prerender (o getClaims usa Date.now).
+  await connection();
   const supabase = await criarClienteServidor();
   const { data: claims } = await supabase.auth.getClaims();
   const id = claims?.claims.sub;

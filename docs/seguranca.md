@@ -36,3 +36,12 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - A importação escreve em `produtos` e `sync_estoque` com a service role, **no servidor**, e só depois de conferir que quem chamou é gerente (`exigirGerente` em cada ação). O navegador nunca recebe a service role.
 - `buscar_produtos` é `security invoker`: respeita a RLS de quem chama. Visitante sem login não executa a função.
 - `/gerencia/*` agora também é barrado no `proxy.ts` com redirect HTTP 307 para quem não é gerente (antes só o layout redirecionava, o que chega como 200 durante o streaming). A barreira real continua sendo a RLS.
+
+## Formulário e anexos (dia 4)
+
+- Criar orçamento e cliente: só em nome próprio (`vendedora_id = auth.uid()`), mesmo para a gerente. O cliente do orçamento tem de ser da mesma vendedora.
+- Envio de anexos: o servidor cria uma **URL assinada de envio** com a sessão da própria vendedora, então a política do Storage vale já na criação. Ela não consegue gerar URL para a pasta de outra pessoa nem para orçamento alheio. O navegador envia o arquivo direto ao Storage com essa URL e depois o servidor confere o arquivo e grava a linha em `anexos`.
+- Leitura de anexos: URLs assinadas de 1 hora geradas no servidor com a sessão da usuária (vendedora só os dela; gerente lê todos, não envia).
+- O limite de 4 anexos e os tipos de arquivo valem no banco e no bucket, não só na tela.
+- `mesclar_respostas` e as ações de editar só funcionam em orçamento `rascunho` da própria vendedora.
+- Testes: `pnpm test:rls` cobre criar em nome da Kely, enviar/ler/apagar arquivo da Kely, 5º anexo, WhatsApp igual em duas vendedoras e tipo de arquivo inválido.

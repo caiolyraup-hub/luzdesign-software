@@ -45,3 +45,26 @@ Somente documentação; o SQL entra no dia 2 (05/11). Nomes em português sem ac
 - `produtos.codigo`: de 1 a 5 dígitos (antes exatamente 5), porque os códigos reais têm 4 e 5 dígitos (`9520`, `12389`). Sem zeros à esquerda.
 - Nova tabela `estoque_mapeamentos` (id, nome, colunas jsonb, criado_em): mapeamento coluna da planilha -> campo, só a gerente lê e escreve. O mais recente pré-preenche a próxima importação.
 - Nova função `buscar_produtos(p_texto, p_categoria, p_marca, p_limite)` (security invoker): busca em código, descrição, marca, categoria e `produto_apelidos` (pg_trgm), só produtos ativos. Ver `docs/estoque.md`.
+
+## Ajustes do dia 4 (`20261107000100_formulario.sql`)
+
+- `clientes`: índice único parcial `(vendedora_id, whatsapp) where whatsapp is not null`. O mesmo número pode existir para Aline e para Kely; repetido na mesma vendedora dá erro `23505`. O cliente nasce só com o nome (rascunho) e ganha o WhatsApp na pergunta 2.
+- `anexos`: novas colunas `nome_original` e `mime_type`; `tipo` obrigatório e restrito a `foto`, `pdf`, `planta` ou `print`.
+- Gatilho `anexos_limite` (antes de inserir): barra o 5º anexo do mesmo orçamento (`Limite de 4 anexos por orçamento.`), com lock para envios simultâneos.
+- Função `mesclar_respostas(p_orcamento, p_patch)` (security invoker): mescla respostas parciais em `orcamentos.respostas` de forma atômica, só em orçamento `rascunho` da própria vendedora.
+- `orcamentos.respostas` ganha a chave `versao` (hoje `1`). Formato completo em `docs/perguntas.md`.
+- Bucket `anexos`: limite de 10 MB por arquivo e só `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif` e `application/pdf`. Caminho `{vendedora_id}/{orcamento_id}/{uuid}.{ext}`.
+
+## Cores dos status (proposta do dia 4)
+
+O `docs/` não definia cores; estas estão em `src/lib/orcamento/status.ts` e valem para o selo de status nas listas:
+
+| Status              | Cor           |
+| ------------------- | ------------- |
+| `rascunho` Rascunho | cinza         |
+| `gerado` Gerado     | azul-céu      |
+| `enviado` Enviado   | índigo        |
+| `followup_d5` D+5   | âmbar         |
+| `followup_d10` D+10 | laranja       |
+| `fechado` Fechado   | verde         |
+| `perdido` Perdido   | rosa/vermelho |

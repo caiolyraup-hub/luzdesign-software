@@ -1,5 +1,5 @@
-import { Placeholder } from "@/components/Placeholder";
+import { Editor } from "@/components/orcamento/Editor";
 
 export default function Page() {
-  return <Placeholder titulo="Novo orçamento" />;
+  return <Editor orcamentoId={null} respostasIniciais={{}} anexosIniciais={[]} passoInicial={1} />;
 }

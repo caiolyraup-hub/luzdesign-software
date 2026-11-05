@@ -7,7 +7,7 @@ Entrega final: 24/11/2026.
 | Qua 04/11 | Fundação do repositório                                                   | Concluído                                                                                                       |
 | Qui 05/11 | Modelo de dados em SQL, RLS, login com 3 contas, ambiente de testes no ar | **Concluído** (banco, RLS e login prontos e testados; testes no ar em https://luzdesign-software.vercel.app)    |
 | Sex 06/11 | Conector de estoque v1 (importação de planilha) e busca de produtos       | **Concluído** (planilha real do estoque ainda pendente; catálogo provisório com 158 produtos dos 37 orçamentos) |
-| Seg 09/11 | Formulário das 10 perguntas e upload de até 4 anexos                      | Pendente                                                                                                        |
+| Seg 09/11 | Formulário das 10 perguntas e upload de até 4 anexos                      | **Concluído** (adiantado em 05/11)                                                                              |
 | Ter 10/11 | Motor de IA com busca no catálogo e preços recalculados no servidor       | Pendente                                                                                                        |
 | Qua 11/11 | Tela de revisão e PDF com o design da Luz Design                          | Pendente                                                                                                        |
 | Qui 12/11 | Teste da IA em 10 orçamentos reais e ajustes                              | Pendente                                                                                                        |
