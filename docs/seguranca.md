@@ -45,3 +45,12 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - O limite de 4 anexos e os tipos de arquivo valem no banco e no bucket, não só na tela.
 - `mesclar_respostas` e as ações de editar só funcionam em orçamento `rascunho` da própria vendedora.
 - Testes: `pnpm test:rls` cobre criar em nome da Kely, enviar/ler/apagar arquivo da Kely, 5º anexo, WhatsApp igual em duas vendedoras e tipo de arquivo inválido.
+
+## Motor de IA (dia 5)
+
+- A IA **não define preço**: ela só escolhe códigos e quantidades; o servidor relê o preço e a descrição em `produtos` e congela no item.
+- As ferramentas da IA (`buscar_produtos`, `detalhar_produto`) rodam com o cliente Supabase da **própria vendedora**, então a RLS vale: a IA nunca enxerga mais do que ela enxergaria.
+- Só o service role escreve e conta em `uso_ia` (a vendedora não lê nem apaga). A service role não monta telas nem grava itens: a gravação dos itens usa a sessão da vendedora.
+- Privacidade: nome, WhatsApp e nome do arquiteto não vão para a OpenAI; telefones, e-mails e o nome do cliente digitados no texto livre são removidos antes do envio. As chamadas usam `store: false` (a resposta não fica guardada na conta; a OpenAI ainda pode reter dados por um período curto para monitoramento de abuso, conforme a política da conta). Anexos (fotos, plantas, PDFs) **são enviados** à OpenAI para leitura.
+- A chave `OPENAI_API_KEY` só existe no servidor (`.env.local` e variáveis da Vercel); nunca vai ao navegador nem ao repositório.
+- Os limites (diário por vendedora e por orçamento) valem no servidor e protegem o custo.

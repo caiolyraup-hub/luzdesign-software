@@ -8,6 +8,7 @@ import {
   resumirResposta,
   type Respostas,
 } from "@/lib/orcamento/perguntas";
+import { MontarComIA } from "./MontarComIA";
 import { PassoAnexos } from "./PassoAnexos";
 
 interface Props {
@@ -16,9 +17,11 @@ interface Props {
   anexos: AnexoView[];
   onAnexos: (anexos: AnexoView[]) => void;
   onEditar: (numero: number) => void;
+  /** Quando a IA montou os itens pela última vez (null = ainda não montou). */
+  montadoEm: string | null;
 }
 
-export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar }: Props) {
+export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar, montadoEm }: Props) {
   const pendentes = PERGUNTAS.filter((p) => !perguntaCompleta(p, respostas));
 
   return (
@@ -71,14 +74,22 @@ export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar }: P
       <PassoAnexos orcamentoId={orcamentoId} anexos={anexos} onMudar={onAnexos} />
 
       <div className="space-y-3">
-        <button
-          type="button"
-          disabled
-          className="min-h-14 w-full rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white opacity-50"
-        >
-          Montar orçamento com IA
-        </button>
-        <p className="text-center text-lg text-zinc-600">Disponível em breve.</p>
+        <MontarComIA
+          orcamentoId={orcamentoId}
+          rotulo={montadoEm ? "Montar de novo com IA" : "Montar orçamento com IA"}
+          desabilitado={pendentes.length > 0}
+          dica={
+            pendentes.length > 0 ? "Responda as perguntas obrigatórias para montar." : undefined
+          }
+        />
+        {montadoEm ? (
+          <Link
+            href={`/orcamentos/${orcamentoId}/itens`}
+            className="flex min-h-14 items-center justify-center rounded-lg border border-amber-700 text-lg font-semibold text-amber-700"
+          >
+            Ver itens montados
+          </Link>
+        ) : null}
         <Link
           href="/orcamentos"
           className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"

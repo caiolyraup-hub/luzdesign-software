@@ -165,8 +165,20 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   await expect(page.getByText("Sala, Cozinha")).toBeVisible();
   await expect(page.getByText("Aceita encomenda (30 a 45 dias úteis)")).toBeVisible();
   await expect(page.getByText("10% à vista combinado.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Montar orçamento com IA" })).toBeDisabled();
-  await expect(page.getByText("Disponível em breve.")).toBeVisible();
+  // Respostas completas: o botão da IA está habilitado (o teste NÃO clica: não chama a API real).
+  await expect(page.getByRole("button", { name: "Montar orçamento com IA" })).toBeEnabled();
+  // Sem itens montados, a tela de itens leva de volta ao resumo.
+  const { data: orcResumo } = await admin
+    .from("orcamentos")
+    .select("id")
+    .eq(
+      "cliente_id",
+      (await admin.from("clientes").select("id").eq("nome", NOME).single()).data!.id,
+    )
+    .single();
+  await page.goto(`/orcamentos/${orcResumo!.id}/itens`);
+  await expect(page).toHaveURL(/\/editar\?passo=12$/);
+  await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fotos e arquivos (1 de 4)" })).toBeVisible();
 
   // Sem rolagem horizontal no celular.
@@ -257,4 +269,16 @@ test("rascunho incompleto volta para a primeira pergunta obrigatória vazia", as
   await page.getByRole("button", { name: "Voltar" }).click();
   await pergunta(page, "Qual é o WhatsApp do cliente?", "2 de 10");
   await expect(page.getByRole("textbox", { name: /whatsapp/i })).toHaveValue("+5582900009997");
+});
+
+test("com respostas faltando, o botão de montar com IA fica desabilitado", async ({ page }) => {
+  await entrar(page);
+  // Rascunho próprio, só com as perguntas 1 e 2 respondidas.
+  await comecar(page, `${NOME_PARCIAL} ia`, "(82) 90000-9996");
+
+  // Abre o resumo direto pelo passo 12, com respostas obrigatórias faltando.
+  await page.goto(`${page.url().split("?")[0]}?passo=12`);
+  await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
+  await expect(page.getByText("Faltam respostas obrigatórias:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Montar orçamento com IA" })).toBeDisabled();
 });

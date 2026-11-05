@@ -13,13 +13,13 @@ Sistema web em que as vendedoras de uma loja de iluminação em Maceió criam or
 
 ## Regra central da IA
 
-A IA só escolhe **códigos de produto e quantidades**. O servidor aplica o preço do catálogo e calcula os totais. Preço e descrição ficam congelados no item quando o PDF é gerado. Item sem código vira "item avulso", com preço manual. Nunca confie em preço, descrição ou total vindos da IA.
+A IA só escolhe **códigos de produto e quantidades** (`src/lib/ia/`, só servidor). O servidor aplica o preço do catálogo e calcula os totais. Preço e descrição ficam congelados no item quando o PDF é gerado. Item sem código vira "item avulso", com preço manual. Nunca confie em preço, descrição ou total vindos da IA.
 
 ## Stack
 
 Next.js (App Router) + TypeScript strict + Tailwind CSS (Vercel); Supabase (Postgres com RLS, Auth, Storage, cron); OpenAI SDK (só no servidor); pnpm, ESLint, Prettier, Vitest.
 
-Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm format`.
+Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm ia:testar` (chama a OpenAI de verdade; custa dinheiro), `pnpm format`.
 
 ## Convenções
 

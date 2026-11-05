@@ -68,3 +68,10 @@ O `docs/` não definia cores; estas estão em `src/lib/orcamento/status.ts` e va
 | `followup_d10` D+10 | laranja       |
 | `fechado` Fechado   | verde         |
 | `perdido` Perdido   | rosa/vermelho |
+
+## Ajustes do dia 5 (`20261108000100_ia.sql`)
+
+- `orcamentos.montado_em` (quando a IA montou os itens pela última vez) e `orcamentos.montagem` jsonb (`geracoes`, `pendencias`, `avisos`, `resumo`, `modelo`).
+- `orcamento_itens.justificativa` (por que a IA escolheu o item) e `orcamento_itens.ordem` (ordem de exibição, ambientes na ordem montada).
+- `uso_ia`: novas colunas `vendedora_id`, `modelo`, `chamadas_ferramenta`, `status` (`em_andamento`, `ok`, `erro`), `erro` e `detalhes` jsonb (anexos enviados, avisos, ferramentas chamadas). Só o service role escreve; só a gerente lê. Os limites diário e por orçamento contam as linhas `ok` (e as `em_andamento` recentes).
+- Função `substituir_itens_orcamento(p_orcamento, p_itens, p_valor_total, p_montagem)` (security invoker): troca os itens de uma vez, numa transação, só em rascunho da própria vendedora.

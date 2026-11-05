@@ -1,11 +1,8 @@
 // Testa buscar_produtos num Postgres local (PGlite) com as migrations reais e auth/storage simulados.
-import fs from "node:fs";
-import path from "node:path";
-import { PGlite } from "@electric-sql/pglite";
-import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
+import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { criarBancoLocal } from "../testes/banco-local";
 
-const pasta = path.resolve(import.meta.dirname, "../../../supabase/migrations");
 let db: PGlite;
 
 async function buscar(
@@ -20,22 +17,7 @@ async function buscar(
 }
 
 beforeAll(async () => {
-  db = new PGlite({ extensions: { pg_trgm } });
-  await db.exec(`
-    create schema extensions; create schema auth; create schema storage;
-    create role anon; create role authenticated; create role service_role bypassrls;
-    create table auth.users (id uuid primary key);
-    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-    create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-    create table storage.objects (id uuid default gen_random_uuid(), bucket_id text, name text);
-    create function storage.foldername(name text) returns text[] language sql as $$ select string_to_array(name, '/') $$;
-    grant usage on schema public, auth, extensions to anon, authenticated, service_role;
-    alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-    alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-  `);
-  for (const arquivo of fs.readdirSync(pasta).sort()) {
-    await db.exec(fs.readFileSync(path.join(pasta, arquivo), "utf8"));
-  }
+  db = await criarBancoLocal();
   await db.exec(`
     insert into produtos (codigo, categoria, marca, descricao, unidade, preco_unitario, ativo) values
       ('9520',  'LED',      'STELLA', 'STELLA DIC 6W 2.7K',        'un', 37, true),

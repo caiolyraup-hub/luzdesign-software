@@ -4,11 +4,14 @@ import type { AnexoView } from "../../acoes";
 import { Editor } from "@/components/orcamento/Editor";
 import { PASSO_RESUMO, primeiroPassoPendente, type Respostas } from "@/lib/orcamento/perguntas";
 import type { TipoAnexo } from "@/lib/orcamento/perguntas";
-import { normalizarWhatsapp } from "@/lib/orcamento/perguntas";
+import { respostasComCliente } from "@/lib/orcamento/respostas";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 const VALIDADE_URL_SEGUNDOS = 3600;
+
+// A montagem com IA roda numa Server Action chamada desta página: precisa de tempo.
+export const maxDuration = 300;
 
 function passoPedido(bruto: string | string[] | undefined): number | null {
   const n = Number(Array.isArray(bruto) ? bruto[0] : bruto);
@@ -27,7 +30,7 @@ async function Carregar({
   const { data: orcamento } = await supabase
     .from("orcamentos")
     .select(
-      "id, vendedora_id, status, respostas, clientes(nome, whatsapp, tipo, arquiteto_indicador)",
+      "id, vendedora_id, status, respostas, montado_em, clientes(nome, whatsapp, tipo, arquiteto_indicador)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -40,12 +43,7 @@ async function Carregar({
 
   // Rascunhos antigos (ou do seed) podem não ter tudo em respostas: completa pelo cadastro do cliente.
   const cliente = Array.isArray(orcamento.clientes) ? orcamento.clientes[0] : orcamento.clientes;
-  const doCliente: Respostas = {};
-  if (cliente?.nome) doCliente.cliente_nome = cliente.nome;
-  if (cliente?.whatsapp && normalizarWhatsapp(cliente.whatsapp)) {
-    doCliente.cliente_whatsapp = normalizarWhatsapp(cliente.whatsapp);
-  }
-  const respostas: Respostas = { ...doCliente, ...(orcamento.respostas as Respostas) };
+  const respostas: Respostas = respostasComCliente(orcamento.respostas as Respostas, cliente);
 
   const { data: linhas } = await supabase
     .from("anexos")
@@ -74,6 +72,7 @@ async function Carregar({
       respostasIniciais={respostas}
       anexosIniciais={anexos}
       passoInicial={passoInicial}
+      montadoEm={orcamento.montado_em}
     />
   );
 }
