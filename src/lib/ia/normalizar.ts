@@ -1,3 +1,4 @@
+import { centavosParaReais, subtotalCentavos } from "../orcamento/totais";
 import type { SaidaIA } from "./esquema";
 
 /** O que o servidor sabe do catálogo (relido do banco, nunca da IA). */
@@ -31,14 +32,8 @@ const QUANTIDADE_MAXIMA = 100_000;
 
 const numeroBR = (n: number) => String(n).replace(".", ",");
 
-/** Subtotal em centavos de preço × quantidade (quantidade pode ter 2 casas, fita por metro). */
-export function subtotalCentavos(preco: number, quantidade: number): number {
-  return Math.round(Math.round(preco * 100) * quantidade);
-}
-
-export function centavosParaReais(centavos: number): number {
-  return centavos / 100;
-}
+// As contas em centavos vivem em lib/orcamento/totais (usadas também pela revisão e pelo PDF).
+export { centavosParaReais, subtotalCentavos };
 
 /** Códigos que a IA citou (para o servidor reler no banco). */
 export function codigosCitados(saida: SaidaIA): string[] {

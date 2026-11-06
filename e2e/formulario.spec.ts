@@ -176,8 +176,11 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
       (await admin.from("clientes").select("id").eq("nome", NOME).single()).data!.id,
     )
     .single();
+  // A tela antiga /itens agora leva para a revisão; depois voltamos ao resumo para seguir o teste.
   await page.goto(`/orcamentos/${orcResumo!.id}/itens`);
-  await expect(page).toHaveURL(/\/editar\?passo=12$/);
+  await expect(page).toHaveURL(/\/revisao$/);
+  await expect(page.getByRole("heading", { name: "Revisão do orçamento" })).toBeVisible();
+  await page.goto(`/orcamentos/${orcResumo!.id}/editar?passo=12`);
   await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fotos e arquivos (1 de 4)" })).toBeVisible();
 

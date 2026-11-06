@@ -75,3 +75,16 @@ O `docs/` não definia cores; estas estão em `src/lib/orcamento/status.ts` e va
 - `orcamento_itens.justificativa` (por que a IA escolheu o item) e `orcamento_itens.ordem` (ordem de exibição, ambientes na ordem montada).
 - `uso_ia`: novas colunas `vendedora_id`, `modelo`, `chamadas_ferramenta`, `status` (`em_andamento`, `ok`, `erro`), `erro` e `detalhes` jsonb (anexos enviados, avisos, ferramentas chamadas). Só o service role escreve; só a gerente lê. Os limites diário e por orçamento contam as linhas `ok` (e as `em_andamento` recentes).
 - Função `substituir_itens_orcamento(p_orcamento, p_itens, p_valor_total, p_montagem)` (security invoker): troca os itens de uma vez, numa transação, só em rascunho da própria vendedora.
+
+## Ajustes do dia 6 (`20261109000100_revisao_pdf.sql` e `20261109000200_gerar_somente_dona.sql`)
+
+- Nova tabela `configuracoes_loja` (uma linha só, `id = true`): nome_fantasia, razao_social, cnpj, endereco, telefone, whatsapp, instagram, site, `validade_dias` (padrão 7), `desconto_avista_pct` (padrão 10) e `linhas_rodape` (uma condição por linha; aceita `{desconto}` e `{validade_dias}`). Todos os logados leem; só a gerente edita (tela `/gerencia/configuracoes`). Telefone, WhatsApp, Instagram e site começam vazios.
+- `orcamentos.pdf_caminho`, `pdf_versao` (0 = ainda sem PDF) e `pdf_versoes` jsonb (`versao`, `caminho`, `gerado_em`, `valor_total` de cada versão). As versões anteriores ficam no Storage.
+- `orcamentos.montagem.ambientes_extras`: ambientes acrescentados à mão na revisão (ficam mesmo sem itens).
+- Função `recalcular_total_orcamento(p_orcamento)`: soma `preço × quantidade` (arredondado por item) e grava `valor_total`; só a dona e só em rascunho ou gerado.
+- Função `gerar_orcamento(p_orcamento, p_pdf_caminho, p_versao, p_total_esperado, p_validade)`: numa transação, relê preço e descrição de `produtos` para os itens com código (item avulso mantém o preço manual), confere que o total é o do PDF, marca `status = 'gerado'`, `gerado_em`, `validade` e guarda o PDF. Recusa: sem itens, avulso com preço 0, produto inativo, versão repetida, caminho fora da pasta da dona e quem não é a dona (inclusive a gerente).
+- Bucket privado `pdfs`, caminho `{vendedora_id}/{orcamento_id}/{numero}-v{versao}.pdf`: a vendedora lê, grava e atualiza na própria pasta (sem apagar); a gerente só lê.
+
+## Revisão: quem pode mudar o quê
+
+Item com código tem preço e descrição **sempre do catálogo**: a tela não edita o preço, e ao gerar o PDF o servidor sobrescreve qualquer valor com o de `produtos`. Só o **item avulso** tem preço e descrição editáveis, e precisa de preço maior que 0 para gerar o PDF. A edição fica liberada em `rascunho` e `gerado`; a partir de `enviado` (dia 8) será bloqueada.

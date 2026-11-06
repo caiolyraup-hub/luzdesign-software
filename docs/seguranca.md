@@ -54,3 +54,10 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - Privacidade: nome, WhatsApp e nome do arquiteto não vão para a OpenAI; telefones, e-mails e o nome do cliente digitados no texto livre são removidos antes do envio. As chamadas usam `store: false` (a resposta não fica guardada na conta; a OpenAI ainda pode reter dados por um período curto para monitoramento de abuso, conforme a política da conta). Anexos (fotos, plantas, PDFs) **são enviados** à OpenAI para leitura.
 - A chave `OPENAI_API_KEY` só existe no servidor (`.env.local` e variáveis da Vercel); nunca vai ao navegador nem ao repositório.
 - Os limites (diário por vendedora e por orçamento) valem no servidor e protegem o custo.
+
+## Revisão e PDF (dia 6)
+
+- Só a **dona** edita itens e gera o PDF (a RLS de `orcamento_itens` e a função `gerar_orcamento` conferem o dono). A gerente **não** gera nem edita orçamento de outra pessoa, mesmo podendo reatribuir (falha encontrada pelos testes e corrigida em `20261109000200`).
+- O preço de item com código nunca vem do navegador: ao gerar, o banco sobrescreve com o de `produtos`, e o total do PDF precisa bater com o calculado no banco (`TOTAL_DIVERGENTE` se um preço mudou no meio).
+- Bucket `pdfs` privado: a vendedora lê e grava na própria pasta (sem apagar versões); a gerente só lê; ninguém mais. Os links de leitura e de download são URLs assinadas de 1 hora geradas no servidor.
+- `configuracoes_loja`: todos leem (o PDF usa); só a gerente edita (RLS) e a tabela só tem uma linha.

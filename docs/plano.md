@@ -9,7 +9,7 @@ Entrega final: 24/11/2026.
 | Sex 06/11 | Conector de estoque v1 (importação de planilha) e busca de produtos       | **Concluído** (planilha real do estoque ainda pendente; catálogo provisório com 158 produtos dos 37 orçamentos) |
 | Seg 09/11 | Formulário das 10 perguntas e upload de até 4 anexos                      | **Concluído** (adiantado em 05/11)                                                                              |
 | Ter 10/11 | Motor de IA com busca no catálogo e preços recalculados no servidor       | **Concluído** (adiantado em 05/11; teste real com a API pendente da chave)                                      |
-| Qua 11/11 | Tela de revisão e PDF com o design da Luz Design                          | Pendente                                                                                                        |
+| Qua 11/11 | Tela de revisão e PDF com o design da Luz Design                          | **Concluído** (adiantado em 06/11; logo da loja ainda pendente)                                                 |
 | Qui 12/11 | Teste da IA em 10 orçamentos reais e ajustes                              | Pendente                                                                                                        |
 | Sex 13/11 | Pipeline de status, follow-up D+5/D+10, motivo de perda                   | Pendente                                                                                                        |
 | Seg 16/11 | Painel da vendedora e painel da gerência                                  | Pendente                                                                                                        |

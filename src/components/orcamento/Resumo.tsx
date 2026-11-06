@@ -84,12 +84,18 @@ export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar, mon
         />
         {montadoEm ? (
           <Link
-            href={`/orcamentos/${orcamentoId}/itens`}
+            href={`/orcamentos/${orcamentoId}/revisao`}
             className="flex min-h-14 items-center justify-center rounded-lg border border-amber-700 text-lg font-semibold text-amber-700"
           >
-            Ver itens montados
+            Revisar itens
           </Link>
         ) : null}
+        <Link
+          href={`/orcamentos/${orcamentoId}/revisao`}
+          className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+        >
+          Montar à mão
+        </Link>
         <Link
           href="/orcamentos"
           className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"

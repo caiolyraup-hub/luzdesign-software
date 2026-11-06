@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "4mb" },
   },
   partialPrefetching: true,
+  // O PDF lê o logo em public/marca dentro da função (a Vercel só inclui o que o rastreio achar).
+  outputFileTracingIncludes: {
+    "/orcamentos/\\[id\\]/revisao": ["./public/marca/**/*"],
+  },
   turbopack: {
     rules: {
       "*.css": {

@@ -51,3 +51,6 @@ supabase/.temp/
 # Playwright
 /test-results/
 /playwright-report/
+
+# PDF de exemplo (visual para conferência)
+/dados/exemplo-orcamento.pdf

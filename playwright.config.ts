@@ -8,6 +8,8 @@ try {
 }
 
 const PORTA = 3210;
+// E2E_BASE_URL aponta o teste para outro endereço (por exemplo, a produção) e dispensa o servidor local.
+const BASE_EXTERNA = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -17,7 +19,7 @@ export default defineConfig({
   workers: 1,
   reporter: [["list"]],
   use: {
-    baseURL: `http://localhost:${PORTA}`,
+    baseURL: BASE_EXTERNA ?? `http://localhost:${PORTA}`,
     // Celular: 390 px de largura (iPhone 12/13/14).
     ...devices["Desktop Chrome"],
     viewport: { width: 390, height: 844 },
@@ -28,10 +30,12 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [{ name: "celular-390", use: {} }],
-  webServer: {
-    command: `pnpm dev --port ${PORTA}`,
-    url: `http://localhost:${PORTA}/login`,
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  webServer: BASE_EXTERNA
+    ? undefined
+    : {
+        command: `pnpm dev --port ${PORTA}`,
+        url: `http://localhost:${PORTA}/login`,
+        reuseExistingServer: true,
+        timeout: 180_000,
+      },
 });

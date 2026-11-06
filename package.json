@@ -2,6 +2,7 @@
   "name": "luz-design-orcamentos",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,12 +13,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "usuarios": "tsx --env-file=.env.local scripts/criar-usuarios.mts",
-    "test:rls": "tsx --env-file=.env.local scripts/testar-isolamento.mts && tsx --conditions=react-server --env-file=.env.local scripts/testar-montagem-ia.mts",
+    "test:rls": "tsx --env-file=.env.local scripts/testar-isolamento.mts && tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/testar-montagem-ia.mts && tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/testar-revisao-pdf.mts",
     "catalogo:provisorio": "tsx --env-file=.env.local scripts/catalogo-provisorio.mts",
     "test:e2e": "playwright test",
-    "ia:testar": "tsx --conditions=react-server --env-file=.env.local scripts/ia-testar.mts"
+    "ia:testar": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/ia-testar.mts",
+    "pdf:exemplo": "tsx --tsconfig tsconfig.scripts.json scripts/exemplo-pdf.mts"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.9.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
     "exceljs": "^4.4.0",

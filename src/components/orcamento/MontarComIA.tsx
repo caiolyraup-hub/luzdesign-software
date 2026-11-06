@@ -54,7 +54,7 @@ export function MontarComIA({ orcamentoId, rotulo, desabilitado, dica, secundari
     setMontando(false);
 
     if (!r.ok) return setErro({ texto: r.erro, podeTentarDeNovo: r.podeTentarDeNovo });
-    router.push(`/orcamentos/${orcamentoId}/itens`);
+    router.push(`/orcamentos/${orcamentoId}/revisao`);
     router.refresh();
   }
 

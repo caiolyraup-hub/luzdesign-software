@@ -19,7 +19,7 @@ A IA só escolhe **códigos de produto e quantidades** (`src/lib/ia/`, só servi
 
 Next.js (App Router) + TypeScript strict + Tailwind CSS (Vercel); Supabase (Postgres com RLS, Auth, Storage, cron); OpenAI SDK (só no servidor); pnpm, ESLint, Prettier, Vitest.
 
-Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm ia:testar` (chama a OpenAI de verdade; custa dinheiro), `pnpm format`.
+Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm ia:testar` (chama a OpenAI de verdade; custa dinheiro), `pnpm pdf:exemplo` (gera `dados/exemplo-orcamento.pdf` para ver o visual), `pnpm format`.
 
 ## Convenções
 
