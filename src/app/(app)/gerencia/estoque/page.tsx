@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Importador } from "./importador";
@@ -15,6 +16,7 @@ interface ErroGravado {
 }
 
 async function UltimaCarga() {
+  await connection(); // a sessão depende da requisição: fora do prerender
   const supabase = await criarClienteServidor();
   const [{ data: carga }, { count: ativos }, { count: total }] = await Promise.all([
     supabase

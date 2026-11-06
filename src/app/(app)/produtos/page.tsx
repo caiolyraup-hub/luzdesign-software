@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { buscarProdutos } from "@/lib/estoque/buscar";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParams">) {
+  await connection(); // a sessão depende da requisição: fora do prerender
   const { q } = await searchParams;
   const texto = (Array.isArray(q) ? q[0] : q) ?? "";
 

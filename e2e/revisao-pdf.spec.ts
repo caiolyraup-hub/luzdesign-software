@@ -171,6 +171,18 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await expect(page.getByText(`Total ${moeda(totalEsperado)}`)).toBeVisible();
   await print(page, "9-revisao-pronta");
 
+  // Preço mudou no estoque: simulamos guardando um preço velho no item (sem mexer no catálogo).
+  await admin
+    .from("orcamento_itens")
+    .update({ preco_unitario_congelado: 1 })
+    .eq("orcamento_id", id)
+    .eq("codigo", "9520");
+  await page.reload();
+  await expect(page.getByText("O preço de 1 item mudou no estoque.")).toBeVisible();
+  await page.getByRole("button", { name: "Atualizar preços" }).click();
+  await expect(page.getByText("O preço de 1 item mudou no estoque.")).toHaveCount(0);
+  await expect(page.getByText(`Total ${moeda(totalEsperado)}`)).toBeVisible();
+
   // Gera o PDF: vai para a tela do orçamento com status Gerado.
   await gerar.click();
   await expect(page).toHaveURL(new RegExp(`/orcamentos/${id}$`), { timeout: 90_000 });

@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { FormularioConfiguracoes, type ConfiguracoesLoja } from "./formulario";
 
 async function Dados() {
+  await connection(); // a sessão depende da requisição: fora do prerender
   const supabase = await criarClienteServidor();
   const { data } = await supabase
     .from("configuracoes_loja")
