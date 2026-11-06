@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -209,6 +210,8 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   const bytes = Buffer.concat(partes);
   expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
   expect(bytes.length).toBeGreaterThan(2000);
+  // Com o logo em public/marca, ele vai embutido no PDF (sem logo o arquivo tem poucos KB).
+  if (existsSync("public/marca/logo.png")) expect(bytes.length).toBeGreaterThan(100_000);
 
   // Editar volta para a revisão (gera nova versão depois).
   await page.getByRole("link", { name: "Editar (gera nova versão)" }).click();

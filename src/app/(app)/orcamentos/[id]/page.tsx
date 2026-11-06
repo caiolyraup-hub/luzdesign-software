@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
+import { PreviaPdf } from "@/components/orcamento/PreviaPdf";
 import { formatarDataBR, formatarDataHora, isoParaBR } from "@/lib/formatar";
 import { montarLinhaDoTempo } from "@/lib/orcamento/linha-do-tempo";
 import { descontoAvistaCentavos, moedaCentavos } from "@/lib/orcamento/totais";
@@ -143,12 +144,8 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
       {temPdf && urlPdf && urlDownload ? (
         <section aria-label="PDF" className="space-y-3">
           <h2 className="text-xl font-semibold">PDF (versão {orc.pdf_versao})</h2>
-          {/* Tela grande: prévia do PDF na página. Celular: o botão abre o leitor nativo do aparelho. */}
-          <iframe
-            src={urlPdf}
-            title={`Prévia do orçamento ${orc.numero}`}
-            className="hidden h-[70vh] w-full rounded-lg border border-zinc-300 md:block"
-          />
+          {/* Tela grande: prévia do PDF na página (montada só no cliente). Celular: o botão abre o leitor do aparelho. */}
+          <PreviaPdf url={urlPdf} titulo={`Prévia do orçamento ${orc.numero}`} />
           <a
             href={urlPdf}
             target="_blank"
