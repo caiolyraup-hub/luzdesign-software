@@ -5,7 +5,7 @@ Sistema web em que as vendedoras de uma loja de iluminação em Maceió criam or
 ## Produto
 
 - Usuários: **Aline** e **Kely** (perfil `vendedora`) e **Gerência** (perfil `gerente`). Cada vendedora só vê os próprios orçamentos e números. A gerente vê todas.
-- Criação do orçamento: a vendedora responde **10 perguntas** (`docs/perguntas.md`) e envia **até 4 anexos** (foto, PDF, planta, print). A IA (**OpenAI GPT 5.6**) monta os itens por ambiente usando o catálogo do estoque. A vendedora revisa e gera um PDF com o design da loja.
+- Criação do orçamento: a vendedora responde **10 perguntas** (`docs/perguntas.md`) e envia **até 4 anexos** (foto, PDF, planta, print). A IA (**OpenAI `gpt-5.6-sol`**, via `OPENAI_MODEL`) monta os itens por ambiente usando o catálogo do estoque. A vendedora revisa e gera um PDF com o design da loja.
 - Status: Rascunho → Gerado → Enviado → Follow-up D+5 → Follow-up D+10 → Fechado | Perdido. Ao marcar Perdido, o motivo é obrigatório: preço, prazo/pronta-entrega, comprou em outra loja, desistiu ou sem resposta.
 - Métricas por vendedora: criados, enviados, conversão em quantidade e em valor, valor vendido, valor que deixou de vender (soma dos perdidos, por motivo), valor em aberto, ticket médio e tempo até fechar.
 - Catálogo: vem do controle de estoque da loja (sistema ainda não identificado). A versão 1 importa planilha XLSX/CSV com mapeamento de colunas salvo.
@@ -19,7 +19,7 @@ A IA só escolhe **códigos de produto e quantidades** (`src/lib/ia/`, só servi
 
 Next.js (App Router) + TypeScript strict + Tailwind CSS (Vercel); Supabase (Postgres com RLS, Auth, Storage, cron); OpenAI SDK (só no servidor); pnpm, ESLint, Prettier, Vitest.
 
-Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm ia:testar` (chama a OpenAI de verdade; custa dinheiro), `pnpm pdf:exemplo` (gera `dados/exemplo-orcamento.pdf` para ver o visual), `pnpm format`.
+Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm ia:testar` (chama a OpenAI de verdade; custa dinheiro), `pnpm ia:avaliar` (10 orçamentos reais contra a API, relatório em `dados/avaliacao/relatorio-ia.md`; cerca de US$ 1,6 por rodada), `pnpm pdf:exemplo` (gera `dados/exemplo-orcamento.pdf` para ver o visual), `pnpm format`.
 
 ## Convenções
 

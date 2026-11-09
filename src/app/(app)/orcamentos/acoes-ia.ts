@@ -3,7 +3,7 @@
 import { criarClienteIA, ErroConfiguracaoIA } from "@/lib/ia/cliente";
 import { lerConfigIA } from "@/lib/ia/config";
 import { criarExecutorFerramentas } from "@/lib/ia/ferramentas";
-import { montarOrcamento } from "@/lib/ia/montar";
+import { montarOrcamento, reescreverAnaliseAmbiente } from "@/lib/ia/montar";
 import { criarRepositorioIA } from "@/lib/ia/repositorio-ia";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -53,6 +53,53 @@ export async function montarComIA(orcamentoId: string): Promise<RespostaMontarIA
     return {
       ok: false,
       erro: "Não foi possível montar o orçamento agora.",
+      podeTentarDeNovo: true,
+    };
+  }
+}
+
+export type RespostaReescrita =
+  | { ok: true; analise: string; anexosUsados: string[] }
+  | { ok: false; erro: string; podeTentarDeNovo: boolean };
+
+/** "Reescrever análise com IA" de um ambiente (conta no limite diário de uso da IA). */
+export async function reescreverAnalise(
+  orcamentoId: string,
+  ambiente: string,
+): Promise<RespostaReescrita> {
+  const usuario = await obterUsuarioAtual();
+  const sessao = await criarClienteServidor();
+  let ia;
+  try {
+    ia = criarClienteIA();
+  } catch (e) {
+    if (e instanceof ErroConfiguracaoIA) {
+      return {
+        ok: false,
+        erro: "A IA ainda não está configurada. Avise a gerência.",
+        podeTentarDeNovo: false,
+      };
+    }
+    throw e;
+  }
+  try {
+    const r = await reescreverAnaliseAmbiente(
+      {
+        repo: criarRepositorioIA(sessao, criarClienteAdmin()),
+        ia,
+        executor: criarExecutorFerramentas(sessao),
+        config: lerConfigIA(),
+      },
+      usuario.id,
+      orcamentoId,
+      ambiente,
+    );
+    if (!r.ok) return { ok: false, erro: r.erro, podeTentarDeNovo: r.podeTentarDeNovo };
+    return { ok: true, analise: r.analise, anexosUsados: r.anexosUsados };
+  } catch {
+    return {
+      ok: false,
+      erro: "Não foi possível reescrever a análise agora.",
       podeTentarDeNovo: true,
     };
   }

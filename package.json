@@ -17,7 +17,8 @@
     "catalogo:provisorio": "tsx --env-file=.env.local scripts/catalogo-provisorio.mts",
     "test:e2e": "playwright test",
     "ia:testar": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/ia-testar.mts",
-    "pdf:exemplo": "tsx --tsconfig tsconfig.scripts.json scripts/exemplo-pdf.mts"
+    "pdf:exemplo": "tsx --tsconfig tsconfig.scripts.json scripts/exemplo-pdf.mts",
+    "ia:avaliar": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/avaliar-ia.mts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

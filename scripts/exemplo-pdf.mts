@@ -5,6 +5,17 @@ import type { ItemRevisao } from "../src/lib/orcamento/itens";
 import { montarDadosPdf } from "../src/lib/pdf/dados";
 import { renderizarPdf } from "../src/lib/pdf/renderizar";
 
+const MOTIVOS: Record<number, string> = {
+  1: "2700 K (luz quente) deixa a sala acolhedora e o facho direcionado destaca os quadros sem ofuscar.",
+  2: "3000 K (luz quente) para a iluminação geral, com boa distribuição no teto.",
+  3: "Ponto de destaque decorativo sobre a mesa; modelo a definir com o cliente.",
+  4: "Fita de 22 W por metro ilumina a bancada de trabalho sem sombras.",
+  5: "Perfil de 2 m protege a fita e dá acabamento limpo embaixo do armário.",
+  6: "Fonte de 48 W atende com folga a carga da fita (1,3 vez).",
+  7: "Luz quente de 2700 K favorece o descanso à noite.",
+  8: "Fonte dimensionada para a carga da fita do quarto.",
+};
+
 const item = (
   n: number,
   ambiente: string,
@@ -23,6 +34,7 @@ const item = (
   ambiente,
   avulso: codigo === null,
   justificativa: null,
+  motivo: MOTIVOS[n] ?? null,
   ordem: n,
   marca,
   unidade,
@@ -68,6 +80,24 @@ const dados = montarDadosPdf({
   vendedora: "Aline",
   itens,
   ambientes: ["Sala", "Cozinha", "Quarto de casal"],
+  analises: [
+    {
+      nome: "Sala",
+      analise:
+        "Com base nas informações do pedido, a sala pede luz geral acolhedora e um ponto de destaque. Sem a medida do ambiente, sugerimos a distribuição abaixo, que pode ser ajustada na visita técnica.",
+    },
+    {
+      nome: "Cozinha",
+      analise:
+        "Na cozinha a prioridade é enxergar bem a bancada. A fita sob o armário, com perfil, entrega luz contínua e sem sombras.",
+    },
+    {
+      nome: "Quarto de casal",
+      analise:
+        "No quarto, luz quente e suave ajuda a relaxar. A fonte foi dimensionada para a fita escolhida.",
+    },
+  ],
+  mostrarAnalise: true,
 });
 
 mkdirSync("dados", { recursive: true });

@@ -1,7 +1,15 @@
 import "server-only";
 import { primeiroPassoPendente, type Respostas } from "../orcamento/perguntas";
 import { estimarCustoUsd, type ConfigIA } from "./config";
-import { schemaSaidaIA, type SaidaIA } from "./esquema";
+import {
+  ESQUEMA_JSON_ANALISE,
+  MAX_ANALISE,
+  schemaAnaliseIA,
+  schemaSaidaIA,
+  type AnaliseIA,
+  type SaidaIA,
+} from "./esquema";
+import { limparTexto, removerReferenciasAAnexos } from "./texto-cliente";
 import type { ExecutorFerramentas } from "./ferramentas";
 import { INSTRUCOES_LOJA, montarTextoAtendimento } from "./instrucoes";
 import { executarMotor, type ClienteIA, type ConteudoEntrada, type ResultadoMotor } from "./motor";
@@ -9,6 +17,7 @@ import {
   centavosParaReais,
   codigosCitados,
   normalizarSaida,
+  type AmbienteMontado,
   type ItemMontado,
   type ProdutoCatalogo,
 } from "./normalizar";
@@ -23,6 +32,7 @@ export interface OrcamentoParaMontar {
 }
 
 export interface AnexoParaIA {
+  id: string;
   tipo: string;
   nome: string;
   mime: string;
@@ -54,7 +64,12 @@ export interface RepositorioIA {
   /** Montagens que contam no limite: ok, mais as em andamento recentes. */
   contarUso(filtro: { vendedoraId?: string; orcamentoId?: string; desde?: Date }): Promise<number>;
   existeEmAndamento(orcamentoId: string, desde: Date): Promise<boolean>;
-  iniciarUso(dados: { orcamentoId: string; vendedoraId: string; modelo: string }): Promise<string>;
+  iniciarUso(dados: {
+    orcamentoId: string;
+    vendedoraId: string;
+    modelo: string;
+    tipo?: "montagem" | "reescrever_analise";
+  }): Promise<string>;
   finalizarUso(id: string, dados: FinalizacaoUso): Promise<void>;
   carregarAnexos(orcamentoId: string): Promise<AnexoParaIA[]>;
   buscarProdutosPorCodigo(codigos: string[]): Promise<Map<string, ProdutoCatalogo>>;
@@ -64,6 +79,19 @@ export interface RepositorioIA {
     itens: ItemMontado[],
     valorTotal: number,
     montagem: MontagemGravada,
+    ambientes: AmbienteMontado[],
+  ): Promise<void>;
+  /** Itens de um ambiente (para reescrever a análise). */
+  itensDoAmbiente(
+    orcamentoId: string,
+    ambiente: string,
+  ): Promise<{ codigo: string | null; descricao: string; quantidade: number }[]>;
+  /** Grava a análise de um ambiente (cria o registro se não existir). */
+  salvarAnalise(
+    orcamentoId: string,
+    ambiente: string,
+    analise: string,
+    anexosUsados: string[],
   ): Promise<void>;
 }
 
@@ -105,6 +133,8 @@ export type ResultadoMontagem =
       tokensSaida: number;
       chamadasFerramenta: number;
       itensMontados: ItemMontado[];
+      ambientesMontados: AmbienteMontado[];
+      anexosEnviados: DetalheAnexoEnviado[];
     }
   | { ok: false; erro: string; motivo: MotivoFalha; podeTentarDeNovo: boolean };
 
@@ -148,6 +178,7 @@ const LIMITE_TOTAL_BYTES = 30 * 1024 * 1024;
 const base64 = (dados: Uint8Array) => Buffer.from(dados).toString("base64");
 
 export interface DetalheAnexoEnviado {
+  id: string;
   nome: string;
   tipo: string;
   enviado_como: "imagem" | "pdf_arquivo" | "pdf_texto" | "ignorado";
@@ -168,6 +199,7 @@ export async function conteudoDosAnexos(
     if (MIME_IMAGEM_IA.includes(a.mime)) {
       if (bytes + a.dados.length > LIMITE_TOTAL_BYTES) {
         detalhes.push({
+          id: a.id,
           nome: a.nome,
           tipo: a.tipo,
           enviado_como: "ignorado",
@@ -176,13 +208,13 @@ export async function conteudoDosAnexos(
         continue;
       }
       bytes += a.dados.length;
-      conteudo.push({ type: "input_text", text: `Anexo (${a.tipo}): ${a.nome}` });
+      conteudo.push({ type: "input_text", text: `Anexo id=${a.id} (${a.tipo}): ${a.nome}` });
       conteudo.push({
         type: "input_image",
         image_url: `data:${a.mime};base64,${base64(a.dados)}`,
         detail: "auto",
       });
-      detalhes.push({ nome: a.nome, tipo: a.tipo, enviado_como: "imagem" });
+      detalhes.push({ id: a.id, nome: a.nome, tipo: a.tipo, enviado_como: "imagem" });
     } else if (a.mime === "application/pdf") {
       if (pdfComoTexto) {
         try {
@@ -190,11 +222,12 @@ export async function conteudoDosAnexos(
           if (texto) {
             conteudo.push({
               type: "input_text",
-              text: `Texto do PDF anexo (${a.tipo}) ${a.nome}:\n${texto}`,
+              text: `Texto do PDF anexo id=${a.id} (${a.tipo}) ${a.nome}:\n${texto}`,
             });
-            detalhes.push({ nome: a.nome, tipo: a.tipo, enviado_como: "pdf_texto" });
+            detalhes.push({ id: a.id, nome: a.nome, tipo: a.tipo, enviado_como: "pdf_texto" });
           } else {
             detalhes.push({
+              id: a.id,
               nome: a.nome,
               tipo: a.tipo,
               enviado_como: "ignorado",
@@ -203,6 +236,7 @@ export async function conteudoDosAnexos(
           }
         } catch {
           detalhes.push({
+            id: a.id,
             nome: a.nome,
             tipo: a.tipo,
             enviado_como: "ignorado",
@@ -211,6 +245,7 @@ export async function conteudoDosAnexos(
         }
       } else if (bytes + a.dados.length > LIMITE_TOTAL_BYTES) {
         detalhes.push({
+          id: a.id,
           nome: a.nome,
           tipo: a.tipo,
           enviado_como: "ignorado",
@@ -218,16 +253,17 @@ export async function conteudoDosAnexos(
         });
       } else {
         bytes += a.dados.length;
-        conteudo.push({ type: "input_text", text: `Anexo (${a.tipo}): ${a.nome}` });
+        conteudo.push({ type: "input_text", text: `Anexo id=${a.id} (${a.tipo}): ${a.nome}` });
         conteudo.push({
           type: "input_file",
           filename: a.nome.endsWith(".pdf") ? a.nome : `${a.nome}.pdf`,
           file_data: `data:application/pdf;base64,${base64(a.dados)}`,
         });
-        detalhes.push({ nome: a.nome, tipo: a.tipo, enviado_como: "pdf_arquivo" });
+        detalhes.push({ id: a.id, nome: a.nome, tipo: a.tipo, enviado_como: "pdf_arquivo" });
       }
     } else {
       detalhes.push({
+        id: a.id,
         nome: a.nome,
         tipo: a.tipo,
         enviado_como: "ignorado",
@@ -366,7 +402,8 @@ export async function montarOrcamento(
     }
 
     const catalogo = await repo.buscarProdutosPorCodigo(codigosCitados(saida));
-    const normalizado = normalizarSaida(saida, catalogo);
+    const idsAnexos = anexosEnviados.filter((d) => d.enviado_como !== "ignorado").map((d) => d.id);
+    const normalizado = normalizarSaida(saida, catalogo, idsAnexos);
     if (normalizado.itens.length === 0) {
       throw new Error("Resposta inválida da IA: nenhum item aproveitável.");
     }
@@ -385,6 +422,7 @@ export async function montarOrcamento(
       normalizado.itens,
       centavosParaReais(normalizado.totalCentavos),
       montagem,
+      normalizado.ambientes,
     );
 
     const { custo, conhecido } = estimarCustoUsd(config, motor.tokensEntrada, motor.tokensSaida);
@@ -422,8 +460,147 @@ export async function montarOrcamento(
       tokensSaida: motor.tokensSaida,
       chamadasFerramenta: motor.chamadasFerramenta,
       itensMontados: normalizado.itens,
+      ambientesMontados: normalizado.ambientes,
+      anexosEnviados,
     };
   } catch (e) {
     return terminarComErro(e);
+  }
+}
+
+// ---------------------------------------------------------------- reescrever a análise de um ambiente
+
+export type ResultadoReescrita =
+  | { ok: true; analise: string; anexosUsados: string[]; custoUsd: number }
+  | { ok: false; erro: string; motivo: MotivoFalha; podeTentarDeNovo: boolean };
+
+/**
+ * "Reescrever análise com IA" de um ambiente: a IA relê o atendimento, os anexos e os itens que a
+ * vendedora deixou naquele ambiente e escreve só a análise (sem ferramentas). Conta no limite
+ * diário (não nas montagens do orçamento). Erro da API não grava nada.
+ */
+export async function reescreverAnaliseAmbiente(
+  deps: DepsMontar,
+  usuarioId: string,
+  orcamentoId: string,
+  ambiente: string,
+): Promise<ResultadoReescrita> {
+  const { repo, config } = deps;
+  const agora = (deps.agora ?? (() => new Date()))();
+  const t0 = Date.now();
+  const falhaR = (
+    motivo: MotivoFalha,
+    erro: string,
+    podeTentarDeNovo = false,
+  ): ResultadoReescrita => ({
+    ok: false,
+    erro,
+    motivo,
+    podeTentarDeNovo,
+  });
+
+  const orcamento = await repo.carregarOrcamento(orcamentoId);
+  if (!orcamento || orcamento.vendedora_id !== usuarioId)
+    return falhaR("nao_encontrado", "Orçamento não encontrado.");
+  if (orcamento.status !== "rascunho" && orcamento.status !== "gerado") {
+    return falhaR("nao_rascunho", "Este orçamento não pode mais ser alterado.");
+  }
+  const usoDoDia = await repo.contarUso({
+    vendedoraId: usuarioId,
+    desde: inicioDoDiaMaceio(agora),
+  });
+  if (usoDoDia >= config.limiteDiario) {
+    return falhaR(
+      "limite_diario",
+      `Você chegou ao limite de ${config.limiteDiario} usos da IA hoje. Volte amanhã ou fale com a gerência.`,
+    );
+  }
+  const itens = await repo.itensDoAmbiente(orcamentoId, ambiente);
+  if (itens.length === 0)
+    return falhaR(
+      "respostas_incompletas",
+      "Adicione itens neste ambiente antes de pedir a análise.",
+    );
+
+  const usoId = await repo.iniciarUso({
+    orcamentoId,
+    vendedoraId: usuarioId,
+    modelo: config.modelo,
+    tipo: "reescrever_analise",
+  });
+  let motor: ResultadoMotor | null = null;
+  let anexosEnviados: DetalheAnexoEnviado[] = [];
+  try {
+    const anexos = await repo.carregarAnexos(orcamentoId);
+    const extrair = deps.extrairTextoPdf ?? extrairTextoPdfPadrao;
+    const { conteudo, detalhes } = await conteudoDosAnexos(anexos, false, extrair);
+    anexosEnviados = detalhes;
+    const lista = itens
+      .map(
+        (i) =>
+          `- ${i.quantidade} x ${i.descricao}${i.codigo ? ` (cód. ${i.codigo})` : " (item avulso)"}`,
+      )
+      .join("\n");
+    const tarefa =
+      `${montarTextoAtendimento(orcamento.respostas)}\n\n` +
+      `TAREFA: reescreva SOMENTE a análise do ambiente "${ambiente}" (analise_ambiente) e informe em anexos_usados os ids dos anexos que a embasaram. ` +
+      `Itens já escolhidos neste ambiente:\n${lista}`;
+
+    motor = await executarMotor({
+      cliente: deps.ia,
+      modelo: config.modelo,
+      instrucoes: INSTRUCOES_LOJA,
+      conteudo: [{ type: "input_text", text: tarefa }, ...conteudo],
+      executor: deps.executor,
+      maxRodadas: 0,
+      raciocinio: config.raciocinio,
+      timeoutMs: config.timeoutChamadaMs,
+      esquema: ESQUEMA_JSON_ANALISE,
+      usarFerramentas: false,
+    });
+
+    let saida: AnaliseIA;
+    try {
+      saida = schemaAnaliseIA.parse(JSON.parse(motor.textoFinal));
+    } catch {
+      throw new Error("Resposta inválida da IA (esquema).");
+    }
+    const ids = anexosEnviados.filter((d) => d.enviado_como !== "ignorado").map((d) => d.id);
+    const usados = [...new Set(saida.anexos_usados)].filter((id) => ids.includes(id));
+    let analise = limparTexto(saida.analise_ambiente, MAX_ANALISE);
+    if (usados.length === 0) analise = removerReferenciasAAnexos(analise).texto;
+    if (!analise) throw new Error("Resposta inválida da IA: análise vazia.");
+
+    await repo.salvarAnalise(orcamentoId, ambiente, analise, usados);
+    const { custo, conhecido } = estimarCustoUsd(config, motor.tokensEntrada, motor.tokensSaida);
+    await repo.finalizarUso(usoId, {
+      status: "ok",
+      tokens_entrada: motor.tokensEntrada,
+      tokens_saida: motor.tokensSaida,
+      custo_estimado: custo,
+      duracao_ms: Date.now() - t0,
+      chamadas_ferramenta: 0,
+      detalhes: {
+        tipo: "reescrever_analise",
+        ambiente,
+        anexos: anexosEnviados,
+        custo_conhecido: conhecido,
+      },
+    });
+    return { ok: true, analise, anexosUsados: usados, custoUsd: custo };
+  } catch (e) {
+    await repo
+      .finalizarUso(usoId, {
+        status: "erro",
+        tokens_entrada: motor?.tokensEntrada ?? 0,
+        tokens_saida: motor?.tokensSaida ?? 0,
+        custo_estimado: 0,
+        duracao_ms: Date.now() - t0,
+        chamadas_ferramenta: 0,
+        erro: (e instanceof Error ? e.message : String(e)).slice(0, 500),
+        detalhes: { tipo: "reescrever_analise", ambiente },
+      })
+      .catch(() => undefined);
+    return falhaR("ia", mensagemAmigavelErro(e), true);
   }
 }

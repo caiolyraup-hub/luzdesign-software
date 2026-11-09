@@ -10,7 +10,10 @@ import {
   adicionarProduto,
   alterarAvulso,
   alterarQuantidade,
+  alternarMostrarAnalise,
   atualizarPrecos,
+  salvarAnalise,
+  salvarMotivo,
   mudarAmbiente,
   removerItem,
   restaurarItem,
@@ -24,6 +27,7 @@ import { MontarComIA } from "@/components/orcamento/MontarComIA";
 import type { ProdutoBusca } from "@/lib/estoque/buscar";
 import { agruparPorAmbiente, itensComPrecoMudado, nomeAmbienteValido } from "@/lib/orcamento/itens";
 import { moedaCentavos, motivosBloqueioGerar, totaisDoOrcamento } from "@/lib/orcamento/totais";
+import { AnaliseAmbiente } from "./AnaliseAmbiente";
 import { BuscaProduto } from "./BuscaProduto";
 import { ItemCard } from "./ItemCard";
 
@@ -53,6 +57,8 @@ export function Revisao(p: Props) {
   const router = useRouter();
   const [itens, setItens] = useState(p.estadoInicial.itens);
   const [extras, setExtras] = useState(p.estadoInicial.ambientesExtras);
+  const [analises, setAnalises] = useState(p.estadoInicial.analises);
+  const [mostrarAnalise, setMostrarAnalise] = useState(p.estadoInicial.mostrarAnalise);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [busca, setBusca] = useState<ModoBusca | null>(null);
@@ -72,6 +78,8 @@ export function Revisao(p: Props) {
   function aplicar(e: EstadoRevisao) {
     setItens(e.itens);
     setExtras(e.ambientesExtras);
+    setAnalises(e.analises);
+    setMostrarAnalise(e.mostrarAnalise);
   }
 
   async function enviar(acao: () => Promise<RespostaRevisao | RespostaRemocao>) {
@@ -204,6 +212,19 @@ export function Revisao(p: Props) {
         </p>
       ) : null}
 
+      <label className="flex min-h-12 items-center gap-3 rounded-lg border border-zinc-300 p-3 text-lg">
+        <input
+          type="checkbox"
+          checked={mostrarAnalise}
+          onChange={(e) => {
+            setMostrarAnalise(e.target.checked);
+            void enviar(() => alternarMostrarAnalise(p.orcamentoId, e.target.checked));
+          }}
+          className="size-6"
+        />
+        Mostrar análise e motivos no PDF
+      </label>
+
       {p.resumoIA ? (
         <p className="rounded-lg bg-zinc-50 p-4 text-lg whitespace-pre-wrap">{p.resumoIA}</p>
       ) : null}
@@ -268,6 +289,22 @@ export function Revisao(p: Props) {
       {grupos.map((g) => (
         <section key={g.nome} aria-label={g.nome} className="space-y-3">
           <h2 className="text-xl font-semibold">{g.nome}</h2>
+          <AnaliseAmbiente
+            orcamentoId={p.orcamentoId}
+            ambiente={g.nome}
+            analise={
+              analises.find((a) => a.nome.toLowerCase() === g.nome.toLowerCase())?.analise ?? ""
+            }
+            temItens={g.itens.length > 0}
+            noPdf={mostrarAnalise}
+            onSalvar={(texto) => void enviar(() => salvarAnalise(p.orcamentoId, g.nome, texto))}
+            onReescrita={(texto) =>
+              setAnalises((atual) => [
+                ...atual.filter((a) => a.nome.toLowerCase() !== g.nome.toLowerCase()),
+                { nome: g.nome, analise: texto, anexosUsados: [] },
+              ])
+            }
+          />
           {g.itens.length > 0 ? (
             <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
               {g.itens.map((i) => (
@@ -282,6 +319,7 @@ export function Revisao(p: Props) {
                   onAvulso={(campos) =>
                     void enviar(() => alterarAvulso(p.orcamentoId, i.id, campos))
                   }
+                  onMotivo={(texto) => void enviar(() => salvarMotivo(p.orcamentoId, i.id, texto))}
                 />
               ))}
             </ul>

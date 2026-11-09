@@ -9,7 +9,7 @@ import type {
   OrcamentoParaMontar,
   RepositorioIA,
 } from "./montar";
-import type { ItemMontado } from "./normalizar";
+import type { AmbienteMontado, ItemMontado } from "./normalizar";
 
 function checar(contexto: string, erro: { message: string } | null) {
   if (erro) throw new Error(`${contexto}: ${erro.message}`);
@@ -44,7 +44,8 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
         .select("id", { count: "exact", head: true })
         .or(`status.eq.ok,and(status.eq.em_andamento,criado_em.gte.${recente})`);
       if (vendedoraId) q = q.eq("vendedora_id", vendedoraId);
-      if (orcamentoId) q = q.eq("orcamento_id", orcamentoId);
+      // As montagens do orçamento não contam as reescritas de análise (essas só entram no limite diário).
+      if (orcamentoId) q = q.eq("orcamento_id", orcamentoId).eq("tipo", "montagem");
       if (desde) q = q.gte("criado_em", desde.toISOString());
       const { count, error } = await q;
       checar("Contar uso da IA", error);
@@ -62,7 +63,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
       return (count ?? 0) > 0;
     },
 
-    async iniciarUso({ orcamentoId, vendedoraId, modelo }) {
+    async iniciarUso({ orcamentoId, vendedoraId, modelo, tipo = "montagem" }) {
       const { data, error } = await admin
         .from("uso_ia")
         .insert({
@@ -70,6 +71,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
           vendedora_id: vendedoraId,
           modelo,
           status: "em_andamento",
+          tipo,
         })
         .select("id")
         .single();
@@ -85,7 +87,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
     async carregarAnexos(orcamentoId): Promise<AnexoParaIA[]> {
       const { data, error } = await sessao
         .from("anexos")
-        .select("tipo, nome_original, mime_type, caminho_storage")
+        .select("id, tipo, nome_original, mime_type, caminho_storage")
         .eq("orcamento_id", orcamentoId)
         .order("criado_em");
       checar("Ler anexos", error);
@@ -97,6 +99,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
           .download(a.caminho_storage);
         if (erroArquivo || !arquivo) continue; // anexo ilegível não derruba a montagem
         resultado.push({
+          id: a.id,
           tipo: a.tipo,
           nome: a.nome_original ?? "anexo",
           mime: a.mime_type ?? arquivo.type,
@@ -131,14 +134,55 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
       itens: ItemMontado[],
       valorTotal: number,
       montagem: MontagemGravada,
+      ambientes: AmbienteMontado[],
     ) {
       const { error } = await sessao.rpc("substituir_itens_orcamento", {
         p_orcamento: orcamentoId,
         p_itens: itens,
         p_valor_total: valorTotal,
         p_montagem: montagem,
+        p_ambientes: ambientes,
       });
       checar("Gravar itens do orçamento", error);
+    },
+
+    async itensDoAmbiente(orcamentoId, ambiente) {
+      const { data, error } = await sessao
+        .from("orcamento_itens")
+        .select("codigo, descricao_congelada, quantidade, ambiente")
+        .eq("orcamento_id", orcamentoId)
+        .order("ordem");
+      checar("Ler itens do ambiente", error);
+      return (data ?? [])
+        .filter((i) => (i.ambiente ?? "").trim().toLowerCase() === ambiente.trim().toLowerCase())
+        .map((i) => ({
+          codigo: i.codigo,
+          descricao: i.descricao_congelada,
+          quantidade: Number(i.quantidade),
+        }));
+    },
+
+    async salvarAnalise(orcamentoId, ambiente, analise, anexosUsados) {
+      const { data: existentes } = await sessao
+        .from("orcamento_ambientes")
+        .select("id, nome")
+        .eq("orcamento_id", orcamentoId);
+      const atual = (existentes ?? []).find(
+        (a) => a.nome.trim().toLowerCase() === ambiente.trim().toLowerCase(),
+      );
+      const { error } = atual
+        ? await sessao
+            .from("orcamento_ambientes")
+            .update({ analise, anexos_usados: anexosUsados })
+            .eq("id", atual.id)
+        : await sessao.from("orcamento_ambientes").insert({
+            orcamento_id: orcamentoId,
+            nome: ambiente,
+            ordem: (existentes ?? []).length,
+            analise,
+            anexos_usados: anexosUsados,
+          });
+      checar("Salvar análise do ambiente", error);
     },
   };
 }

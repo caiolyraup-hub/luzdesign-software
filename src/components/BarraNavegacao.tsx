@@ -14,7 +14,7 @@ const ITENS_VENDEDORA = [
 
 const ITENS_GERENTE = [
   { href: "/", rotulo: "Início" },
-  { href: "/gerencia", rotulo: "Painel" },
+  { href: "/gerencia", rotulo: "Equipe" },
   { href: "/gerencia/estoque", rotulo: "Estoque" },
   { href: "/produtos", rotulo: "Produtos" },
   { href: "/gerencia/configuracoes", rotulo: "Ajustes" },

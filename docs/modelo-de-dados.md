@@ -88,3 +88,10 @@ O `docs/` não definia cores; estas estão em `src/lib/orcamento/status.ts` e va
 ## Revisão: quem pode mudar o quê
 
 Item com código tem preço e descrição **sempre do catálogo**: a tela não edita o preço, e ao gerar o PDF o servidor sobrescreve qualquer valor com o de `produtos`. Só o **item avulso** tem preço e descrição editáveis, e precisa de preço maior que 0 para gerar o PDF. A edição fica liberada em `rascunho` e `gerado`; a partir de `enviado` (dia 8) será bloqueada.
+
+## Ajustes do dia 7 (`20261110000100_status.sql` e `20261110000200_analise.sql`)
+
+- `orcamentos.status_em` (quando o status mudou) e a função `mudar_status_orcamento` (a dona muda; transições e motivo de perda obrigatório validados no banco; cada mudança gera evento). Status: rascunho, gerado, enviado, followup_d5, followup_d10, fechado, perdido.
+- Nova tabela `orcamento_ambientes` (`orcamento_id`, `nome`, `ordem`, `analise`, `anexos_usados`, único por orçamento e nome sem diferenciar maiúsculas). RLS como `orcamento_itens`: a dona lê e escreve; a gerente só lê; visitante nada.
+- `orcamento_itens.motivo_cliente` (texto para o cliente; a `justificativa` continua interna) e `orcamentos.mostrar_analise_pdf` (padrão verdadeiro).
+- `uso_ia.tipo` (montagem ou reescrita de análise) e nova versão de `substituir_itens_orcamento`, que também grava os ambientes e as análises.

@@ -5,7 +5,13 @@ import { carregarItensRevisao } from "../orcamento/carregar-itens";
 import { ambientesDasRespostas, type ItemRevisao } from "../orcamento/itens";
 import type { Respostas } from "../orcamento/perguntas";
 import { motivosBloqueioGerar, totaisDoOrcamento } from "../orcamento/totais";
-import { montarDadosPdf, type ConfigPdf, type DadosPdf, type LojaPdf } from "./dados";
+import {
+  montarDadosPdf,
+  type AnaliseAmbiente,
+  type ConfigPdf,
+  type DadosPdf,
+  type LojaPdf,
+} from "./dados";
 
 export interface DepsGerarPdf {
   /** Cliente Supabase da PRÓPRIA vendedora: a RLS vale (orçamento, itens, Storage). */
@@ -68,6 +74,7 @@ interface LinhaOrcamento {
   vendedora_id: string;
   status: string;
   pdf_versao: number;
+  mostrar_analise_pdf: boolean;
   respostas: Respostas | null;
   montagem: { ambientes_extras?: string[] } | null;
   clientes:
@@ -101,7 +108,7 @@ export async function gerarPdfOrcamento(
   const { data: orc } = await sessao
     .from("orcamentos")
     .select(
-      "id, numero, vendedora_id, status, pdf_versao, respostas, montagem, clientes(nome, whatsapp, arquiteto_indicador)",
+      "id, numero, vendedora_id, status, pdf_versao, mostrar_analise_pdf, respostas, montagem, clientes(nome, whatsapp, arquiteto_indicador)",
     )
     .eq("id", orcamentoId)
     .maybeSingle();
@@ -156,7 +163,11 @@ export async function gerarPdfOrcamento(
     ...(o.montagem?.ambientes_extras ?? []),
   ];
 
+  const analises = o.mostrar_analise_pdf ? await carregarAnalises(sessao, orcamentoId) : [];
+
   const dados = montarDadosPdf({
+    analises,
+    mostrarAnalise: o.mostrar_analise_pdf,
     loja,
     config,
     numero: o.numero,
@@ -207,4 +218,50 @@ export async function gerarPdfOrcamento(
     ).aVistaCentavos,
     validade,
   };
+}
+
+/** Análises dos ambientes (texto) e, quando a análise se baseou numa foto, a miniatura dela. */
+async function carregarAnalises(
+  sessao: SupabaseClient,
+  orcamentoId: string,
+): Promise<AnaliseAmbiente[]> {
+  const { data: ambientes } = await sessao
+    .from("orcamento_ambientes")
+    .select("nome, analise, anexos_usados")
+    .eq("orcamento_id", orcamentoId)
+    .order("ordem");
+  const lista = (ambientes ?? []) as {
+    nome: string;
+    analise: string | null;
+    anexos_usados: string[] | null;
+  }[];
+
+  const ids = [...new Set(lista.flatMap((a) => a.anexos_usados ?? []))];
+  const anexos = new Map<string, { mime_type: string | null; caminho_storage: string }>();
+  if (ids.length > 0) {
+    const { data } = await sessao
+      .from("anexos")
+      .select("id, mime_type, caminho_storage")
+      .in("id", ids);
+    for (const a of data ?? []) anexos.set(a.id, a);
+  }
+
+  const resultado: AnaliseAmbiente[] = [];
+  for (const a of lista) {
+    // No máximo uma miniatura por ambiente: a primeira foto (JPG ou PNG) usada na análise. PDF não vira miniatura.
+    const foto = (a.anexos_usados ?? [])
+      .map((id) => ({ id, ...anexos.get(id) }))
+      .find((x) => x.mime_type === "image/jpeg" || x.mime_type === "image/png");
+    let miniatura: AnaliseAmbiente["miniatura"] = null;
+    if (foto?.caminho_storage) {
+      const { data } = await sessao.storage.from("anexos").download(foto.caminho_storage);
+      if (data)
+        miniatura = {
+          data: new Uint8Array(await data.arrayBuffer()),
+          format: foto.mime_type === "image/png" ? "png" : "jpg",
+        };
+    }
+    resultado.push({ nome: a.nome, analise: a.analise, miniatura });
+  }
+  return resultado;
 }

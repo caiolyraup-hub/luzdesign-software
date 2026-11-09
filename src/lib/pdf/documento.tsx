@@ -76,6 +76,31 @@ const estilos = StyleSheet.create({
   subtotal: { flexDirection: "row", justifyContent: "flex-end", paddingTop: 5, fontSize: 9 },
   subtotalRotulo: { color: COR_TEXTO_SUAVE, marginRight: 8 },
   subtotalValor: { fontFamily: "Helvetica-Bold" },
+  // Análise do ambiente e motivo do produto
+  analise: {
+    flexDirection: "row",
+    backgroundColor: COR_DESTAQUE_SUAVE,
+    padding: 8,
+    borderRadius: 3,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  analiseTexto: { flex: 1, fontSize: 9, lineHeight: 1.45 },
+  analiseRotulo: {
+    fontSize: 7.5,
+    letterSpacing: 1,
+    color: COR_DESTAQUE,
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  miniatura: { width: 72, height: 54, objectFit: "cover", borderRadius: 2, marginLeft: 8 },
+  motivo: {
+    fontFamily: "Helvetica-Oblique",
+    fontSize: 8,
+    color: COR_TEXTO_SUAVE,
+    marginTop: 2,
+    lineHeight: 1.35,
+  },
   // Totais
   totais: { marginTop: 6, alignSelf: "flex-end", width: 260 },
   linhaTotal: {
@@ -209,8 +234,26 @@ export function DocumentoOrcamento({ dados, logo }: { dados: DadosPdf; logo: Log
         {dados.ambientes.map((ambiente) => (
           <View key={ambiente.nome} style={estilos.ambiente}>
             {/* Título + cabeçalho da tabela + 1ª linha nunca ficam sozinhos no pé da página. */}
-            <View wrap={false} minPresenceAhead={70}>
+            <View wrap={false} minPresenceAhead={ambiente.analise ? 150 : 70}>
               <Text style={estilos.tituloAmbiente}>{ambiente.nome}</Text>
+              {ambiente.analise ? (
+                <View style={estilos.analise}>
+                  <View style={estilos.analiseTexto}>
+                    <Text style={estilos.analiseRotulo}>Análise do ambiente</Text>
+                    <Text>{ambiente.analise}</Text>
+                  </View>
+                  {ambiente.miniatura ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text -- o Image do react-pdf não tem alt
+                    <Image
+                      src={{
+                        data: Buffer.from(ambiente.miniatura.data),
+                        format: ambiente.miniatura.format,
+                      }}
+                      style={estilos.miniatura}
+                    />
+                  ) : null}
+                </View>
+              ) : null}
               <View style={estilos.cabecaTabela}>
                 <Text style={estilos.colQtd}>Qtd</Text>
                 <Text style={estilos.colCodigo}>Código</Text>
@@ -226,6 +269,7 @@ export function DocumentoOrcamento({ dados, logo }: { dados: DadosPdf; logo: Log
                 <View style={estilos.colDescricao}>
                   <Text>{item.descricao}</Text>
                   {item.marca ? <Text style={estilos.marcaItem}>{item.marca}</Text> : null}
+                  {item.motivo ? <Text style={estilos.motivo}>{item.motivo}</Text> : null}
                 </View>
                 <Text style={estilos.colUnit}>{moedaCentavos(item.precoCentavos)}</Text>
                 <Text style={estilos.colTotal}>{moedaCentavos(item.totalCentavos)}</Text>

@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemRevisao } from "./itens";
 
 export const SELECT_ITENS =
-  "id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, justificativa, ordem, produtos(marca, unidade, ativo, preco_unitario, descricao)";
+  "id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, justificativa, motivo_cliente, ordem, produtos(marca, unidade, ativo, preco_unitario, descricao)";
 
 interface ProdutoJunto {
   marca: string | null;
@@ -21,6 +21,7 @@ export interface LinhaItem {
   ambiente: string | null;
   avulso: boolean;
   justificativa: string | null;
+  motivo_cliente: string | null;
   ordem: number;
   produtos: ProdutoJunto | ProdutoJunto[] | null;
 }
@@ -36,6 +37,7 @@ export function paraItemRevisao(l: LinhaItem): ItemRevisao {
     ambiente: l.ambiente?.trim() || "Geral",
     avulso: l.avulso,
     justificativa: l.justificativa,
+    motivo: l.motivo_cliente,
     ordem: l.ordem,
     marca: produto?.marca ?? null,
     unidade: l.avulso ? "un" : (produto?.unidade ?? "un"),

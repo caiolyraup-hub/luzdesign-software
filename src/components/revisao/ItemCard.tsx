@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ItemRevisao } from "@/lib/orcamento/itens";
 import { moedaCentavos, moedaSimples, subtotalCentavos } from "@/lib/orcamento/totais";
+import { MAX_MOTIVO } from "@/lib/ia/esquema";
 import { CampoQuantidade } from "./CampoQuantidade";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   onMudarAmbiente: (ambiente: string) => void;
   onRemover: () => void;
   onAvulso: (campos: { descricao?: string; preco?: number }) => void;
+  onMotivo: (texto: string) => void;
 }
 
 const botaoAcao = "min-h-11 rounded-lg border border-zinc-300 px-3 text-base";
@@ -25,7 +27,9 @@ export function ItemCard({
   onMudarAmbiente,
   onRemover,
   onAvulso,
+  onMotivo,
 }: Props) {
+  const [motivo, setMotivo] = useState<string | null>(null);
   const [mudandoAmbiente, setMudandoAmbiente] = useState(false);
   const [novoAmbiente, setNovoAmbiente] = useState("");
   const [preco, setPreco] = useState<string | null>(null);
@@ -118,6 +122,28 @@ export function ItemCard({
           )}
         </div>
       </div>
+
+      <label className="block space-y-1">
+        <span className="text-base font-medium text-zinc-700">Motivo para o cliente</span>
+        <input
+          type="text"
+          maxLength={MAX_MOTIVO}
+          value={motivo ?? item.motivo ?? ""}
+          placeholder="Por que este produto neste ambiente (opcional)"
+          aria-label={`Motivo para o cliente de ${rotulo}`}
+          onChange={(e) => setMotivo(e.target.value)}
+          onBlur={() => {
+            if (motivo === null) return;
+            const novo = motivo;
+            setMotivo(null);
+            if (novo.trim() !== (item.motivo ?? "").trim()) onMotivo(novo);
+          }}
+          className="min-h-11 w-full rounded-lg border border-zinc-300 px-3 text-base"
+        />
+        <span className="block text-right text-base text-zinc-500">
+          {(motivo ?? item.motivo ?? "").length}/{MAX_MOTIVO}
+        </span>
+      </label>
 
       {item.justificativa ? (
         <details className="text-base text-zinc-700">

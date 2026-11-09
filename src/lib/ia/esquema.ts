@@ -1,8 +1,12 @@
 import { z } from "zod";
 
+/** Limites dos textos para o cliente (a vendedora pode editar na revisão). */
+export const MAX_MOTIVO = 160;
+export const MAX_ANALISE = 600;
+
 /**
  * Saída estruturada da IA (structured outputs, strict). Todos os campos são obrigatórios
- * (a API exige); "não se aplica" vai como null. Não há campo de preço: a IA não define preço.
+ * (a API exige); "não se aplica" vai como null ou lista vazia. Não há campo de preço: a IA não define preço.
  */
 export const ESQUEMA_JSON_SAIDA = {
   type: "object",
@@ -15,15 +19,32 @@ export const ESQUEMA_JSON_SAIDA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["nome", "itens"],
+        required: ["nome", "analise_ambiente", "anexos_usados", "itens"],
         properties: {
           nome: { type: "string", description: "Nome do ambiente, como na pergunta 5." },
+          analise_ambiente: {
+            type: "string",
+            description:
+              "2 a 4 frases PARA O CLIENTE sobre o ambiente: uso do espaço, luz natural, pé-direito, forro, sensação desejada e onde a luz faz diferença. Só o que está nas respostas, fotos ou plantas. Sem preço.",
+          },
+          anexos_usados: {
+            type: "array",
+            description:
+              "Ids (como informados no atendimento) dos anexos que embasaram a análise deste ambiente. Vazio se nenhum.",
+            items: { type: "string" },
+          },
           itens: {
             type: "array",
             items: {
               type: "object",
               additionalProperties: false,
-              required: ["codigo", "quantidade", "justificativa", "descricao_avulso"],
+              required: [
+                "codigo",
+                "quantidade",
+                "justificativa",
+                "motivo_cliente",
+                "descricao_avulso",
+              ],
               properties: {
                 codigo: {
                   type: ["string", "null"],
@@ -38,7 +59,11 @@ export const ESQUEMA_JSON_SAIDA = {
                 justificativa: {
                   type: "string",
                   description:
-                    "Por que este item e esta quantidade (e como chegou na conta, nos kits de fita).",
+                    "INTERNA, para a vendedora: por que este item e como chegou na quantidade (conta dos kits de fita).",
+                },
+                motivo_cliente: {
+                  type: "string",
+                  description: `PARA O CLIENTE: uma frase curta (até cerca de ${MAX_MOTIVO} caracteres) dizendo por que este produto foi indicado para este ambiente. Sem preço nem marca concorrente.`,
                 },
                 descricao_avulso: {
                   type: ["string", "null"],
@@ -63,10 +88,22 @@ export const ESQUEMA_JSON_SAIDA = {
   },
 } as const;
 
+/** Reescrever só a análise de um ambiente (ação "Reescrever análise com IA"). */
+export const ESQUEMA_JSON_ANALISE = {
+  type: "object",
+  additionalProperties: false,
+  required: ["analise_ambiente", "anexos_usados"],
+  properties: {
+    analise_ambiente: ESQUEMA_JSON_SAIDA.properties.ambientes.items.properties.analise_ambiente,
+    anexos_usados: ESQUEMA_JSON_SAIDA.properties.ambientes.items.properties.anexos_usados,
+  },
+} as const;
+
 export const schemaItemIA = z.object({
   codigo: z.string().trim().nullable(),
   quantidade: z.number(),
   justificativa: z.string().default(""),
+  motivo_cliente: z.string().default(""),
   descricao_avulso: z.string().trim().nullable().default(null),
 });
 
@@ -74,6 +111,8 @@ export const schemaSaidaIA = z.object({
   ambientes: z.array(
     z.object({
       nome: z.string().trim().min(1),
+      analise_ambiente: z.string().default(""),
+      anexos_usados: z.array(z.string()).default([]),
       itens: z.array(schemaItemIA),
     }),
   ),
@@ -81,5 +120,11 @@ export const schemaSaidaIA = z.object({
   resumo_para_vendedora: z.string().default(""),
 });
 
+export const schemaAnaliseIA = z.object({
+  analise_ambiente: z.string().default(""),
+  anexos_usados: z.array(z.string()).default([]),
+});
+
 export type ItemIA = z.infer<typeof schemaItemIA>;
 export type SaidaIA = z.infer<typeof schemaSaidaIA>;
+export type AnaliseIA = z.infer<typeof schemaAnaliseIA>;

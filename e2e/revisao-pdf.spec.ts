@@ -143,6 +143,12 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await qtdFita.press("Enter");
   await expect(qtdFita).toHaveValue("8,5");
 
+  // Motivo para o cliente: editado no item e depois conferido dentro do PDF.
+  const motivo = sala.getByRole("textbox", { name: /Motivo para o cliente de STELLA/ });
+  await motivo.fill("Luz quente que deixa a sala acolhedora e destaca o painel.");
+  await motivo.blur();
+  await expect(sala.getByText(/^[0-9]+\/160$/)).toBeVisible();
+
   // Remover e desfazer.
   await cozinha.getByRole("button", { name: "Remover" }).click();
   await expect(page.getByText("Item removido.")).toBeVisible();
@@ -222,6 +228,11 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   const bytes = Buffer.concat(partes);
   expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
   expect(bytes.length).toBeGreaterThan(2000);
+  const { extractText } = await import("unpdf");
+  const { text } = await extractText(new Uint8Array(bytes), { mergePages: true });
+  // A extração de texto do unpdf perde a letra "s" desta fonte; por isso compara sem ela e sem espaços.
+  const semS = (t: string) => t.replace(/[\s]+/g, "").replace(/s/gi, "");
+  expect(semS(text)).toContain(semS("deixa a sala acolhedora e destaca o painel"));
   // Com o logo em public/marca, ele vai embutido no PDF (sem logo o arquivo tem poucos KB).
   if (existsSync("public/marca/logo.png")) expect(bytes.length).toBeGreaterThan(100_000);
 

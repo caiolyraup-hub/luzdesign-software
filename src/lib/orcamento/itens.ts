@@ -21,6 +21,8 @@ export interface ItemRevisao {
   precoCatalogo: number | null;
   /** Descrição atual do produto no catálogo (null em avulso). */
   descricaoCatalogo?: string | null;
+  /** Motivo curto da indicação, para o cliente (vai no PDF). */
+  motivo?: string | null;
 }
 
 export const QUANTIDADE_MAXIMA = 100_000;

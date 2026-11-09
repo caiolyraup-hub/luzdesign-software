@@ -70,8 +70,16 @@ const item = (codigo: string | null, quantidade: number, extra: Record<string, u
   codigo,
   quantidade,
   justificativa: "porque sim",
+  motivo_cliente: "Motivo para o cliente.",
   descricao_avulso: null,
   ...extra,
+});
+
+const amb = (nome: string, itens: ReturnType<typeof item>[]) => ({
+  nome,
+  analise_ambiente: "Com base nas informações do pedido, o ambiente pede luz geral.",
+  anexos_usados: [] as string[],
+  itens,
 });
 
 const respostasCompletas: Respostas = {
@@ -221,8 +229,8 @@ describe("normalizarSaida", () => {
     const r = normalizarSaida(
       {
         ambientes: [
-          { nome: "Sala", itens: [item("9520", 4), item("12615", 1), item("9520", 2)] },
-          { nome: "Cozinha", itens: [item("12222", 8), item("10340", 1)] },
+          amb("Sala", [item("9520", 4), item("12615", 1), item("9520", 2)]),
+          amb("Cozinha", [item("12222", 8), item("10340", 1)]),
         ],
         pendencias: [],
         resumo_para_vendedora: "",
@@ -371,6 +379,10 @@ function repositorioFalso(
       const todos = opcoes.catalogo ?? catalogoBase();
       return new Map([...todos].filter(([c]) => codigos.includes(c)));
     },
+    async itensDoAmbiente() {
+      return [];
+    },
+    async salvarAnalise() {},
     async substituirItens(_id, itens, total, montagem) {
       gravacoes.push({ itens, total, montagem });
     },
@@ -381,11 +393,11 @@ function repositorioFalso(
 const respostaBoa = () =>
   mensagemFinal({
     ambientes: [
-      { nome: "Sala", itens: [item("9520", 4), item("99999", 1)] },
-      {
-        nome: "Cozinha",
-        itens: [item("12222", 5.5), item(null, 2, { descricao_avulso: "Pendente 3 globos" })],
-      },
+      amb("Sala", [item("9520", 4), item("99999", 1)]),
+      amb("Cozinha", [
+        item("12222", 5.5),
+        item(null, 2, { descricao_avulso: "Pendente 3 globos" }),
+      ]),
     ],
     pendencias: ["Confirmar a medida da sanca"],
     resumo_para_vendedora: "Montei sala e cozinha.",
@@ -539,8 +551,14 @@ describe("montarOrcamento", () => {
     const png = new Uint8Array([137, 80, 78, 71]);
     const r = repositorioFalso({
       anexos: [
-        { tipo: "foto", nome: "sala.jpg", mime: "image/jpeg", dados: png },
-        { tipo: "foto", nome: "iphone.heic", mime: "image/heic", dados: png },
+        { id: crypto.randomUUID(), tipo: "foto", nome: "sala.jpg", mime: "image/jpeg", dados: png },
+        {
+          id: crypto.randomUUID(),
+          tipo: "foto",
+          nome: "iphone.heic",
+          mime: "image/heic",
+          dados: png,
+        },
       ],
     });
     const ia = iaFalsa([respostaBoa()]);
@@ -562,6 +580,7 @@ describe("montarOrcamento", () => {
     const r = repositorioFalso({
       anexos: [
         {
+          id: crypto.randomUUID(),
           tipo: "planta",
           nome: "planta.pdf",
           mime: "application/pdf",
@@ -589,8 +608,8 @@ describe("anexos, privacidade, config e mensagens", () => {
     const grande = new Uint8Array(20 * 1024 * 1024);
     const { detalhes } = await conteudoDosAnexos(
       [
-        { tipo: "foto", nome: "a.jpg", mime: "image/jpeg", dados: grande },
-        { tipo: "foto", nome: "b.jpg", mime: "image/jpeg", dados: grande },
+        { id: crypto.randomUUID(), tipo: "foto", nome: "a.jpg", mime: "image/jpeg", dados: grande },
+        { id: crypto.randomUUID(), tipo: "foto", nome: "b.jpg", mime: "image/jpeg", dados: grande },
       ],
       false,
       async () => "",

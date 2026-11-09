@@ -36,6 +36,10 @@ export interface OpcoesMotor {
   executor: ExecutorFerramentas;
   maxRodadas: number;
   raciocinio?: "low" | "medium" | "high" | null;
+  /** Esquema da resposta (padrão: o do orçamento completo). */
+  esquema?: object;
+  /** false = sem ferramentas (por exemplo, só reescrever uma análise). */
+  usarFerramentas?: boolean;
   timeoutMs?: number;
   /** Aviso em cada passo, para a tela e os logs (opcional). */
   aoProgredir?: (evento: { rodada: number; ferramenta?: string }) => void;
@@ -88,9 +92,6 @@ export async function executarMotor(o: OpcoesMotor): Promise<ResultadoMotor> {
       model: o.modelo,
       instructions: o.instrucoes,
       input: entrada,
-      tools: DEFINICOES_FERRAMENTAS,
-      tool_choice: forcarResposta ? "none" : "auto",
-      parallel_tool_calls: true,
       store: false,
       include: ["reasoning.encrypted_content"],
       text: {
@@ -98,10 +99,15 @@ export async function executarMotor(o: OpcoesMotor): Promise<ResultadoMotor> {
           type: "json_schema",
           name: "orcamento_luz_design",
           strict: true,
-          schema: ESQUEMA_JSON_SAIDA,
+          schema: o.esquema ?? ESQUEMA_JSON_SAIDA,
         },
       },
     };
+    if (o.usarFerramentas !== false) {
+      parametros.tools = DEFINICOES_FERRAMENTAS;
+      parametros.tool_choice = forcarResposta ? "none" : "auto";
+      parametros.parallel_tool_calls = true;
+    }
     if (o.raciocinio) parametros.reasoning = { effort: o.raciocinio };
 
     o.aoProgredir?.({ rodada: rodadasComFerramenta });

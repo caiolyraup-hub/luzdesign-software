@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import type { StatusOrcamento } from "@/lib/dominio";
 import { BadgeStatus } from "@/components/BadgeStatus";
+import { StatusAcoes } from "@/components/orcamento/StatusAcoes";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
 import { PreviaPdf } from "@/components/orcamento/PreviaPdf";
 import { formatarDataBR, formatarDataHora, isoParaBR } from "@/lib/formatar";
 import { montarLinhaDoTempo } from "@/lib/orcamento/linha-do-tempo";
+import { rotuloMotivo } from "@/lib/orcamento/status";
 import { descontoAvistaCentavos, moedaCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -27,7 +30,7 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
   const { data: orc } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, vendedora_id, valor_total, validade, criado_em, montado_em, pdf_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
+      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, pdf_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -95,6 +98,7 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
     (orc.validade ? ` Válido até ${isoParaBR(orc.validade)}.` : "") +
     ` Qualquer dúvida, é só me chamar!`;
   const zap = cliente?.whatsapp ? cliente.whatsapp.replace(/\D/g, "") : null;
+  const podeAcompanhar = (minha || usuario.perfil === "gerente") && orc.status !== "rascunho";
   const editavel = minha && (orc.status === "rascunho" || orc.status === "gerado");
 
   return (
@@ -121,6 +125,27 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
             Revisar itens
           </Link>
         </div>
+      ) : null}
+
+      {podeAcompanhar ? (
+        <section aria-label="Acompanhamento" className="space-y-3">
+          <h2 className="text-xl font-semibold">Acompanhamento</h2>
+          {orc.status === "fechado" && orc.valor_fechado ? (
+            <p className="text-lg text-emerald-800">
+              Vendido por {moedaCentavos(Math.round(Number(orc.valor_fechado) * 100))}.
+            </p>
+          ) : null}
+          {orc.status === "perdido" && orc.motivo_perda ? (
+            <p className="text-lg text-red-800">
+              Motivo da perda: {rotuloMotivo(orc.motivo_perda)}.
+            </p>
+          ) : null}
+          <StatusAcoes
+            orcamentoId={id}
+            status={orc.status as StatusOrcamento}
+            valorTotal={Number(orc.valor_total)}
+          />
+        </section>
       ) : null}
 
       {totalCentavos > 0 ? (

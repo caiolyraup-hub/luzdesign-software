@@ -353,6 +353,79 @@ try {
     },
   );
 
+  await caso(
+    "status: a dona acompanha, a gerência também, outra vendedora não; motivo e transições valem",
+    async () => {
+      const mudar = (
+        p: Pessoa,
+        para: string,
+        valor: number | null = null,
+        motivo: string | null = null,
+      ) =>
+        p.cliente.rpc("mudar_status_orcamento", {
+          p_orcamento: a.id,
+          p_para: para,
+          p_valor_fechado: valor,
+          p_motivo: motivo,
+        });
+
+      assert.equal((await mudar(aline, "enviado")).error, null);
+      assert.equal((await mudar(aline, "followup_d5")).error, null);
+
+      const kely1 = await mudar(kely, "followup_d10");
+      assert.ok(kely1.error, "Kely não muda o status do orçamento da Aline");
+      const { data: continua } = await admin
+        .from("orcamentos")
+        .select("status")
+        .eq("id", a.id)
+        .single();
+      assert.equal(continua!.status, "followup_d5");
+
+      const salto = await mudar(aline, "rascunho");
+      assert.match(salto.error?.message ?? "", /TRANSICAO_INVALIDA/);
+      const semMotivo = await mudar(aline, "perdido");
+      assert.match(semMotivo.error?.message ?? "", /MOTIVO_OBRIGATORIO/);
+
+      // A gerência perde o orçamento da Aline com motivo.
+      assert.equal((await mudar(gerente, "perdido", null, "preco")).error, null);
+      const { data: perdido } = await admin
+        .from("orcamentos")
+        .select("status, motivo_perda, perdido_em")
+        .eq("id", a.id)
+        .single();
+      assert.equal(perdido!.status, "perdido");
+      assert.equal(perdido!.motivo_perda, "preco");
+      assert.ok(perdido!.perdido_em);
+
+      // Reabre e fecha com valor negociado.
+      assert.equal((await mudar(aline, "enviado")).error, null);
+      assert.equal((await mudar(aline, "fechado", 1234.5)).error, null);
+      const { data: fechado } = await admin
+        .from("orcamentos")
+        .select("status, valor_fechado, motivo_perda")
+        .eq("id", a.id)
+        .single();
+      assert.equal(fechado!.status, "fechado");
+      assert.equal(Number(fechado!.valor_fechado), 1234.5);
+      assert.equal(fechado!.motivo_perda, null);
+
+      // Os eventos guardam quem mudou, inclusive a gerência.
+      const { data: eventos } = await admin
+        .from("eventos")
+        .select("usuario_id, para_status")
+        .eq("orcamento_id", a.id)
+        .order("id");
+      const porGerencia = (eventos ?? [])
+        .filter((e) => e.usuario_id === gerente.id)
+        .map((e) => e.para_status);
+      assert.deepEqual(porGerencia, ["perdido"]);
+
+      // O PDF gerado antes continua intacto; volta para gerado para o teste seguinte poder editar.
+      assert.equal((await mudar(aline, "enviado")).error, null);
+      assert.equal((await mudar(aline, "gerado")).error, null);
+    },
+  );
+
   await caso("sem itens ou com avulso sem preço, o PDF é bloqueado", async () => {
     const vazio = await criarOrcamento(aline, false, "B");
     const r1 = await gerarPdfOrcamento(deps(aline), aline, vazio.id);
@@ -379,6 +452,76 @@ try {
       .single();
     assert.deepEqual(o, { status: "rascunho", pdf_versao: 0 });
   });
+
+  await caso(
+    "análise do ambiente: a dona edita; outra vendedora não vê nem edita; gerente só lê",
+    async () => {
+      const mk = await admin
+        .from("orcamento_ambientes")
+        .insert({ orcamento_id: k.id, nome: "Sala", ordem: 0, analise: "texto da Kely" })
+        .select("id");
+      assert.equal(mk.error, null, mk.error?.message);
+      const ma = await aline.cliente
+        .from("orcamento_ambientes")
+        .insert({ orcamento_id: a.id, nome: "Sala", ordem: 0, analise: "texto da Aline" })
+        .select("id");
+      assert.equal(ma.error, null, ma.error?.message);
+
+      const ve = await aline.cliente
+        .from("orcamento_ambientes")
+        .select("analise")
+        .eq("orcamento_id", k.id);
+      assert.deepEqual(ve.data ?? [], [], "Aline não lê a análise da Kely");
+      const edita = await aline.cliente
+        .from("orcamento_ambientes")
+        .update({ analise: "invadida" })
+        .eq("orcamento_id", k.id)
+        .select();
+      assert.deepEqual(edita.data ?? [], []);
+      const insere = await aline.cliente
+        .from("orcamento_ambientes")
+        .insert({ orcamento_id: k.id, nome: "Intruso", ordem: 9 });
+      assert.ok(insere.error, "inserir ambiente no orçamento da Kely deve ser negado");
+      const apaga = await aline.cliente
+        .from("orcamento_ambientes")
+        .delete()
+        .eq("orcamento_id", k.id)
+        .select();
+      assert.deepEqual(apaga.data ?? [], []);
+      const intacto = await admin
+        .from("orcamento_ambientes")
+        .select("analise")
+        .eq("orcamento_id", k.id);
+      assert.equal(intacto.data?.[0]?.analise, "texto da Kely");
+
+      const dona = await aline.cliente
+        .from("orcamento_ambientes")
+        .update({ analise: "editada pela dona" })
+        .eq("orcamento_id", a.id)
+        .select("analise");
+      assert.equal(dona.data?.[0]?.analise, "editada pela dona");
+
+      const g = await gerente.cliente
+        .from("orcamento_ambientes")
+        .select("analise")
+        .eq("orcamento_id", a.id);
+      assert.equal(g.data?.length, 1, "gerente lê");
+      const gEdita = await gerente.cliente
+        .from("orcamento_ambientes")
+        .update({ analise: "gerente" })
+        .eq("orcamento_id", a.id)
+        .select();
+      assert.deepEqual(gEdita.data ?? [], []);
+      const gIns = await gerente.cliente
+        .from("orcamento_ambientes")
+        .insert({ orcamento_id: a.id, nome: "G", ordem: 5 });
+      assert.ok(gIns.error, "gerente não grava");
+      const anon = await createClient(url, exigir("NEXT_PUBLIC_SUPABASE_ANON_KEY"), opcoes)
+        .from("orcamento_ambientes")
+        .select("id");
+      assert.deepEqual(anon.data ?? [], []);
+    },
+  );
 
   await caso("configuracoes_loja: todos leem, a vendedora não edita, a gerente edita", async () => {
     const lida = await aline.cliente

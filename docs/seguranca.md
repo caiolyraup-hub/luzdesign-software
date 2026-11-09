@@ -61,3 +61,9 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - O preço de item com código nunca vem do navegador: ao gerar, o banco sobrescreve com o de `produtos`, e o total do PDF precisa bater com o calculado no banco (`TOTAL_DIVERGENTE` se um preço mudou no meio).
 - Bucket `pdfs` privado: a vendedora lê e grava na própria pasta (sem apagar versões); a gerente só lê; ninguém mais. Os links de leitura e de download são URLs assinadas de 1 hora geradas no servidor.
 - `configuracoes_loja`: todos leem (o PDF usa); só a gerente edita (RLS) e a tabela só tem uma linha.
+
+## Dia 7
+
+- `orcamento_ambientes` tem a mesma RLS dos itens (testada em `pnpm test:rls`: outra vendedora não lê nem edita; a gerente só lê).
+- Análise e motivos são enviados ao cliente no PDF; o prompt proíbe preço, dados do cliente e afirmações sem base. A vendedora revisa tudo antes de gerar.
+- A avaliação (`pnpm ia:avaliar`) usa o login da Aline e dados de teste, e apaga tudo no fim.

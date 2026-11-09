@@ -10,6 +10,7 @@ import {
   type LinhaItem,
 } from "@/lib/orcamento/carregar-itens";
 import { nomeAmbienteValido, normalizarQuantidade, type ItemRevisao } from "@/lib/orcamento/itens";
+import { MAX_ANALISE, MAX_MOTIVO } from "@/lib/ia/esquema";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -22,6 +23,15 @@ export interface EstadoRevisao {
   itens: ItemRevisao[];
   valorTotal: number;
   ambientesExtras: string[];
+  /** Análise de cada ambiente (texto para o cliente). */
+  analises: AnaliseRevisao[];
+  mostrarAnalise: boolean;
+}
+
+export interface AnaliseRevisao {
+  nome: string;
+  analise: string;
+  anexosUsados: string[];
 }
 
 export type RespostaRevisao = Falha | { ok: true; estado: EstadoRevisao };
@@ -36,6 +46,7 @@ export interface ItemSalvo {
   ambiente: string;
   avulso: boolean;
   justificativa: string | null;
+  motivo_cliente?: string | null;
   ordem: number;
 }
 
@@ -70,12 +81,26 @@ async function estadoAtual(c: Contexto): Promise<RespostaRevisao> {
   });
   if (error) return falha(ERRO_GENERICO);
   const itens = await carregarItensRevisao(c.supabase, c.orcamentoId);
+  const [{ data: ambientes }, { data: flag }] = await Promise.all([
+    c.supabase
+      .from("orcamento_ambientes")
+      .select("nome, analise, anexos_usados")
+      .eq("orcamento_id", c.orcamentoId)
+      .order("ordem"),
+    c.supabase.from("orcamentos").select("mostrar_analise_pdf").eq("id", c.orcamentoId).single(),
+  ]);
   return {
     ok: true,
     estado: {
       itens,
       valorTotal: Number(total ?? 0),
       ambientesExtras: c.montagem?.ambientes_extras ?? [],
+      analises: (ambientes ?? []).map((a) => ({
+        nome: a.nome,
+        analise: a.analise ?? "",
+        anexosUsados: a.anexos_usados ?? [],
+      })),
+      mostrarAnalise: flag?.mostrar_analise_pdf ?? true,
     },
   };
 }
@@ -222,6 +247,8 @@ export async function trocarProduto(
       descricao_congelada: produto.descricao,
       preco_unitario_congelado: produto.preco_unitario,
       avulso: false,
+      // O motivo escrito para o produto antigo não vale para o novo.
+      motivo_cliente: null,
       quantidade: q.ok ? q.valor : 1,
     })
     .eq("id", itemId);
@@ -272,6 +299,7 @@ export async function removerItem(orcamentoId: string, itemId: string): Promise<
       ambiente: item.ambiente,
       avulso: item.avulso,
       justificativa: item.justificativa,
+      motivo_cliente: item.motivo ?? null,
       ordem: item.ordem,
     },
   };
@@ -302,6 +330,7 @@ export async function restaurarItem(
     ambiente: salvo.ambiente,
     avulso: salvo.avulso,
     justificativa: salvo.justificativa,
+    motivo_cliente: salvo.motivo_cliente ?? null,
     ordem: salvo.ordem,
   });
   if (error) return falha(ERRO_GENERICO);
@@ -432,5 +461,74 @@ export async function atualizarPrecos(orcamentoId: string): Promise<RespostaRevi
       .eq("id", i.id);
     if (error) return falha(ERRO_GENERICO);
   }
+  return estadoAtual(c);
+}
+
+// ---------------------------------------------------------------- textos para o cliente
+
+/** Motivo curto de um produto, para o cliente (vai no PDF). Vazio apaga. */
+export async function salvarMotivo(
+  orcamentoId: string,
+  itemId: string,
+  texto: string,
+): Promise<RespostaRevisao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const limpo = texto.replace(/s+/g, " ").trim();
+  if (limpo.length > MAX_MOTIVO) return falha(`Use até ${MAX_MOTIVO} caracteres no motivo.`);
+  const { error } = await c.supabase
+    .from("orcamento_itens")
+    .update({ motivo_cliente: limpo || null })
+    .eq("id", itemId)
+    .eq("orcamento_id", orcamentoId);
+  if (error) return falha(ERRO_GENERICO);
+  return estadoAtual(c);
+}
+
+/** Análise de um ambiente (texto para o cliente). Vazio apaga o texto. */
+export async function salvarAnalise(
+  orcamentoId: string,
+  ambiente: string,
+  texto: string,
+): Promise<RespostaRevisao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const nome = nomeAmbienteValido(ambiente);
+  if (!nome) return falha("Informe o ambiente.");
+  const limpo = texto.replace(/[ 	]+/g, " ").trim();
+  if (limpo.length > MAX_ANALISE) return falha(`Use até ${MAX_ANALISE} caracteres na análise.`);
+
+  const { data: existentes } = await c.supabase
+    .from("orcamento_ambientes")
+    .select("id, nome")
+    .eq("orcamento_id", orcamentoId);
+  const atual = (existentes ?? []).find((a) => a.nome.trim().toLowerCase() === nome.toLowerCase());
+  const { error } = atual
+    ? await c.supabase
+        .from("orcamento_ambientes")
+        .update({ analise: limpo || null })
+        .eq("id", atual.id)
+    : await c.supabase.from("orcamento_ambientes").insert({
+        orcamento_id: orcamentoId,
+        nome,
+        ordem: (existentes ?? []).length,
+        analise: limpo || null,
+      });
+  if (error) return falha(ERRO_GENERICO);
+  return estadoAtual(c);
+}
+
+/** Liga ou desliga análise e motivos no PDF. */
+export async function alternarMostrarAnalise(
+  orcamentoId: string,
+  mostrar: boolean,
+): Promise<RespostaRevisao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const { error } = await c.supabase
+    .from("orcamentos")
+    .update({ mostrar_analise_pdf: mostrar })
+    .eq("id", orcamentoId);
+  if (error) return falha(ERRO_GENERICO);
   return estadoAtual(c);
 }

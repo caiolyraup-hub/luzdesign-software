@@ -26,7 +26,7 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
   const { data: orc } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, vendedora_id, status, respostas, montagem, valor_total, pdf_versao, clientes(nome, whatsapp)",
+      "id, numero, vendedora_id, status, respostas, montagem, valor_total, pdf_versao, mostrar_analise_pdf, clientes(nome, whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -40,6 +40,12 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
   const respostas: Respostas = respostasComCliente(orc.respostas as Respostas, cliente);
   const montagem = (orc.montagem ?? {}) as Montagem;
   const itens = await carregarItensRevisao(supabase, id);
+
+  const { data: ambientes } = await supabase
+    .from("orcamento_ambientes")
+    .select("nome, analise, anexos_usados")
+    .eq("orcamento_id", id)
+    .order("ordem");
 
   const { data: cfg } = await supabase
     .from("configuracoes_loja")
@@ -58,6 +64,12 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
         itens,
         valorTotal: Number(orc.valor_total),
         ambientesExtras: montagem.ambientes_extras ?? [],
+        analises: (ambientes ?? []).map((a) => ({
+          nome: a.nome,
+          analise: a.analise ?? "",
+          anexosUsados: a.anexos_usados ?? [],
+        })),
+        mostrarAnalise: orc.mostrar_analise_pdf ?? true,
       }}
       ambientesBase={ambientesDasRespostas(respostas)}
       descontoPct={Number(cfg?.desconto_avista_pct ?? 10)}
