@@ -16,26 +16,43 @@ const texto = (max: number) =>
     .max(max, `Use no máximo ${max} caracteres.`)
     .transform((v) => (v === "" ? null : v));
 
-const schema = z.object({
-  nome_fantasia: z.string().trim().min(2, "Informe o nome da loja.").max(100),
-  razao_social: texto(150),
-  cnpj: texto(30),
-  endereco: texto(250),
-  telefone: texto(40),
-  whatsapp: texto(40),
-  instagram: texto(80),
-  site: texto(150),
-  validade_dias: z.coerce
-    .number()
-    .int("Use um número inteiro.")
-    .min(1, "A validade é de 1 a 90 dias.")
-    .max(90, "A validade é de 1 a 90 dias."),
-  desconto_avista_pct: z.coerce
-    .number()
-    .min(0, "O desconto vai de 0 a 100%.")
-    .max(100, "O desconto vai de 0 a 100%."),
-  linhas_rodape: z.string().max(2000, "Use no máximo 2000 caracteres."),
-});
+const schema = z
+  .object({
+    nome_fantasia: z.string().trim().min(2, "Informe o nome da loja.").max(100),
+    razao_social: texto(150),
+    cnpj: texto(30),
+    endereco: texto(250),
+    telefone: texto(40),
+    whatsapp: texto(40),
+    instagram: texto(80),
+    site: texto(150),
+    validade_dias: z.coerce
+      .number()
+      .int("Use um número inteiro.")
+      .min(1, "A validade é de 1 a 90 dias.")
+      .max(90, "A validade é de 1 a 90 dias."),
+    desconto_avista_pct: z.coerce
+      .number()
+      .min(0, "O desconto vai de 0 a 100%.")
+      .max(100, "O desconto vai de 0 a 100%."),
+    linhas_rodape: z.string().max(2000, "Use no máximo 2000 caracteres."),
+    followup_d5_dias: z.coerce
+      .number()
+      .int("Use um número inteiro de dias.")
+      .min(1, "O primeiro follow-up é de 1 a 60 dias.")
+      .max(60, "O primeiro follow-up é de 1 a 60 dias."),
+    followup_d10_dias: z.coerce
+      .number()
+      .int("Use um número inteiro de dias.")
+      .min(2, "O segundo follow-up é de 2 a 90 dias.")
+      .max(90, "O segundo follow-up é de 2 a 90 dias."),
+    mensagem_d5: z.string().trim().min(5, "Escreva a mensagem do primeiro follow-up.").max(600),
+    mensagem_d10: z.string().trim().min(5, "Escreva a mensagem do segundo follow-up.").max(600),
+  })
+  .refine((v) => v.followup_d10_dias > v.followup_d5_dias, {
+    message: "O segundo follow-up precisa ser depois do primeiro.",
+    path: ["followup_d10_dias"],
+  });
 
 /** Só a gerente edita (a RLS também garante: a vendedora não consegue atualizar a tabela). */
 export async function salvarConfiguracoes(

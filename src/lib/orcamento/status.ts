@@ -57,7 +57,7 @@ export interface AcaoStatus {
   /** primaria = o próximo passo natural; perigo = perdeu; discreta = voltar/reabrir. */
   estilo: "primaria" | "secundaria" | "sucesso" | "perigo" | "discreta";
   /** Pede dados antes de confirmar. */
-  pede: "valor" | "motivo" | null;
+  pede: "valor" | "motivo" | "data" | null;
 }
 
 const FECHOU: AcaoStatus = {
@@ -76,7 +76,7 @@ export function acoesDoStatus(status: StatusOrcamento): AcaoStatus[] {
   switch (status) {
     case "gerado":
       return [
-        { para: "enviado", rotulo: "Marcar como enviado", estilo: "primaria", pede: null },
+        { para: "enviado", rotulo: "Marquei como enviado", estilo: "primaria", pede: "data" },
         FECHOU,
         PERDEU,
       ];
@@ -86,7 +86,7 @@ export function acoesDoStatus(status: StatusOrcamento): AcaoStatus[] {
         { para: "followup_d10", rotulo: "Follow-up D+10 feito", estilo: "secundaria", pede: null },
         FECHOU,
         PERDEU,
-        { para: "gerado", rotulo: "Voltar para gerado", estilo: "discreta", pede: null },
+        { para: "gerado", rotulo: "Corrigir: não foi enviado", estilo: "discreta", pede: null },
       ];
     case "followup_d5":
       return [
@@ -124,38 +124,3 @@ export const STATUS_EM_ANDAMENTO: StatusOrcamento[] = [
   "followup_d5",
   "followup_d10",
 ];
-
-export interface EntradaFollowup {
-  status: string;
-  enviadoEm: string | null;
-  statusEm: string | null;
-  agora?: Date;
-}
-
-export interface FollowupDevido {
-  /** Qual follow-up está na vez. */
-  etapa: "D+5" | "D+10";
-  /** Dias desde a referência (envio ou último follow-up). */
-  dias: number;
-  /** Já passou do dia certo. */
-  atrasado: boolean;
-}
-
-const DIA_MS = 24 * 3600 * 1000;
-
-/**
- * Follow-up que já venceu: enviado há 5 dias ou mais (D+5) e, depois do D+5, mais 5 dias (D+10,
- * que fica 10 dias depois do envio). Devolve null se não há nada vencido.
- */
-export function followupDevido(e: EntradaFollowup): FollowupDevido | null {
-  const agora = (e.agora ?? new Date()).getTime();
-  if (e.status === "enviado" && e.enviadoEm) {
-    const dias = Math.floor((agora - new Date(e.enviadoEm).getTime()) / DIA_MS);
-    return dias >= 5 ? { etapa: "D+5", dias, atrasado: dias > 5 } : null;
-  }
-  if (e.status === "followup_d5" && e.statusEm) {
-    const dias = Math.floor((agora - new Date(e.statusEm).getTime()) / DIA_MS);
-    return dias >= 5 ? { etapa: "D+10", dias, atrasado: dias > 5 } : null;
-  }
-  return null;
-}

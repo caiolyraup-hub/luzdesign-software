@@ -15,6 +15,10 @@ export interface ConfiguracoesLoja {
   validade_dias: number;
   desconto_avista_pct: number;
   linhas_rodape: string;
+  followup_d5_dias: number;
+  followup_d10_dias: number;
+  mensagem_d5: string;
+  mensagem_d10: string;
 }
 
 const inicial: EstadoConfiguracoes = { ok: null, erro: null };
@@ -96,6 +100,50 @@ export function FormularioConfiguracoes({ config }: { config: ConfiguracoesLoja 
           pelos valores acima.
         </span>
       </label>
+
+      <fieldset className="space-y-4 rounded-lg border border-zinc-300 p-4">
+        <legend className="px-2 text-lg font-semibold">Follow-up</legend>
+        <p className="text-base text-zinc-600">
+          Os avisos de follow-up aparecem em Início quando passam estes dias corridos desde o último
+          envio ao cliente.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Campo
+            nome="followup_d5_dias"
+            rotulo="Primeiro follow-up (dias)"
+            valor={config.followup_d5_dias}
+            tipo="number"
+            dica="Padrão 5."
+          />
+          <Campo
+            nome="followup_d10_dias"
+            rotulo="Segundo follow-up (dias)"
+            valor={config.followup_d10_dias}
+            tipo="number"
+            dica="Padrão 10; maior que o primeiro."
+          />
+        </div>
+        <label className="block space-y-1">
+          <span className="text-lg font-medium">Mensagem do primeiro follow-up</span>
+          <textarea
+            name="mensagem_d5"
+            defaultValue={config.mensagem_d5}
+            className="min-h-28 w-full rounded-lg border border-zinc-300 px-4 py-3 text-lg"
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-lg font-medium">Mensagem do segundo follow-up</span>
+          <textarea
+            name="mensagem_d10"
+            defaultValue={config.mensagem_d10}
+            className="min-h-28 w-full rounded-lg border border-zinc-300 px-4 py-3 text-lg"
+          />
+          <span className="block text-base text-zinc-600">
+            Dá para usar <code>{"{cliente}"}</code> (primeiro nome), <code>{"{numero}"}</code> e{" "}
+            <code>{"{vendedora}"}</code>.
+          </span>
+        </label>
+      </fieldset>
 
       {estado.erro ? (
         <p role="alert" className="text-lg text-red-700">

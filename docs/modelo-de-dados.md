@@ -105,3 +105,12 @@ Item com código tem preço e descrição **sempre do catálogo**: a tela não e
 - `orcamentos.xlsx_caminho`; as entradas de `pdf_versoes` ganham `xlsx_caminho` (as antigas ficam só com PDF). O bucket `pdfs` aceita também o tipo do XLSX.
 - `gerar_orcamento` ganha o parâmetro `p_xlsx_caminho`, mantém a trava de que **só a dona gera** e **deixa de reescrever a descrição** (o servidor grava a final antes); o preço continua sempre vindo de `produtos`.
 - A pergunta 6 (`pedido_cliente`) passa a ser opcional.
+
+## Ajustes do dia 8B (`20261110000400_envio_followup.sql`)
+
+- `orcamentos.ultimo_envio_em`: o envio mais recente, de onde contam os follow-ups. `enviado_em` continua sendo o **primeiro** envio (métricas).
+- Função `marcar_enviado(p_orcamento, p_data)` (security invoker; dona ou gerência; só de `gerado`): grava as datas e o evento. Recusa data futura (`DATA_FUTURA`) e anterior ao dia em que foi gerado (`DATA_ANTES_DE_GERADO`), no fuso de Maceió. O primeiro envio grava `enviado_em` e `ultimo_envio_em`; os seguintes só o último.
+- Função `reabrir_para_edicao(p_orcamento)` (só a dona; de `enviado` e dos follow-ups): volta para `gerado` **sem apagar** as datas de envio ("Editar e enviar nova versão"). "Corrigir: não foi enviado" (`mudar_status_orcamento` para `gerado`) limpa as duas datas.
+- Gatilho `bloquear_edicao_itens` em `orcamento_itens` e `orcamento_ambientes`: inserir, alterar ou apagar com o orçamento fora de `rascunho`/`gerado` falha com `EDICAO_BLOQUEADA` (vale para a dona, a gerência e o service role). Apagar o orçamento inteiro continua possível.
+- `configuracoes_loja`: `followup_d5_dias` (padrão 5), `followup_d10_dias` (padrão 10, maior que o primeiro), `mensagem_d5` e `mensagem_d10` (marcadores `{cliente}`, `{numero}`, `{vendedora}`). A gerente edita em `/gerencia/configuracoes`.
+- Os follow-ups **não** usam cron: são calculados na leitura (`src/lib/orcamento/followup.ts`), em dias corridos do calendário de Maceió a partir de `ultimo_envio_em`.

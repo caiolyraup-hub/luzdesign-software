@@ -3,7 +3,8 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { CartaoOrcamento, type DadosCartao } from "@/components/orcamento/CartaoOrcamento";
 import { FILTROS, FiltrosStatus, filtroPorId } from "@/components/orcamento/FiltrosStatus";
-import { followupDevido } from "@/lib/orcamento/status";
+import { lerConfigFollowup } from "@/lib/orcamento/config-followup";
+import { followupDeHoje, textoPrazoFollowup } from "@/lib/orcamento/followup";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 interface Linha {
@@ -15,8 +16,8 @@ interface Linha {
   valor_fechado: number | string | null;
   motivo_perda: string | null;
   atualizado_em: string;
-  enviado_em: string | null;
-  status_em: string | null;
+  gerado_em: string | null;
+  ultimo_envio_em: string | null;
   clientes: { nome: string } | { nome: string }[] | null;
   usuarios: { nome: string } | { nome: string }[] | null;
 }
@@ -34,11 +35,12 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
   const { data, error } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, atualizado_em, enviado_em, status_em, clientes(nome), usuarios(nome)",
+      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, atualizado_em, gerado_em, ultimo_envio_em, clientes(nome), usuarios(nome)",
     )
     .order("atualizado_em", { ascending: false });
   if (error) return <p role="alert">Não foi possível carregar os orçamentos.</p>;
 
+  const config = await lerConfigFollowup(supabase);
   const todas = (data ?? []) as unknown as Linha[];
   const vendedoras = [
     ...new Map(todas.map((l) => [l.vendedora_id, um(l.usuarios)?.nome ?? "—"])).entries(),
@@ -56,9 +58,19 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
   const visiveis = filtro.status
     ? daVendedora.filter((l) => filtro.status!.includes(l.status as never))
     : daVendedora;
-  const vencidos = daVendedora.filter((l) =>
-    followupDevido({ status: l.status, enviadoEm: l.enviado_em, statusEm: l.status_em }),
-  ).length;
+  // Follow-ups vencidos por vendedora (só leitura): do mais atrasado para o mais novo.
+  const vencidosLista = daVendedora
+    .map((l) => ({
+      l,
+      f: followupDeHoje({ status: l.status, ultimoEnvioEm: l.ultimo_envio_em, config }),
+    }))
+    .filter((x): x is { l: Linha; f: NonNullable<typeof x.f> } => x.f !== null)
+    .sort((a, b) => b.f.diasAtraso - a.f.diasAtraso);
+  const vencidos = vencidosLista.length;
+  const porVendedora = new Map<string, typeof vencidosLista>();
+  for (const v of vencidosLista) {
+    porVendedora.set(v.l.vendedora_id, [...(porVendedora.get(v.l.vendedora_id) ?? []), v]);
+  }
 
   const cartoes: DadosCartao[] = visiveis.map((l) => ({
     id: l.id,
@@ -70,8 +82,8 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
     valorFechado: l.valor_fechado === null ? null : Number(l.valor_fechado),
     motivoPerda: l.motivo_perda,
     atualizadoEm: l.atualizado_em,
-    enviadoEm: l.enviado_em,
-    statusEm: l.status_em,
+    geradoEm: l.gerado_em,
+    ultimoEnvioEm: l.ultimo_envio_em,
   }));
 
   const link = (id?: string) => {
@@ -83,9 +95,38 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
   return (
     <div className="space-y-4">
       {vencidos > 0 ? (
-        <p className="rounded-lg bg-amber-100 p-3 text-lg text-amber-950">
-          {vencidos} {vencidos === 1 ? "follow-up vencido" : "follow-ups vencidos"}.
-        </p>
+        <section
+          aria-label="Follow-ups vencidos"
+          className="space-y-3 rounded-lg border-2 border-amber-700 bg-amber-50 p-4"
+        >
+          <h2 className="text-xl font-semibold">
+            {vencidos} {vencidos === 1 ? "follow-up vencido" : "follow-ups vencidos"}
+          </h2>
+          {[...porVendedora.entries()].map(([id, itens]) => (
+            <div key={id} className="space-y-1">
+              <p className="text-lg font-medium">
+                {um(itens[0].l.usuarios)?.nome ?? "—"} ({itens.length})
+              </p>
+              <ul className="space-y-1">
+                {itens.map(({ l, f }) => (
+                  <li key={l.id}>
+                    <Link
+                      href={`/orcamentos/${l.id}`}
+                      className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 text-lg underline"
+                    >
+                      <span>
+                        {um(l.clientes)?.nome ?? "Sem cliente"} · {l.numero}
+                      </span>
+                      <span className="text-base text-amber-950">
+                        {f.etapa === "ENCERRAR" ? "encerrar" : f.etapa} · {textoPrazoFollowup(f)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
       ) : null}
 
       <nav
@@ -123,7 +164,7 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
         <ul className="space-y-3">
           {cartoes.map((c) => (
             // Rascunho é da vendedora: a gerência acompanha, mas só ela continua o formulário.
-            <CartaoOrcamento key={c.id} d={c} podeAgir={c.status !== "rascunho"} />
+            <CartaoOrcamento key={c.id} d={c} podeAgir={c.status !== "rascunho"} config={config} />
           ))}
         </ul>
       )}

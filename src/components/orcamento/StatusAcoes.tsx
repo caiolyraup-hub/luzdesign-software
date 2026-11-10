@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { mudarStatus } from "@/app/(app)/orcamentos/acoes-status";
+import { marcarEnviado, mudarStatus } from "@/app/(app)/orcamentos/acoes-status";
 import type { MotivoPerda, StatusOrcamento } from "@/lib/dominio";
+import { hojeMaceioISO } from "@/lib/formatar";
+import { dataMaceioISO } from "@/lib/orcamento/followup";
 import { acoesDoStatus, LISTA_MOTIVOS, type AcaoStatus } from "@/lib/orcamento/status";
 
 interface Props {
@@ -11,6 +13,8 @@ interface Props {
   status: StatusOrcamento;
   /** Valor sugerido ao fechar (o total do orçamento). */
   valorTotal: number;
+  /** Quando o orçamento foi gerado (o envio não pode ser antes). */
+  geradoEm?: string | null;
   /** Versão menor, para cartões de lista. */
   compacto?: boolean;
 }
@@ -29,11 +33,18 @@ const textoBR = (n: number) => String(n).replace(".", ",");
  * Botões do acompanhamento: um toque para enviado e follow-ups; "Fechou" pede o valor da venda e
  * "Perdeu" pede o motivo (os dois com um toque de confirmação). Serve à vendedora e à gerência.
  */
-export function StatusAcoes({ orcamentoId, status, valorTotal, compacto = false }: Props) {
+export function StatusAcoes({
+  orcamentoId,
+  status,
+  valorTotal,
+  geradoEm = null,
+  compacto = false,
+}: Props) {
   const router = useRouter();
   const [aberta, setAberta] = useState<AcaoStatus | null>(null);
   const [valor, setValor] = useState(valorTotal > 0 ? textoBR(valorTotal) : "");
   const [motivo, setMotivo] = useState<MotivoPerda | null>(null);
+  const [data, setData] = useState(() => hojeMaceioISO());
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [feito, setFeito] = useState<string | null>(null);
@@ -62,7 +73,14 @@ export function StatusAcoes({ orcamentoId, status, valorTotal, compacto = false 
       }
       extra.motivo = motivo;
     }
-    const r = await mudarStatus(orcamentoId, acao.para, extra);
+    if (acao.pede === "data" && !data) {
+      setOcupado(false);
+      return setErro("Informe a data do envio.");
+    }
+    const r =
+      acao.pede === "data"
+        ? await marcarEnviado(orcamentoId, data)
+        : await mudarStatus(orcamentoId, acao.para, extra);
     setOcupado(false);
     if (!r.ok) return setErro(r.erro);
     setAberta(null);
@@ -96,6 +114,33 @@ export function StatusAcoes({ orcamentoId, status, valorTotal, compacto = false 
           </button>
         ))}
       </div>
+
+      {aberta?.pede === "data" ? (
+        <div className="space-y-2 rounded-lg border-2 border-indigo-700 bg-indigo-50 p-4">
+          <label className="block space-y-1">
+            <span className="text-lg font-medium">Data do envio</span>
+            <input
+              type="date"
+              value={data}
+              max={hojeMaceioISO()}
+              min={geradoEm ? dataMaceioISO(geradoEm) : undefined}
+              onChange={(e) => setData(e.target.value)}
+              className="min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg"
+            />
+            <span className="block text-base text-zinc-600">
+              Hoje, ou um dia anterior se você já enviou antes. Os follow-ups contam desta data.
+            </span>
+          </label>
+          <button
+            type="button"
+            disabled={ocupado}
+            onClick={() => void confirmar(aberta)}
+            className="min-h-14 w-full rounded-lg bg-indigo-700 px-4 text-lg font-semibold text-white disabled:opacity-60"
+          >
+            {ocupado ? "Salvando..." : "Confirmar envio"}
+          </button>
+        </div>
+      ) : null}
 
       {aberta?.pede === "valor" ? (
         <div className="space-y-2 rounded-lg border-2 border-emerald-700 bg-emerald-50 p-4">

@@ -521,6 +521,81 @@ try {
     },
   );
 
+  await caso(
+    "envio com data e edição bloqueada: só a dona marca; depois de enviado ninguém altera os itens",
+    async () => {
+      const marcar = (p: Pessoa, data: string | null) =>
+        p.cliente.rpc("marcar_enviado", { p_orcamento: a.id, p_data: data });
+      const diaMaceio = (deslocamentoDias: number) =>
+        new Intl.DateTimeFormat("en-CA", { timeZone: "America/Maceio" }).format(
+          Date.now() + deslocamentoDias * 86_400_000,
+        );
+
+      assert.ok((await marcar(kely, null)).error, "Kely não marca o orçamento da Aline");
+      assert.match(
+        (await marcar(aline, diaMaceio(2))).error?.message ?? "",
+        /DATA_FUTURA/,
+        "data futura é recusada",
+      );
+      assert.equal((await marcar(aline, null)).error, null);
+      const { data: enviado } = await admin
+        .from("orcamentos")
+        .select("status, enviado_em, ultimo_envio_em")
+        .eq("id", a.id)
+        .single();
+      assert.equal(enviado!.status, "enviado");
+      assert.ok(enviado!.enviado_em && enviado!.ultimo_envio_em);
+
+      // Itens travados no banco: a dona recebe o erro; a gerência não grava; o service role também é barrado.
+      const dona = await aline.cliente
+        .from("orcamento_itens")
+        .update({ quantidade: 77 })
+        .eq("orcamento_id", a.id)
+        .select();
+      assert.match(dona.error?.message ?? "", /EDICAO_BLOQUEADA/);
+      const gere = await gerente.cliente
+        .from("orcamento_itens")
+        .update({ quantidade: 77 })
+        .eq("orcamento_id", a.id)
+        .select();
+      assert.deepEqual(gere.data ?? [], []);
+      const servico = await admin
+        .from("orcamento_itens")
+        .update({ quantidade: 77 })
+        .eq("orcamento_id", a.id);
+      assert.match(servico.error?.message ?? "", /EDICAO_BLOQUEADA/);
+      const { data: itens77 } = await admin
+        .from("orcamento_itens")
+        .select("quantidade")
+        .eq("orcamento_id", a.id)
+        .eq("quantidade", 77);
+      assert.deepEqual(itens77 ?? [], [], "nenhum item mudou");
+
+      // "Editar e enviar nova versão": só a dona; mantém as datas de envio e libera a edição.
+      const gReabre = await gerente.cliente.rpc("reabrir_para_edicao", { p_orcamento: a.id });
+      assert.ok(gReabre.error, "a gerência não reabre para edição");
+      assert.equal(
+        (await aline.cliente.rpc("reabrir_para_edicao", { p_orcamento: a.id })).error,
+        null,
+      );
+      const { data: reaberto } = await admin
+        .from("orcamentos")
+        .select("status, enviado_em, ultimo_envio_em")
+        .eq("id", a.id)
+        .single();
+      assert.equal(reaberto!.status, "gerado");
+      assert.equal(reaberto!.enviado_em, enviado!.enviado_em);
+      assert.equal(reaberto!.ultimo_envio_em, enviado!.ultimo_envio_em);
+      const livre = await aline.cliente
+        .from("orcamento_itens")
+        .update({ quantidade: 6 })
+        .eq("orcamento_id", a.id)
+        .eq("codigo", "9520")
+        .select();
+      assert.equal(livre.error, null);
+    },
+  );
+
   await caso("sem itens ou com avulso sem preço, o PDF é bloqueado", async () => {
     const vazio = await criarOrcamento(aline, false, "B");
     const r1 = await gerarOrcamento(deps(aline), aline, vazio.id);

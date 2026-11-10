@@ -77,20 +77,26 @@ test("Aline acompanha: enviado, follow-ups e fechado com valor, e vê o follow-u
   const fechar = await criar(aline!.id, NOME_FECHAR, "gerado");
   // Enviado há 6 dias: o D+5 está atrasado e aparece em "Para hoje".
   const seisDias = new Date(Date.now() - 6 * 86_400_000).toISOString();
-  await criar(aline!.id, NOME_FOLLOWUP, "enviado", { enviado_em: seisDias, status_em: seisDias });
+  await criar(aline!.id, NOME_FOLLOWUP, "enviado", {
+    enviado_em: seisDias,
+    ultimo_envio_em: seisDias,
+    status_em: seisDias,
+  });
 
   await entrar(page, process.env.SEED_EMAIL_ALINE!);
 
   // Para hoje: follow-up para fazer.
-  await expect(page.getByRole("heading", { name: /Follow-ups para fazer/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Follow-ups de hoje/ })).toBeVisible();
   const vencido = page.getByRole("listitem").filter({ hasText: NOME_FOLLOWUP });
-  await expect(vencido.getByText("Follow-up D+5 atrasado")).toBeVisible();
+  await expect(vencido.getByText("Follow-up D+5")).toBeVisible();
+  await expect(vencido.getByText("atrasado 1 dia")).toBeVisible();
 
   // Lista: poucos toques mudam o status.
   await page.goto("/orcamentos?filtro=todos");
   const cartao = page.getByRole("listitem").filter({ hasText: NOME_FECHAR });
   await expect(cartao.getByText("Gerado", { exact: true })).toBeVisible();
-  await cartao.getByRole("button", { name: "Marcar como enviado" }).click();
+  await cartao.getByRole("button", { name: "Marquei como enviado" }).click();
+  await cartao.getByRole("button", { name: "Confirmar envio" }).click(); // hoje
   await expect(cartao.getByText("Enviado", { exact: true })).toBeVisible();
   await cartao.getByRole("button", { name: "Follow-up D+5 feito" }).click();
   await expect(cartao.getByText("Follow-up D+5", { exact: true })).toBeVisible();

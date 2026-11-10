@@ -2,7 +2,8 @@ import Link from "next/link";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import type { StatusOrcamento } from "@/lib/dominio";
 import { formatarDataHora, formatarMoeda } from "@/lib/formatar";
-import { followupDevido, rotuloMotivo } from "@/lib/orcamento/status";
+import { followupDeHoje, type ConfigFollowup } from "@/lib/orcamento/followup";
+import { rotuloMotivo } from "@/lib/orcamento/status";
 import { StatusAcoes } from "./StatusAcoes";
 
 export interface DadosCartao {
@@ -16,13 +17,22 @@ export interface DadosCartao {
   valorFechado: number | null;
   motivoPerda: string | null;
   atualizadoEm: string;
-  enviadoEm: string | null;
-  statusEm: string | null;
+  geradoEm: string | null;
+  /** Envio mais recente: de onde contam os follow-ups. */
+  ultimoEnvioEm: string | null;
 }
 
 /** Cartão de orçamento com o acompanhamento (status e follow-up) a um toque, para vendedora e gerência. */
-export function CartaoOrcamento({ d, podeAgir }: { d: DadosCartao; podeAgir: boolean }) {
-  const devido = followupDevido({ status: d.status, enviadoEm: d.enviadoEm, statusEm: d.statusEm });
+export function CartaoOrcamento({
+  d,
+  podeAgir,
+  config,
+}: {
+  d: DadosCartao;
+  podeAgir: boolean;
+  config?: ConfigFollowup;
+}) {
+  const devido = followupDeHoje({ status: d.status, ultimoEnvioEm: d.ultimoEnvioEm, config });
   const valor = d.status === "fechado" && d.valorFechado ? d.valorFechado : d.valorTotal;
 
   return (
@@ -50,9 +60,11 @@ export function CartaoOrcamento({ d, podeAgir }: { d: DadosCartao; podeAgir: boo
           ) : null}
           {devido ? (
             <span className="rounded-full bg-amber-200 px-3 py-1 text-base font-semibold text-amber-950">
-              {devido.atrasado
-                ? `Follow-up ${devido.etapa} atrasado`
-                : `Follow-up ${devido.etapa} hoje`}
+              {devido.etapa === "ENCERRAR"
+                ? "Sem resposta: encerrar?"
+                : devido.diasAtraso > 0
+                  ? `Follow-up ${devido.etapa} atrasado`
+                  : `Follow-up ${devido.etapa} hoje`}
             </span>
           ) : null}
         </span>
@@ -72,6 +84,7 @@ export function CartaoOrcamento({ d, podeAgir }: { d: DadosCartao; podeAgir: boo
           orcamentoId={d.id}
           status={d.status as StatusOrcamento}
           valorTotal={d.valorTotal}
+          geradoEm={d.geradoEm}
           compacto
         />
       ) : null}

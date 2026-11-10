@@ -54,7 +54,7 @@ beforeAll(async () => {
     insert into orcamentos (id, vendedora_id, cliente_id, status) values
       ('${ORC}', '${ALINE}', '${CLI_A}', 'rascunho'),
       ('${ORC_VAZIO}', '${ALINE}', '${CLI_A}', 'rascunho'),
-      ('${ORC_ENVIADO}', '${ALINE}', '${CLI_A}', 'enviado'),
+      ('${ORC_ENVIADO}', '${ALINE}', '${CLI_A}', 'gerado'),
       ('${ORC_KELY}', '${KELY}', '${CLI_K}', 'rascunho');
     -- preços "velhos": o catálogo mudou depois da montagem
     insert into orcamento_itens (orcamento_id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, ordem) values
@@ -63,6 +63,8 @@ beforeAll(async () => {
       ('${ORC}', null, 'Pendente sob medida', 890.00, 1, 'Sala', true, 2),
       ('${ORC_ENVIADO}', '9520', 'X', 40.00, 1, 'Sala', false, 0),
       ('${ORC_KELY}', '9520', 'X', 40.00, 1, 'Sala', false, 0);
+    -- depois de enviado, os itens não mudam mais (gatilho): por isso o status muda só agora
+    update orcamentos set status = 'enviado' where id = '${ORC_ENVIADO}';
   `);
 }, 60_000);
 

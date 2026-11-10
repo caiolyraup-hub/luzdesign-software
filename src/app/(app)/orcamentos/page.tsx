@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { CartaoOrcamento, type DadosCartao } from "@/components/orcamento/CartaoOrcamento";
 import { FILTROS, FiltrosStatus, filtroPorId } from "@/components/orcamento/FiltrosStatus";
+import { lerConfigFollowup } from "@/lib/orcamento/config-followup";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -13,8 +14,8 @@ interface Linha {
   valor_fechado: number | string | null;
   motivo_perda: string | null;
   atualizado_em: string;
-  enviado_em: string | null;
-  status_em: string | null;
+  gerado_em: string | null;
+  ultimo_envio_em: string | null;
   clientes: { nome: string } | { nome: string }[] | null;
 }
 
@@ -29,12 +30,13 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
   const { data, error } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, valor_total, valor_fechado, motivo_perda, atualizado_em, enviado_em, status_em, clientes(nome)",
+      "id, numero, status, valor_total, valor_fechado, motivo_perda, atualizado_em, gerado_em, ultimo_envio_em, clientes(nome)",
     )
     .eq("vendedora_id", usuario.id)
     .order("atualizado_em", { ascending: false });
 
   if (error) return <p role="alert">Não foi possível carregar os orçamentos.</p>;
+  const config = await lerConfigFollowup(supabase);
   const linhas = (data ?? []) as unknown as Linha[];
 
   const contagens = Object.fromEntries(
@@ -58,8 +60,8 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
       valorFechado: l.valor_fechado === null ? null : Number(l.valor_fechado),
       motivoPerda: l.motivo_perda,
       atualizadoEm: l.atualizado_em,
-      enviadoEm: l.enviado_em,
-      statusEm: l.status_em,
+      geradoEm: l.gerado_em,
+      ultimoEnvioEm: l.ultimo_envio_em,
     };
   });
 
@@ -75,7 +77,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
       ) : (
         <ul className="space-y-3">
           {cartoes.map((c) => (
-            <CartaoOrcamento key={c.id} d={c} podeAgir />
+            <CartaoOrcamento key={c.id} d={c} podeAgir config={config} />
           ))}
         </ul>
       )}

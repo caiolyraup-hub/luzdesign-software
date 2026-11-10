@@ -5,6 +5,7 @@ import type { StatusOrcamento } from "@/lib/dominio";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import { StatusAcoes } from "@/components/orcamento/StatusAcoes";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
+import { ReabrirEdicao } from "@/components/orcamento/ReabrirEdicao";
 import { PreviaPdf } from "@/components/orcamento/PreviaPdf";
 import { formatarDataBR, formatarDataHora, isoParaBR } from "@/lib/formatar";
 import { nomeArquivoOrcamento } from "@/lib/orcamento/arquivos";
@@ -33,7 +34,7 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
   const { data: orc } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
+      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, enviado_em, ultimo_envio_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -166,7 +167,30 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
             orcamentoId={id}
             status={orc.status as StatusOrcamento}
             valorTotal={Number(orc.valor_total)}
+            geradoEm={orc.gerado_em}
           />
+          {orc.ultimo_envio_em ? (
+            <p className="text-base text-zinc-600">
+              Enviado em {formatarDataBR(orc.ultimo_envio_em)}
+              {orc.enviado_em &&
+              formatarDataBR(orc.enviado_em) !== formatarDataBR(orc.ultimo_envio_em)
+                ? ` (primeiro envio em ${formatarDataBR(orc.enviado_em)})`
+                : ""}
+              .
+            </p>
+          ) : null}
+          {minha && ["enviado", "followup_d5", "followup_d10"].includes(orc.status) ? (
+            <ReabrirEdicao orcamentoId={id} />
+          ) : null}
+          {minha &&
+          ["enviado", "followup_d5", "followup_d10", "fechado", "perdido"].includes(orc.status) ? (
+            <Link
+              href={`/orcamentos/${id}/revisao`}
+              className="flex min-h-12 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+            >
+              Ver produtos (só leitura)
+            </Link>
+          ) : null}
         </section>
       ) : null}
 

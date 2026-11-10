@@ -28,7 +28,14 @@ function ativo(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function BarraNavegacao({ perfil }: { perfil: Perfil }) {
+export function BarraNavegacao({
+  perfil,
+  followupsVencidos = 0,
+}: {
+  perfil: Perfil;
+  /** Follow-ups vencidos (badge no Início). */
+  followupsVencidos?: number;
+}) {
   const pathname = usePathname();
   const itens = perfil === "gerente" ? ITENS_GERENTE : ITENS_VENDEDORA;
   return (
@@ -45,6 +52,14 @@ export function BarraNavegacao({ perfil }: { perfil: Perfil }) {
               className="flex min-h-14 items-center justify-center px-1 text-base aria-[current=page]:font-semibold aria-[current=page]:text-amber-700"
             >
               {item.rotulo}
+              {item.href === "/" && followupsVencidos > 0 ? (
+                <span
+                  aria-label={`${followupsVencidos} follow-ups vencidos`}
+                  className="ml-1 inline-flex min-w-6 items-center justify-center rounded-full bg-red-700 px-1.5 text-sm font-semibold text-white"
+                >
+                  {followupsVencidos}
+                </span>
+              ) : null}
             </Link>
           </li>
         ))}

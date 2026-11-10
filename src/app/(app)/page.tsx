@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { CartaoOrcamento, type DadosCartao } from "@/components/orcamento/CartaoOrcamento";
+import { CartaoFollowup } from "@/components/orcamento/CartaoFollowup";
 import { formatarDataHora } from "@/lib/formatar";
-import { followupDevido } from "@/lib/orcamento/status";
+import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -13,52 +13,17 @@ interface Rascunho {
   clientes: { nome: string } | { nome: string }[] | null;
 }
 
-async function FollowupsParaFazer() {
+async function FollowupsDeHoje() {
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
-  const { data } = await supabase
-    .from("orcamentos")
-    .select(
-      "id, numero, status, valor_total, valor_fechado, motivo_perda, atualizado_em, enviado_em, status_em, clientes(nome)",
-    )
-    .eq("vendedora_id", usuario.id)
-    .in("status", ["enviado", "followup_d5"]);
-  const cartoes: DadosCartao[] = (
-    (data ?? []) as unknown as {
-      id: string;
-      numero: string;
-      status: string;
-      valor_total: number | string;
-      valor_fechado: number | string | null;
-      motivo_perda: string | null;
-      atualizado_em: string;
-      enviado_em: string | null;
-      status_em: string | null;
-      clientes: { nome: string } | { nome: string }[] | null;
-    }[]
-  )
-    .filter((l) =>
-      followupDevido({ status: l.status, enviadoEm: l.enviado_em, statusEm: l.status_em }),
-    )
-    .map((l) => ({
-      id: l.id,
-      numero: l.numero,
-      status: l.status,
-      clienteNome: (Array.isArray(l.clientes) ? l.clientes[0] : l.clientes)?.nome ?? "Sem cliente",
-      valorTotal: Number(l.valor_total),
-      valorFechado: null,
-      motivoPerda: null,
-      atualizadoEm: l.atualizado_em,
-      enviadoEm: l.enviado_em,
-      statusEm: l.status_em,
-    }));
+  const cartoes = await followupsDeHoje(supabase, usuario);
   if (cartoes.length === 0) return null;
   return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold">Follow-ups para fazer ({cartoes.length})</h2>
+    <section aria-label="Follow-ups de hoje" className="space-y-3">
+      <h2 className="text-xl font-semibold">Follow-ups de hoje ({cartoes.length})</h2>
       <ul className="space-y-3">
         {cartoes.map((c) => (
-          <CartaoOrcamento key={c.id} d={c} podeAgir />
+          <CartaoFollowup key={c.id} d={c} />
         ))}
       </ul>
     </section>
@@ -125,7 +90,7 @@ export default function Page() {
         Novo orçamento
       </Link>
       <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
-        <FollowupsParaFazer />
+        <FollowupsDeHoje />
       </Suspense>
       <Suspense fallback={null}>
         <RascunhosParaTerminar />

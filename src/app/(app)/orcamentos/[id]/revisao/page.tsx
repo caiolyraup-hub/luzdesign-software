@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
+import { ProdutosSomenteLeitura } from "@/components/revisao/ProdutosSomenteLeitura";
 import { Revisao } from "@/components/revisao/Revisao";
 import type { HistoricoIndicacao } from "@/components/revisao/IndicacaoIA";
 import { inicioDoDiaMaceio } from "@/lib/ia/comum";
@@ -36,15 +37,37 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
     .eq("id", id)
     .maybeSingle();
   if (!orc) notFound();
-  // Só a dona seleciona produtos, e só enquanto for rascunho ou gerado.
-  if (orc.vendedora_id !== usuario.id || (orc.status !== "rascunho" && orc.status !== "gerado")) {
+  // Só a dona abre esta tela. Em rascunho e gerado ela seleciona os produtos; depois de enviado
+  // a tela abre só para leitura (os itens também são travados no banco).
+  if (orc.vendedora_id !== usuario.id) {
     redirect(`/orcamentos/${id}`);
   }
+  const editavel = orc.status === "rascunho" || orc.status === "gerado";
 
   const cliente = Array.isArray(orc.clientes) ? orc.clientes[0] : orc.clientes;
   const respostas: Respostas = respostasComCliente(orc.respostas as Respostas, cliente);
   const montagem = (orc.montagem ?? {}) as Montagem;
   const itens = await carregarItensRevisao(supabase, id);
+
+  if (!editavel) {
+    const { data: cfgLeitura } = await supabase
+      .from("configuracoes_loja")
+      .select("desconto_avista_pct")
+      .eq("id", true)
+      .maybeSingle();
+    return (
+      <ProdutosSomenteLeitura
+        orcamentoId={id}
+        numero={orc.numero}
+        clienteNome={cliente?.nome ?? "Sem cliente"}
+        status={orc.status}
+        itens={itens}
+        ambientes={[...ambientesDasRespostas(respostas), ...(montagem.ambientes_extras ?? [])]}
+        descontoPct={Number(cfgLeitura?.desconto_avista_pct ?? 10)}
+        podeReabrir={["enviado", "followup_d5", "followup_d10"].includes(orc.status)}
+      />
+    );
+  }
 
   const [{ data: cfg }, { count: anexos }, { data: indicacoes }, usadosHoje] = await Promise.all([
     supabase.from("configuracoes_loja").select("desconto_avista_pct").eq("id", true).maybeSingle(),

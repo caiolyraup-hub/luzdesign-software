@@ -1,10 +1,14 @@
 import { Suspense } from "react";
 import { BarraNavegacao } from "@/components/BarraNavegacao";
 import { sair } from "@/lib/acoes-sessao";
+import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
 import { obterUsuarioAtual } from "@/lib/sessao";
+import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 async function Moldura({ children }: { children: React.ReactNode }) {
   const usuario = await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const vencidos = (await followupsDeHoje(supabase, usuario)).length;
   return (
     <>
       <header className="border-b border-zinc-200">
@@ -18,7 +22,7 @@ async function Moldura({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-3xl px-4 pt-6 pb-24">{children}</main>
-      <BarraNavegacao perfil={usuario.perfil} />
+      <BarraNavegacao perfil={usuario.perfil} followupsVencidos={vencidos} />
     </>
   );
 }
