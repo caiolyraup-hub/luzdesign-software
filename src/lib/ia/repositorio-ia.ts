@@ -1,15 +1,13 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { respostasComCliente } from "../orcamento/respostas";
-import type { ProdutoCatalogo } from "./normalizar";
 import type {
   AnexoParaIA,
-  FinalizacaoUso,
-  MontagemGravada,
-  OrcamentoParaMontar,
+  DescricaoFormatada,
+  OrcamentoParaIA,
+  ProdutoCatalogo,
   RepositorioIA,
-} from "./montar";
-import type { AmbienteMontado, ItemMontado } from "./normalizar";
+} from "./comum";
 
 function checar(contexto: string, erro: { message: string } | null) {
   if (erro) throw new Error(`${contexto}: ${erro.message}`);
@@ -17,14 +15,17 @@ function checar(contexto: string, erro: { message: string } | null) {
 
 /**
  * Banco real. `sessao` é o cliente da própria vendedora (RLS vale em orçamento, anexos, produtos e
- * na gravação dos itens). `admin` (service role) só escreve e conta em uso_ia, que ela não lê.
+ * indicações). `admin` (service role) só conta e registra uso_ia (ela não lê) e grava as
+ * descrições padronizadas (só o servidor escreve nessa tabela).
  */
 export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient): RepositorioIA {
   return {
     async carregarOrcamento(id) {
       const { data } = await sessao
         .from("orcamentos")
-        .select("id, vendedora_id, status, respostas, clientes(nome, whatsapp)")
+        .select(
+          "id, vendedora_id, status, respostas, clientes(nome, whatsapp, arquiteto_indicador)",
+        )
         .eq("id", id)
         .maybeSingle();
       if (!data) return null;
@@ -34,36 +35,34 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
         vendedora_id: data.vendedora_id,
         status: data.status,
         respostas: respostasComCliente(data.respostas, cliente),
-      } satisfies OrcamentoParaMontar;
+      } satisfies OrcamentoParaIA;
     },
 
-    async contarUso({ vendedoraId, orcamentoId, desde }) {
+    async contarUso({ vendedoraId, desde }) {
       const recente = new Date(Date.now() - 10 * 60_000).toISOString();
-      let q = admin
+      const { count, error } = await admin
         .from("uso_ia")
         .select("id", { count: "exact", head: true })
-        .or(`status.eq.ok,and(status.eq.em_andamento,criado_em.gte.${recente})`);
-      if (vendedoraId) q = q.eq("vendedora_id", vendedoraId);
-      // As montagens do orçamento não contam as reescritas de análise (essas só entram no limite diário).
-      if (orcamentoId) q = q.eq("orcamento_id", orcamentoId).eq("tipo", "montagem");
-      if (desde) q = q.gte("criado_em", desde.toISOString());
-      const { count, error } = await q;
+        .or(`status.eq.ok,and(status.eq.em_andamento,criado_em.gte.${recente})`)
+        .eq("vendedora_id", vendedoraId)
+        .gte("criado_em", desde.toISOString());
       checar("Contar uso da IA", error);
       return count ?? 0;
     },
 
-    async existeEmAndamento(orcamentoId, desde) {
+    async existeEmAndamento(orcamentoId, tipo, desde) {
       const { count, error } = await admin
         .from("uso_ia")
         .select("id", { count: "exact", head: true })
         .eq("orcamento_id", orcamentoId)
+        .eq("tipo", tipo)
         .eq("status", "em_andamento")
         .gte("criado_em", desde.toISOString());
-      checar("Conferir montagem em andamento", error);
+      checar("Conferir uso em andamento", error);
       return (count ?? 0) > 0;
     },
 
-    async iniciarUso({ orcamentoId, vendedoraId, modelo, tipo = "montagem" }) {
+    async iniciarUso({ orcamentoId, vendedoraId, modelo, tipo }) {
       const { data, error } = await admin
         .from("uso_ia")
         .insert({
@@ -79,7 +78,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
       return data!.id as string;
     },
 
-    async finalizarUso(id, dados: FinalizacaoUso) {
+    async finalizarUso(id, dados) {
       const { error } = await admin.from("uso_ia").update(dados).eq("id", id);
       checar("Finalizar uso da IA", error);
     },
@@ -97,7 +96,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
         const { data: arquivo, error: erroArquivo } = await sessao.storage
           .from("anexos")
           .download(a.caminho_storage);
-        if (erroArquivo || !arquivo) continue; // anexo ilegível não derruba a montagem
+        if (erroArquivo || !arquivo) continue; // anexo ilegível não derruba o pedido
         resultado.push({
           id: a.id,
           tipo: a.tipo,
@@ -114,7 +113,7 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
       if (codigos.length === 0) return mapa;
       const { data, error } = await sessao
         .from("produtos")
-        .select("codigo, descricao, unidade, preco_unitario, ativo")
+        .select("codigo, descricao, unidade, preco_unitario, ativo, categoria, atualizado_em")
         .in("codigo", codigos);
       checar("Ler produtos", error);
       for (const p of data ?? []) {
@@ -124,26 +123,11 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
           unidade: p.unidade,
           preco_unitario: Number(p.preco_unitario),
           ativo: p.ativo,
+          categoria: p.categoria,
+          atualizado_em: p.atualizado_em,
         });
       }
       return mapa;
-    },
-
-    async substituirItens(
-      orcamentoId,
-      itens: ItemMontado[],
-      valorTotal: number,
-      montagem: MontagemGravada,
-      ambientes: AmbienteMontado[],
-    ) {
-      const { error } = await sessao.rpc("substituir_itens_orcamento", {
-        p_orcamento: orcamentoId,
-        p_itens: itens,
-        p_valor_total: valorTotal,
-        p_montagem: montagem,
-        p_ambientes: ambientes,
-      });
-      checar("Gravar itens do orçamento", error);
     },
 
     async itensDoAmbiente(orcamentoId, ambiente) {
@@ -162,27 +146,38 @@ export function criarRepositorioIA(sessao: SupabaseClient, admin: SupabaseClient
         }));
     },
 
-    async salvarAnalise(orcamentoId, ambiente, analise, anexosUsados) {
-      const { data: existentes } = await sessao
-        .from("orcamento_ambientes")
-        .select("id, nome")
-        .eq("orcamento_id", orcamentoId);
-      const atual = (existentes ?? []).find(
-        (a) => a.nome.trim().toLowerCase() === ambiente.trim().toLowerCase(),
-      );
-      const { error } = atual
-        ? await sessao
-            .from("orcamento_ambientes")
-            .update({ analise, anexos_usados: anexosUsados })
-            .eq("id", atual.id)
-        : await sessao.from("orcamento_ambientes").insert({
-            orcamento_id: orcamentoId,
-            nome: ambiente,
-            ordem: (existentes ?? []).length,
-            analise,
-            anexos_usados: anexosUsados,
-          });
-      checar("Salvar análise do ambiente", error);
+    async salvarIndicacao(d) {
+      const { error } = await sessao.from("indicacoes_ia").insert({
+        orcamento_id: d.orcamentoId,
+        vendedora_id: d.vendedoraId,
+        ambiente: d.ambiente,
+        pedido_cliente: d.pedidoCliente,
+        pedido_arquiteto: d.pedidoArquiteto,
+        descricao_ambiente: d.descricaoAmbiente,
+        usou_anexos: d.usouAnexos,
+        resposta: d.resposta,
+      });
+      checar("Guardar a indicação", error);
+    },
+
+    async descricoesFormatadas(codigos) {
+      const mapa = new Map<string, DescricaoFormatada>();
+      if (codigos.length === 0) return mapa;
+      const { data, error } = await sessao
+        .from("produtos_descricao_formatada")
+        .select("codigo, descricao_formatada, descricao_origem")
+        .in("codigo", codigos);
+      checar("Ler descrições padronizadas", error);
+      for (const d of data ?? []) mapa.set(d.codigo, d);
+      return mapa;
+    },
+
+    async salvarDescricoesFormatadas(linhas) {
+      if (linhas.length === 0) return;
+      const { error } = await admin
+        .from("produtos_descricao_formatada")
+        .upsert(linhas, { onConflict: "codigo" });
+      checar("Guardar descrições padronizadas", error);
     },
   };
 }

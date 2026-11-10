@@ -176,77 +176,35 @@ describe("PDF", () => {
   });
 });
 
-describe("PDF com análise do ambiente e motivo dos produtos", () => {
-  const png = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-    "base64",
-  );
-  const analise = (nome: string) =>
-    `Com base nas informações do pedido, o espaço ${nome} é usado no dia a dia e pede luz agradável. A luz quente de 2700 K deixa o ambiente acolhedor.`;
-
-  it("mostra a análise abaixo do título, a miniatura e o motivo sob cada produto", async () => {
-    const dados = montarDadosPdf(
-      entrada([item(1, { motivo: "Luz quente deixa a sala acolhedora." })], {
-        analises: [
-          { nome: "Sala", analise: analise("Sala"), miniatura: { data: png, format: "png" } },
-        ],
-      }),
-    );
-    expect(dados.ambientes[0].analise).toContain("Com base nas informações do pedido");
-    expect(dados.ambientes[0].miniatura).not.toBeNull();
-    expect(dados.ambientes[0].itens[0].motivo).toBe("Luz quente deixa a sala acolhedora.");
-
-    const { texto } = await ler(await renderizarPdf(dados, null));
-    expect(texto.replaceAll(" ", "")).toContain("ANÁLISEDOAMBIENTE");
-    expect(texto).toContain("o espaço Sala é usado no dia a dia");
-    expect(texto).toContain("Luz quente deixa a sala acolhedora.");
+describe("PDF sem análise do ambiente nem motivo dos produtos (dia 8)", () => {
+  it("os dados do PDF não têm análise, miniatura nem motivo", () => {
+    const dados = montarDadosPdf(entrada([item(1)]));
+    expect(Object.keys(dados.ambientes[0]).sort()).toEqual(["itens", "nome", "subtotalCentavos"]);
+    expect(Object.keys(dados.ambientes[0].itens[0])).not.toContain("motivo");
   });
 
-  it("desligado: sem análise e sem motivos no PDF", async () => {
+  it("o PDF não traz o bloco de análise, mesmo se o item guardar um motivo antigo", async () => {
     const dados = montarDadosPdf(
-      entrada([item(1, { motivo: "Motivo secreto." })], {
-        analises: [{ nome: "Sala", analise: analise("Sala") }],
-        mostrarAnalise: false,
-      }),
+      entrada([item(1, { descricaoManual: false, origem: "montagem_ia" })]),
     );
-    expect(dados.ambientes[0]).toMatchObject({ analise: null, miniatura: null });
-    expect(dados.ambientes[0].itens[0].motivo).toBeNull();
     const { texto } = await ler(await renderizarPdf(dados, null));
     expect(texto.replaceAll(" ", "")).not.toContain("ANÁLISEDOAMBIENTE");
-    expect(texto).not.toContain("Motivo secreto.");
+    expect(texto).toContain("PRODUTO DE TESTE 1 6W 2.7K");
   });
 
-  it("item sem motivo sai sem a linha de motivo", () => {
-    const dados = montarDadosPdf(entrada([item(1, { motivo: null }), item(2, { motivo: "  " })]));
-    expect(dados.ambientes[0].itens.map((i) => i.motivo)).toEqual([null, null]);
-  });
-
-  it("60 itens em 6 ambientes com análise paginam sem cortar item nem bloco de análise", async () => {
+  it("60 itens em 6 ambientes paginam sem cortar item", async () => {
     const nomes = ["Sala", "Cozinha", "Quartos", "Banheiros", "Varanda", "Fachada"];
     const itens = Array.from({ length: 60 }, (_, i) =>
       item(i + 1, {
         ambiente: nomes[Math.floor(i / 10)],
         descricao: `ITEM ${i + 1} DESCRICAO DE TESTE 22W 3000K`,
-        motivo: `Motivo do item ${i + 1}: luz agradável para o uso do ambiente.`,
       }),
     );
-    const pdf = await renderizarPdf(
-      montarDadosPdf(
-        entrada(itens, { analises: nomes.map((n) => ({ nome: n, analise: analise(n) })) }),
-      ),
-      null,
-    );
+    const pdf = await renderizarPdf(montarDadosPdf(entrada(itens)), null);
     const { texto, paginas } = await ler(pdf);
-    expect(paginas).toBeGreaterThanOrEqual(3);
-    expect(paginas).toBeLessThanOrEqual(8);
-    for (const n of nomes) expect(texto).toContain(`o espaço ${n} é usado no dia a dia`); // cada análise inteira, uma vez
-    for (let n = 1; n <= 60; n++) {
-      expect(texto).toContain(`ITEM ${n} DESCRICAO`);
-      expect(texto).toContain(`Motivo do item ${n}:`);
-    }
-    // Nenhum bloco de análise ficou sem o primeiro item logo depois (título + análise + tabela andam juntos).
-    expect(
-      texto.split("Análise do ambiente").length - 1 + texto.split("A N Á L I S E").length - 1,
-    ).toBeGreaterThanOrEqual(0);
+    expect(paginas).toBeGreaterThanOrEqual(2);
+    expect(paginas).toBeLessThanOrEqual(6);
+    for (let n = 1; n <= 60; n++) expect(texto).toContain(`ITEM ${n} DESCRICAO`);
+    for (const n of nomes) expect(texto).toContain(`Subtotal ${n}`);
   }, 90_000);
 });

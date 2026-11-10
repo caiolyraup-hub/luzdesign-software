@@ -204,7 +204,7 @@ export const schemaAmbientes = z
   }));
 
 export const schemaPedido = z.object({
-  pedido_cliente: texto(3, 8000, "Conte o que o cliente pediu."),
+  pedido_cliente: textoOpcional(8000),
 });
 
 export const schemaLinha = z.object({
@@ -300,9 +300,9 @@ export const PERGUNTAS: Pergunta[] = [
     numero: 6,
     id: "pedido_cliente",
     rotulo: "O que o cliente pediu?",
-    dica: "Pode colar a mensagem do WhatsApp do cliente ou listar códigos.",
+    dica: "Opcional. Pode colar a mensagem do WhatsApp do cliente. Serve de ponto de partida para a Indicação da IA.",
     tipo: "textoLongo",
-    obrigatoria: true,
+    obrigatoria: false,
     campos: ["pedido_cliente"],
     schema: schemaPedido,
     resumo: "Pedido do cliente",

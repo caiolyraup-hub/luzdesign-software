@@ -1,10 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ItemRevisao } from "./itens";
+import type { ItemRevisao, OrigemItem } from "./itens";
 
 export const SELECT_ITENS =
-  "id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, justificativa, motivo_cliente, ordem, produtos(marca, unidade, ativo, preco_unitario, descricao)";
+  "id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, justificativa, origem, descricao_manual, ordem, produtos(marca, categoria, unidade, ativo, preco_unitario, descricao, produtos_descricao_formatada(descricao_formatada, descricao_origem))";
+
+interface FormatadaJunta {
+  descricao_formatada: string;
+  descricao_origem: string;
+}
 
 interface ProdutoJunto {
+  categoria?: string | null;
+  produtos_descricao_formatada?: FormatadaJunta | FormatadaJunta[] | null;
   marca: string | null;
   unidade: "un" | "m";
   ativo: boolean;
@@ -21,9 +28,18 @@ export interface LinhaItem {
   ambiente: string | null;
   avulso: boolean;
   justificativa: string | null;
-  motivo_cliente: string | null;
+  origem: OrigemItem | null;
+  descricao_manual: boolean | null;
   ordem: number;
   produtos: ProdutoJunto | ProdutoJunto[] | null;
+}
+
+/** A descrição padronizada, se ainda vale para a descrição atual do catálogo; senão, a do catálogo. */
+export function descricaoIdeal(produto: ProdutoJunto): string {
+  const f = Array.isArray(produto.produtos_descricao_formatada)
+    ? produto.produtos_descricao_formatada[0]
+    : produto.produtos_descricao_formatada;
+  return f && f.descricao_origem === produto.descricao ? f.descricao_formatada : produto.descricao;
 }
 
 export function paraItemRevisao(l: LinhaItem): ItemRevisao {
@@ -37,13 +53,15 @@ export function paraItemRevisao(l: LinhaItem): ItemRevisao {
     ambiente: l.ambiente?.trim() || "Geral",
     avulso: l.avulso,
     justificativa: l.justificativa,
-    motivo: l.motivo_cliente,
+    origem: l.origem ?? "manual",
+    descricaoManual: l.descricao_manual ?? false,
     ordem: l.ordem,
     marca: produto?.marca ?? null,
+    categoria: l.avulso ? null : (produto?.categoria ?? null),
     unidade: l.avulso ? "un" : (produto?.unidade ?? "un"),
     produtoAtivo: l.avulso || !produto ? null : produto.ativo,
     precoCatalogo: l.avulso || !produto ? null : Number(produto.preco_unitario),
-    descricaoCatalogo: l.avulso || !produto ? null : produto.descricao,
+    descricaoCatalogo: l.avulso || !produto ? null : descricaoIdeal(produto),
   };
 }
 

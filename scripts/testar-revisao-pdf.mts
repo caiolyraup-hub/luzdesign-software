@@ -2,7 +2,8 @@
 // Uso: pnpm test:rls (roda depois dos outros). Cria dados "TESTE RLS PDF" e apaga tudo no fim.
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { gerarPdfOrcamento } from "../src/lib/pdf/gerar";
+import { gerarOrcamento } from "../src/lib/pdf/gerar";
+import { gerarPlanilhaOrcamento } from "../src/lib/planilha/orcamento";
 import { renderizarPdf } from "../src/lib/pdf/renderizar";
 
 function exigir(nome: string): string {
@@ -79,7 +80,11 @@ const aline = await entrar(exigir("SEED_EMAIL_ALINE"), "Aline");
 const kely = await entrar(exigir("SEED_EMAIL_KELY"), "Kely");
 const gerente = await entrar(exigir("SEED_EMAIL_GERENCIA"), "Gerência");
 
-const deps = (p: Pessoa) => ({ sessao: p.cliente, renderizar: renderizarPdf });
+const deps = (p: Pessoa) => ({
+  sessao: p.cliente,
+  renderizar: (d: Parameters<typeof renderizarPdf>[0]) => renderizarPdf(d, null),
+  gerarPlanilha: (d: Parameters<typeof renderizarPdf>[0]) => gerarPlanilhaOrcamento(d, null),
+});
 
 async function criarOrcamento(dono: Pessoa, usandoAdmin: boolean, sufixo: string) {
   const via = usandoAdmin ? admin : dono.cliente;
@@ -170,7 +175,7 @@ try {
   await caso(
     "Aline gera o PDF: congela preços do catálogo, vira gerado e guarda o arquivo",
     async () => {
-      const r = await gerarPdfOrcamento(deps(aline), aline, a.id);
+      const r = await gerarOrcamento(deps(aline), aline, a.id);
       assert.equal(r.ok, true, JSON.stringify(r));
       if (!r.ok) return;
       assert.equal(r.versao, 1);
@@ -209,6 +214,96 @@ try {
     },
   );
 
+  await caso(
+    "planilha XLSX: a dona e a gerência leem; outra vendedora e visitante não",
+    async () => {
+      const semSessao = createClient(url, anon, opcoes);
+      const { data: o } = await admin
+        .from("orcamentos")
+        .select("xlsx_caminho, pdf_versoes")
+        .eq("id", a.id)
+        .single();
+      assert.equal(o!.xlsx_caminho, caminhoA.replace(/\.pdf$/, ".xlsx"));
+      assert.equal(
+        (o!.pdf_versoes as { xlsx_caminho: string }[]).at(-1)?.xlsx_caminho,
+        o!.xlsx_caminho,
+      );
+      const baixado = await admin.storage.from("pdfs").download(o!.xlsx_caminho!);
+      assert.equal(baixado.error, null);
+      const bytes = Buffer.from(await baixado.data!.arrayBuffer());
+      assert.equal(bytes.subarray(0, 2).toString(), "PK", "XLSX é um zip");
+
+      assert.equal(
+        (await aline.cliente.storage.from("pdfs").createSignedUrl(o!.xlsx_caminho!, 60)).error,
+        null,
+      );
+      assert.equal(
+        (await gerente.cliente.storage.from("pdfs").createSignedUrl(o!.xlsx_caminho!, 60)).error,
+        null,
+      );
+      assert.ok(
+        (await kely.cliente.storage.from("pdfs").download(o!.xlsx_caminho!)).error,
+        "Kely não baixa o XLSX da Aline",
+      );
+      assert.ok((await semSessao.storage.from("pdfs").download(o!.xlsx_caminho!)).error);
+      assert.ok(
+        (
+          await kely.cliente.storage
+            .from("pdfs")
+            .upload(`${aline.id}/${a.id}/intruso.xlsx`, Buffer.from("x"), {
+              contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            })
+        ).error,
+        "Kely não grava na pasta da Aline",
+      );
+    },
+  );
+
+  await caso(
+    "Indicação da IA e descrição padronizada: isolamento e escrita só pelo servidor",
+    async () => {
+      const ia = await aline.cliente
+        .from("indicacoes_ia")
+        .insert({
+          orcamento_id: a.id,
+          vendedora_id: aline.id,
+          ambiente: "Sala",
+          resposta: { sugestoes: [] },
+        })
+        .select("id");
+      assert.equal(ia.error, null, ia.error?.message);
+      await admin
+        .from("indicacoes_ia")
+        .insert({ orcamento_id: k.id, vendedora_id: kely.id, ambiente: "Sala", resposta: {} });
+
+      const dela = await aline.cliente.from("indicacoes_ia").select("id").eq("orcamento_id", k.id);
+      assert.deepEqual(dela.data ?? [], [], "Aline não lê a indicação da Kely");
+      const intruso = await aline.cliente
+        .from("indicacoes_ia")
+        .insert({ orcamento_id: k.id, vendedora_id: aline.id, ambiente: "Sala", resposta: {} });
+      assert.ok(intruso.error, "Aline não cria indicação no orçamento da Kely");
+      const gLe = await gerente.cliente
+        .from("indicacoes_ia")
+        .select("id")
+        .in("orcamento_id", [a.id, k.id]);
+      assert.equal(gLe.data?.length, 2, "a gerente lê as duas");
+      const gCria = await gerente.cliente
+        .from("indicacoes_ia")
+        .insert({ orcamento_id: a.id, vendedora_id: gerente.id, ambiente: "Sala", resposta: {} });
+      assert.ok(gCria.error, "a gerente não cria");
+
+      const grava = await aline.cliente.from("produtos_descricao_formatada").insert({
+        codigo: "9520",
+        descricao_formatada: "x",
+        descricao_origem: "y",
+        origem_atualizado_em: new Date().toISOString(),
+      });
+      assert.ok(grava.error, "a vendedora não grava descrição padronizada");
+      const le = await aline.cliente.from("produtos_descricao_formatada").select("codigo").limit(1);
+      assert.equal(le.error, null, "mas todas leem");
+    },
+  );
+
   await caso("Aline lê o próprio PDF; Kely e visitante não", async () => {
     assert.equal(
       (await aline.cliente.storage.from("pdfs").createSignedUrl(caminhoA, 60)).error,
@@ -234,7 +329,7 @@ try {
         new Blob(["%PDF-1.4"], { type: "application/pdf" }),
       );
     assert.ok(envio.error, "gerente não grava em pdfs");
-    const gera = await gerarPdfOrcamento(deps(gerente), gerente, a.id);
+    const gera = await gerarOrcamento(deps(gerente), gerente, a.id);
     assert.equal(gera.ok, false);
     if (!gera.ok) assert.equal(gera.motivo, "nao_encontrado");
     // Nem direto pela função do banco, com o total certo.
@@ -252,7 +347,7 @@ try {
   await caso(
     "Aline não gera PDF, não edita itens nem envia arquivo no orçamento da Kely",
     async () => {
-      const gera = await gerarPdfOrcamento(deps(aline), aline, k.id);
+      const gera = await gerarOrcamento(deps(aline), aline, k.id);
       assert.equal(gera.ok, false);
       if (!gera.ok) assert.equal(gera.motivo, "nao_encontrado");
 
@@ -320,7 +415,7 @@ try {
         .eq("codigo", "9520")
         .select();
       assert.equal(up.data?.length, 1);
-      const r = await gerarPdfOrcamento(deps(aline), aline, a.id);
+      const r = await gerarOrcamento(deps(aline), aline, a.id);
       assert.equal(r.ok, true, JSON.stringify(r));
       if (!r.ok) return;
       assert.equal(r.versao, 2);
@@ -428,7 +523,7 @@ try {
 
   await caso("sem itens ou com avulso sem preço, o PDF é bloqueado", async () => {
     const vazio = await criarOrcamento(aline, false, "B");
-    const r1 = await gerarPdfOrcamento(deps(aline), aline, vazio.id);
+    const r1 = await gerarOrcamento(deps(aline), aline, vazio.id);
     assert.equal(r1.ok, false);
     if (!r1.ok) assert.equal(r1.motivo, "bloqueado");
 
@@ -442,7 +537,7 @@ try {
       avulso: true,
       ordem: 0,
     });
-    const r2 = await gerarPdfOrcamento(deps(aline), aline, vazio.id);
+    const r2 = await gerarOrcamento(deps(aline), aline, vazio.id);
     assert.equal(r2.ok, false);
     if (!r2.ok) assert.match(r2.erro, /preço/i);
     const { data: o } = await admin

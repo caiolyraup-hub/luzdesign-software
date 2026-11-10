@@ -3,32 +3,33 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { gerarPdf } from "@/app/(app)/orcamentos/acoes-pdf";
+import { gerarOrcamentoCompleto } from "@/app/(app)/orcamentos/acoes-pdf";
 import {
   adicionarAmbiente,
   adicionarAvulso,
+  adicionarListaColada,
   adicionarProduto,
+  adicionarSugestoes,
   alterarAvulso,
   alterarQuantidade,
-  alternarMostrarAnalise,
   atualizarPrecos,
-  salvarAnalise,
-  salvarMotivo,
+  editarDescricao,
   mudarAmbiente,
   removerItem,
   restaurarItem,
   trocarProduto,
   type EstadoRevisao,
   type ItemSalvo,
+  type RespostaAdicao,
   type RespostaRemocao,
   type RespostaRevisao,
 } from "@/app/(app)/orcamentos/acoes-revisao";
-import { MontarComIA } from "@/components/orcamento/MontarComIA";
 import type { ProdutoBusca } from "@/lib/estoque/buscar";
 import { agruparPorAmbiente, itensComPrecoMudado, nomeAmbienteValido } from "@/lib/orcamento/itens";
 import { moedaCentavos, motivosBloqueioGerar, totaisDoOrcamento } from "@/lib/orcamento/totais";
-import { AnaliseAmbiente } from "./AnaliseAmbiente";
 import { BuscaProduto } from "./BuscaProduto";
+import { ColarLista } from "./ColarLista";
+import { IndicacaoIA, type HistoricoIndicacao } from "./IndicacaoIA";
 import { ItemCard } from "./ItemCard";
 
 interface Props {
@@ -41,13 +42,18 @@ interface Props {
   /** Ambientes da pergunta 5, na ordem. */
   ambientesBase: string[];
   descontoPct: number;
+  /** Pendências e avisos de orçamentos montados antes pela IA (só leitura). */
   pendencias: string[];
   avisos: string[];
-  resumoIA: string | null;
-  podeMontarIA: boolean;
+  /** Pergunta 6 do formulário (ponto de partida da Indicação). */
+  pedidoClienteInicial: string;
+  temAnexos: boolean;
+  restantesHoje: number;
+  historico: HistoricoIndicacao[];
 }
 
 type ModoBusca = { tipo: "trocar"; itemId: string } | { tipo: "adicionar"; ambiente: string };
+type Resposta = RespostaRevisao | RespostaRemocao | RespostaAdicao;
 
 const botao = "min-h-12 rounded-lg border border-zinc-300 bg-white px-4 text-lg";
 const campo = "min-h-12 rounded-lg border border-zinc-300 px-3 text-lg";
@@ -57,12 +63,12 @@ export function Revisao(p: Props) {
   const router = useRouter();
   const [itens, setItens] = useState(p.estadoInicial.itens);
   const [extras, setExtras] = useState(p.estadoInicial.ambientesExtras);
-  const [analises, setAnalises] = useState(p.estadoInicial.analises);
-  const [mostrarAnalise, setMostrarAnalise] = useState(p.estadoInicial.mostrarAnalise);
   const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [busca, setBusca] = useState<ModoBusca | null>(null);
   const [avulsoEm, setAvulsoEm] = useState<string | null>(null);
+  const [colarEm, setColarEm] = useState<string | null>(null);
   const [formAvulso, setFormAvulso] = useState({ descricao: "", quantidade: "1", preco: "" });
   const [novoAmbiente, setNovoAmbiente] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemSalvo | null>(null);
@@ -78,17 +84,17 @@ export function Revisao(p: Props) {
   function aplicar(e: EstadoRevisao) {
     setItens(e.itens);
     setExtras(e.ambientesExtras);
-    setAnalises(e.analises);
-    setMostrarAnalise(e.mostrarAnalise);
   }
 
-  async function enviar(acao: () => Promise<RespostaRevisao | RespostaRemocao>) {
+  async function enviar<R extends Resposta>(
+    acao: () => Promise<R>,
+  ): Promise<Extract<R, { ok: true }> | null> {
     pendentes.current++;
     setSalvando(true);
     setErro(null);
     const execucao = fila.current.then(acao);
     fila.current = execucao.catch(() => undefined);
-    let r: RespostaRevisao | RespostaRemocao;
+    let r: Resposta;
     try {
       r = await execucao;
     } catch {
@@ -104,7 +110,7 @@ export function Revisao(p: Props) {
       return null;
     }
     if (ultimo) aplicar(r.estado);
-    return r;
+    return r as Extract<R, { ok: true }>;
   }
 
   const base = [...p.ambientesBase, ...extras];
@@ -132,7 +138,7 @@ export function Revisao(p: Props) {
   async function remover(itemId: string) {
     const r = await enviar(() => removerItem(p.orcamentoId, itemId));
     if (r && "desfazer" in r) {
-      setDesfazer((r as { desfazer: ItemSalvo }).desfazer);
+      setDesfazer(r.desfazer);
       if (timerDesfazer.current) clearTimeout(timerDesfazer.current);
       timerDesfazer.current = setTimeout(() => setDesfazer(null), SEGUNDOS_DESFAZER * 1000);
     }
@@ -148,11 +154,36 @@ export function Revisao(p: Props) {
 
   function escolheuProduto(produto: ProdutoBusca) {
     const modo = busca;
-    setBusca(null);
     if (!modo) return;
-    if (modo.tipo === "trocar")
+    if (modo.tipo === "trocar") {
+      setBusca(null);
       void enviar(() => trocarProduto(p.orcamentoId, modo.itemId, produto.codigo));
-    else void enviar(() => adicionarProduto(p.orcamentoId, modo.ambiente, produto.codigo, 1));
+    } else {
+      // A busca continua aberta para adicionar vários produtos seguidos.
+      void enviar(() => adicionarProduto(p.orcamentoId, modo.ambiente, produto.codigo, 1));
+    }
+  }
+
+  /** Adiciona sugestões da Indicação da IA. Devolve o texto de erro (ou null se deu certo). */
+  async function adicionarDaIndicacao(
+    ambiente: string,
+    linhas: { codigo: string; quantidade: number }[],
+  ): Promise<string | null> {
+    const r = await enviar(() => adicionarSugestoes(p.orcamentoId, ambiente, linhas));
+    if (!r) return "Não foi possível adicionar agora. Tente de novo.";
+    if (r.avisos.length > 0) setAviso(r.avisos.join(" "));
+    return null;
+  }
+
+  async function confirmarLista(ambiente: string, texto: string): Promise<string | null> {
+    const r = await enviar(() => adicionarListaColada(p.orcamentoId, ambiente, texto));
+    if (!r) return "Não foi possível adicionar agora. Tente de novo.";
+    setAviso(
+      r.avisos.length > 0
+        ? r.avisos.join(" ")
+        : `${r.adicionados} ${r.adicionados === 1 ? "item adicionado" : "itens adicionados"}.`,
+    );
+    return null;
   }
 
   async function salvarAvulso(ambiente: string) {
@@ -179,7 +210,7 @@ export function Revisao(p: Props) {
     setGerando(true);
     let r;
     try {
-      r = await gerarPdf(p.orcamentoId);
+      r = await gerarOrcamentoCompleto(p.orcamentoId);
     } catch {
       r = { ok: false as const, erro: "Perdi a conexão com o servidor. Tente de novo." };
     }
@@ -195,7 +226,7 @@ export function Revisao(p: Props) {
     <div className="space-y-6 pb-52">
       <div className="space-y-1">
         <div className="flex items-baseline justify-between gap-3">
-          <h1 className="text-2xl font-semibold">Revisão do orçamento</h1>
+          <h1 className="text-2xl font-semibold">Produtos do orçamento</h1>
           <span role="status" aria-live="polite" className="text-base text-zinc-600">
             {salvando ? "Salvando..." : ""}
           </span>
@@ -210,23 +241,6 @@ export function Revisao(p: Props) {
           Este orçamento já tem o PDF (versão {p.pdfVersao}). Se você mudar algo e gerar de novo,
           será criada a versão {p.pdfVersao + 1}; a anterior continua guardada.
         </p>
-      ) : null}
-
-      <label className="flex min-h-12 items-center gap-3 rounded-lg border border-zinc-300 p-3 text-lg">
-        <input
-          type="checkbox"
-          checked={mostrarAnalise}
-          onChange={(e) => {
-            setMostrarAnalise(e.target.checked);
-            void enviar(() => alternarMostrarAnalise(p.orcamentoId, e.target.checked));
-          }}
-          className="size-6"
-        />
-        Mostrar análise e motivos no PDF
-      </label>
-
-      {p.resumoIA ? (
-        <p className="rounded-lg bg-zinc-50 p-4 text-lg whitespace-pre-wrap">{p.resumoIA}</p>
       ) : null}
 
       {p.pendencias.length > 0 ? (
@@ -286,25 +300,15 @@ export function Revisao(p: Props) {
         </p>
       ) : null}
 
+      {aviso ? (
+        <p role="status" className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-lg">
+          {aviso}
+        </p>
+      ) : null}
+
       {grupos.map((g) => (
         <section key={g.nome} aria-label={g.nome} className="space-y-3">
           <h2 className="text-xl font-semibold">{g.nome}</h2>
-          <AnaliseAmbiente
-            orcamentoId={p.orcamentoId}
-            ambiente={g.nome}
-            analise={
-              analises.find((a) => a.nome.toLowerCase() === g.nome.toLowerCase())?.analise ?? ""
-            }
-            temItens={g.itens.length > 0}
-            noPdf={mostrarAnalise}
-            onSalvar={(texto) => void enviar(() => salvarAnalise(p.orcamentoId, g.nome, texto))}
-            onReescrita={(texto) =>
-              setAnalises((atual) => [
-                ...atual.filter((a) => a.nome.toLowerCase() !== g.nome.toLowerCase()),
-                { nome: g.nome, analise: texto, anexosUsados: [] },
-              ])
-            }
-          />
           {g.itens.length > 0 ? (
             <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
               {g.itens.map((i) => (
@@ -319,7 +323,9 @@ export function Revisao(p: Props) {
                   onAvulso={(campos) =>
                     void enviar(() => alterarAvulso(p.orcamentoId, i.id, campos))
                   }
-                  onMotivo={(texto) => void enviar(() => salvarMotivo(p.orcamentoId, i.id, texto))}
+                  onDescricao={(texto) =>
+                    void enviar(() => editarDescricao(p.orcamentoId, i.id, texto))
+                  }
                 />
               ))}
             </ul>
@@ -375,14 +381,23 @@ export function Revisao(p: Props) {
                 </button>
               </div>
             </div>
+          ) : colarEm === g.nome ? (
+            <ColarLista
+              ambiente={g.nome}
+              onConfirmar={(texto) => confirmarLista(g.nome, texto)}
+              onFechar={() => setColarEm(null)}
+            />
           ) : (
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => setBusca({ tipo: "adicionar", ambiente: g.nome })}
-                className={botao}
+                className="min-h-12 rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white"
               >
                 Adicionar produto
+              </button>
+              <button type="button" onClick={() => setColarEm(g.nome)} className={botao}>
+                Colar lista
               </button>
               <button type="button" onClick={() => setAvulsoEm(g.nome)} className={botao}>
                 Adicionar item avulso
@@ -427,15 +442,17 @@ export function Revisao(p: Props) {
         </div>
       )}
 
+      <IndicacaoIA
+        orcamentoId={p.orcamentoId}
+        ambientes={nomesAmbientes}
+        pedidoClienteInicial={p.pedidoClienteInicial}
+        temAnexos={p.temAnexos}
+        restantesHoje={p.restantesHoje}
+        historico={p.historico}
+        onAdicionar={adicionarDaIndicacao}
+      />
+
       <div className="space-y-3 pt-2">
-        {p.podeMontarIA ? (
-          <MontarComIA
-            orcamentoId={p.orcamentoId}
-            rotulo="Montar de novo com IA"
-            secundario
-            dica="Substitui todos os itens atuais."
-          />
-        ) : null}
         <Link
           href={`/orcamentos/${p.orcamentoId}/editar?passo=12`}
           className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
@@ -485,7 +502,7 @@ export function Revisao(p: Props) {
             disabled={!podeGerar}
             className="min-h-14 w-full rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white disabled:opacity-50"
           >
-            {p.status === "gerado" ? "Gerar nova versão do PDF" : "Gerar PDF"}
+            {p.status === "gerado" ? "Gerar nova versão do orçamento" : "Gerar orçamento"}
           </button>
         </div>
       </div>
@@ -493,6 +510,7 @@ export function Revisao(p: Props) {
       {busca ? (
         <BuscaProduto
           titulo={busca.tipo === "trocar" ? "Trocar produto" : `Adicionar em ${busca.ambiente}`}
+          continuo={busca.tipo === "adicionar"}
           onEscolher={escolheuProduto}
           onFechar={() => setBusca(null)}
         />
@@ -508,8 +526,10 @@ export function Revisao(p: Props) {
             aria-hidden="true"
             className="size-14 animate-spin rounded-full border-4 border-zinc-200 border-t-amber-700"
           />
-          <p className="text-2xl font-semibold">Gerando o PDF...</p>
-          <p className="text-lg text-zinc-600">Conferindo os preços e montando o documento.</p>
+          <p className="text-2xl font-semibold">Gerando o orçamento...</p>
+          <p className="text-lg text-zinc-600">
+            Conferindo os preços e montando o PDF e a planilha.
+          </p>
         </div>
       ) : null}
     </div>

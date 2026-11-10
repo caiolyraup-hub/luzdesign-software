@@ -72,7 +72,6 @@ async function Carregar({
       respostasIniciais={respostas}
       anexosIniciais={anexos}
       passoInicial={passoInicial}
-      montadoEm={orcamento.montado_em}
     />
   );
 }

@@ -7,6 +7,7 @@ import { StatusAcoes } from "@/components/orcamento/StatusAcoes";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
 import { PreviaPdf } from "@/components/orcamento/PreviaPdf";
 import { formatarDataBR, formatarDataHora, isoParaBR } from "@/lib/formatar";
+import { nomeArquivoOrcamento } from "@/lib/orcamento/arquivos";
 import { montarLinhaDoTempo } from "@/lib/orcamento/linha-do-tempo";
 import { rotuloMotivo } from "@/lib/orcamento/status";
 import { descontoAvistaCentavos, moedaCentavos } from "@/lib/orcamento/totais";
@@ -18,6 +19,8 @@ const VALIDADE_URL_SEGUNDOS = 3600;
 interface VersaoPdf {
   versao: number;
   caminho: string;
+  /** Versões antigas (antes do dia 8) não têm planilha. */
+  xlsx_caminho?: string | null;
   gerado_em: string;
   valor_total: number;
 }
@@ -30,7 +33,7 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
   const { data: orc } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, pdf_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
+      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -54,31 +57,50 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
       .maybeSingle(),
   ]);
 
-  const nomeArquivo = `Orcamento-${orc.numero}.pdf`;
+  const nomePdf = nomeArquivoOrcamento(cliente?.nome, orc.gerado_em, orc.numero, "pdf");
+  const nomeXlsx = nomeArquivoOrcamento(cliente?.nome, orc.gerado_em, orc.numero, "xlsx");
   let urlPdf: string | null = null;
   let urlDownload: string | null = null;
+  let urlXlsx: string | null = null;
   if (temPdf) {
-    const [ver, baixar] = await Promise.all([
+    const [ver, baixar, planilha] = await Promise.all([
       supabase.storage.from("pdfs").createSignedUrl(orc.pdf_caminho, VALIDADE_URL_SEGUNDOS),
       supabase.storage
         .from("pdfs")
-        .createSignedUrl(orc.pdf_caminho, VALIDADE_URL_SEGUNDOS, { download: nomeArquivo }),
+        .createSignedUrl(orc.pdf_caminho, VALIDADE_URL_SEGUNDOS, { download: nomePdf }),
+      orc.xlsx_caminho
+        ? supabase.storage
+            .from("pdfs")
+            .createSignedUrl(orc.xlsx_caminho, VALIDADE_URL_SEGUNDOS, { download: nomeXlsx })
+        : Promise.resolve({ data: null }),
     ]);
     urlPdf = ver.data?.signedUrl ?? null;
     urlDownload = baixar.data?.signedUrl ?? null;
+    urlXlsx = planilha.data?.signedUrl ?? null;
   }
 
-  // Versões anteriores: links de download (a atual já tem os botões).
+  // Versões anteriores: links de download dos dois formatos (as de antes do dia 8 só têm PDF).
   const anteriores = await Promise.all(
     versoes
       .filter((v) => v.versao !== orc.pdf_versao)
       .map(async (v) => {
-        const { data } = await supabase.storage
-          .from("pdfs")
-          .createSignedUrl(v.caminho, VALIDADE_URL_SEGUNDOS, {
-            download: `Orcamento-${orc.numero}-v${v.versao}.pdf`,
-          });
-        return { ...v, url: data?.signedUrl ?? null };
+        const [pdf, xlsx] = await Promise.all([
+          supabase.storage.from("pdfs").createSignedUrl(v.caminho, VALIDADE_URL_SEGUNDOS, {
+            download: nomeArquivoOrcamento(cliente?.nome, v.gerado_em, orc.numero, "pdf", v.versao),
+          }),
+          v.xlsx_caminho
+            ? supabase.storage.from("pdfs").createSignedUrl(v.xlsx_caminho, VALIDADE_URL_SEGUNDOS, {
+                download: nomeArquivoOrcamento(
+                  cliente?.nome,
+                  v.gerado_em,
+                  orc.numero,
+                  "xlsx",
+                  v.versao,
+                ),
+              })
+            : Promise.resolve({ data: null }),
+        ]);
+        return { ...v, url: pdf.data?.signedUrl ?? null, urlXlsx: xlsx.data?.signedUrl ?? null };
       }),
   );
 
@@ -122,7 +144,7 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
             href={`/orcamentos/${id}/revisao`}
             className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
           >
-            Revisar itens
+            Selecionar produtos
           </Link>
         </div>
       ) : null}
@@ -168,7 +190,7 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
 
       {temPdf && urlPdf && urlDownload ? (
         <section aria-label="PDF" className="space-y-3">
-          <h2 className="text-xl font-semibold">PDF (versão {orc.pdf_versao})</h2>
+          <h2 className="text-xl font-semibold">Orçamento (versão {orc.pdf_versao})</h2>
           {/* Tela grande: prévia do PDF na página (montada só no cliente). Celular: o botão abre o leitor do aparelho. */}
           <PreviaPdf url={urlPdf} titulo={`Prévia do orçamento ${orc.numero}`} />
           <a
@@ -183,19 +205,33 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
             <CompartilharPdf
               urlPdf={urlPdf}
               urlDownload={urlDownload}
-              nomeArquivo={nomeArquivo}
+              nomeArquivo={nomePdf}
               whatsappCliente={zap}
               mensagem={mensagem}
             />
           ) : (
             <a
               href={urlDownload}
-              download={nomeArquivo}
+              download={nomePdf}
               className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
             >
               Baixar PDF
             </a>
           )}
+          {urlXlsx ? (
+            <div className="space-y-1">
+              <a
+                href={urlXlsx}
+                download={nomeXlsx}
+                className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+              >
+                Baixar planilha (XLSX)
+              </a>
+              <p className="text-base text-zinc-600">
+                Se editar a planilha, lembre de informar o valor final ao marcar Fechado.
+              </p>
+            </div>
+          ) : null}
           {editavel ? (
             <Link
               href={`/orcamentos/${id}/revisao`}
@@ -215,11 +251,19 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
               <li key={v.versao} className="text-lg">
                 {v.url ? (
                   <a href={v.url} download className="min-h-11 text-amber-700 underline">
-                    Versão {v.versao}
+                    Versão {v.versao} (PDF)
                   </a>
                 ) : (
                   <span>Versão {v.versao}</span>
                 )}
+                {v.urlXlsx ? (
+                  <>
+                    {" · "}
+                    <a href={v.urlXlsx} download className="min-h-11 text-amber-700 underline">
+                      planilha (XLSX)
+                    </a>
+                  </>
+                ) : null}
                 <span className="text-zinc-600">
                   {" "}
                   · {formatarDataBR(v.gerado_em)} ·{" "}

@@ -8,7 +8,6 @@ import {
   resumirResposta,
   type Respostas,
 } from "@/lib/orcamento/perguntas";
-import { MontarComIA } from "./MontarComIA";
 import { PassoAnexos } from "./PassoAnexos";
 
 interface Props {
@@ -17,11 +16,9 @@ interface Props {
   anexos: AnexoView[];
   onAnexos: (anexos: AnexoView[]) => void;
   onEditar: (numero: number) => void;
-  /** Quando a IA montou os itens pela última vez (null = ainda não montou). */
-  montadoEm: string | null;
 }
 
-export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar, montadoEm }: Props) {
+export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar }: Props) {
   const pendentes = PERGUNTAS.filter((p) => !perguntaCompleta(p, respostas));
 
   return (
@@ -74,27 +71,19 @@ export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar, mon
       <PassoAnexos orcamentoId={orcamentoId} anexos={anexos} onMudar={onAnexos} />
 
       <div className="space-y-3">
-        <MontarComIA
-          orcamentoId={orcamentoId}
-          rotulo={montadoEm ? "Montar de novo com IA" : "Montar orçamento com IA"}
-          desabilitado={pendentes.length > 0}
-          dica={
-            pendentes.length > 0 ? "Responda as perguntas obrigatórias para montar." : undefined
-          }
-        />
-        {montadoEm ? (
-          <Link
-            href={`/orcamentos/${orcamentoId}/revisao`}
-            className="flex min-h-14 items-center justify-center rounded-lg border border-amber-700 text-lg font-semibold text-amber-700"
-          >
-            Revisar itens
-          </Link>
+        {pendentes.length > 0 ? (
+          <p className="text-lg text-zinc-700">
+            Responda as perguntas obrigatórias para selecionar os produtos.
+          </p>
         ) : null}
         <Link
           href={`/orcamentos/${orcamentoId}/revisao`}
-          className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+          aria-disabled={pendentes.length > 0}
+          className={`flex min-h-14 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white ${
+            pendentes.length > 0 ? "pointer-events-none opacity-50" : ""
+          }`}
         >
-          Montar à mão
+          Selecionar produtos
         </Link>
         <Link
           href="/orcamentos"

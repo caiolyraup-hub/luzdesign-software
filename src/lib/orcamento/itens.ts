@@ -14,16 +14,22 @@ export interface ItemRevisao {
   justificativa: string | null;
   ordem: number;
   marca: string | null;
+  /** Categoria do produto no catálogo (EMBUTIDO, FITA LED...); null em avulso. */
+  categoria?: string | null;
   unidade: "un" | "m";
   /** null quando o item não tem produto. */
   produtoAtivo: boolean | null;
   /** Preço atual do produto no catálogo (null em avulso). */
   precoCatalogo: number | null;
-  /** Descrição atual do produto no catálogo (null em avulso). */
+  /** Descrição que o item deve ter: a padronizada (se ainda vale) ou a do catálogo (null em avulso). */
   descricaoCatalogo?: string | null;
-  /** Motivo curto da indicação, para o cliente (vai no PDF). */
-  motivo?: string | null;
+  /** Como o item entrou: manual, lista colada, indicação da IA ou montagem antiga pela IA. */
+  origem?: OrigemItem;
+  /** A vendedora escreveu a descrição à mão (a IA não padroniza essa). */
+  descricaoManual?: boolean;
 }
+
+export type OrigemItem = "manual" | "lista_colada" | "indicacao_ia" | "montagem_ia";
 
 export const QUANTIDADE_MAXIMA = 100_000;
 

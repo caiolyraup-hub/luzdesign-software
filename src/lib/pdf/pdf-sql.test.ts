@@ -144,13 +144,13 @@ describe("gerar_orcamento", () => {
     await db.exec(`delete from orcamento_itens where id = '00000000-0000-0000-0000-0000000000f2'`);
   });
 
-  it("congela preço e descrição do catálogo, marca como gerado e guarda o PDF e a validade", async () => {
+  it("congela o preço do catálogo (sem reescrever a descrição), marca como gerado e guarda o PDF e a validade", async () => {
     const r = await gerar(ALINE, ORC, caminho(ORC, 1), 1, 1300);
     expect(r.rows[0]).toMatchObject({ r: { valor_total: 1300, pdf_versao: 1 } });
 
     const itensGerados = await itens(ORC);
     expect(itensGerados.map((i) => [i.codigo, i.preco, i.descricao])).toEqual([
-      ["9520", "40.00", "STELLA DIC 6W 2.7K"], // preço e descrição do catálogo
+      ["9520", "40.00", "DESCRICAO ANTIGA"], // preço do catálogo; a descrição é a que o servidor gravou
       ["12222", "20.00", "MTS FITA 22W/M NT NIT"],
       [null, "890.00", "Pendente sob medida"], // avulso mantém o preço manual
     ]);

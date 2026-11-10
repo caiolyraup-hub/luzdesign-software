@@ -35,6 +35,8 @@ export default defineConfig({
     : {
         command: `pnpm dev --port ${PORTA}`,
         url: `http://localhost:${PORTA}/login`,
+        // A IA é simulada nos testes (sem custo); um servidor já aberto precisa ter IA_SIMULADA=1.
+        env: { IA_SIMULADA: "1" },
         reuseExistingServer: true,
         timeout: 180_000,
       },

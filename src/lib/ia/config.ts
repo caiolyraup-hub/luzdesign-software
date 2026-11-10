@@ -17,7 +17,7 @@ export interface ConfigIA {
   timeoutChamadaMs: number;
 }
 
-export const MODELO_PADRAO = "gpt-5.6";
+export const MODELO_PADRAO = "gpt-5.6-sol";
 
 function inteiroPositivo(bruto: string | undefined, padrao: number): number {
   const n = Number(bruto);

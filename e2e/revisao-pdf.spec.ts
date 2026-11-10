@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import ExcelJS from "exceljs";
 import { expect, test, type Page } from "@playwright/test";
 
 const admin = createClient(
@@ -101,7 +102,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Para hoje" })).toBeVisible();
 
-  // Resumo -> Montar à mão (sem IA): revisão vazia com os ambientes da pergunta 5.
+  // Resumo -> Selecionar produtos: tela vazia com os ambientes da pergunta 5.
   await page.goto("/orcamentos");
   await page
     .getByRole("listitem")
@@ -109,15 +110,15 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
     .getByRole("link", { name: "Continuar" })
     .click();
   await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
-  await page.getByRole("link", { name: "Montar à mão" }).click();
-  await expect(page.getByRole("heading", { name: "Revisão do orçamento" })).toBeVisible();
+  await page.getByRole("link", { name: "Selecionar produtos" }).click();
+  await expect(page.getByRole("heading", { name: "Produtos do orçamento" })).toBeVisible();
   const sala = page.getByRole("region", { name: "Sala" });
   const cozinha = page.getByRole("region", { name: "Cozinha" });
   await expect(sala.getByText("Nenhum item neste ambiente ainda.")).toBeVisible();
   await expect(cozinha).toBeVisible();
 
   // Vazio: não dá para gerar.
-  const gerar = page.getByRole("button", { name: "Gerar PDF" });
+  const gerar = page.getByRole("button", { name: "Gerar orçamento" });
   await expect(gerar).toBeDisabled();
   await expect(page.getByText("Adicione ao menos um item.")).toBeVisible();
 
@@ -128,11 +129,14 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
     .getByRole("button", { name: /STELLA DIC 6W 2\.7K/ })
     .first()
     .click();
+  // A busca continua aberta (dá para adicionar vários seguidos); "Concluir" fecha.
+  await page.getByRole("button", { name: /Concluir/ }).click();
   await expect(sala.getByText("STELLA DIC 6W 2.7K")).toBeVisible();
 
   await cozinha.getByRole("button", { name: "Adicionar produto" }).click();
   await page.getByRole("searchbox", { name: "Buscar produto" }).fill("MTS FITA 22W/M NT NIT");
   await page.getByRole("button", { name: /Cód\. 12222/ }).click();
+  await page.getByRole("button", { name: /Concluir/ }).click();
   await expect(cozinha.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
 
   // Quantidade: + no spot (1 -> 2) e fita por metro com decimal (8,5).
@@ -143,12 +147,6 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await qtdFita.press("Enter");
   await expect(qtdFita).toHaveValue("8,5");
 
-  // Motivo para o cliente: editado no item e depois conferido dentro do PDF.
-  const motivo = sala.getByRole("textbox", { name: /Motivo para o cliente de STELLA/ });
-  await motivo.fill("Luz quente que deixa a sala acolhedora e destaca o painel.");
-  await motivo.blur();
-  await expect(sala.getByText(/^[0-9]+\/160$/)).toBeVisible();
-
   // Remover e desfazer.
   await cozinha.getByRole("button", { name: "Remover" }).click();
   await expect(page.getByText("Item removido.")).toBeVisible();
@@ -156,7 +154,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await expect(cozinha.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
   await expect(cozinha.getByRole("textbox", { name: /Quantidade de MTS FITA/ })).toHaveValue("8,5");
 
-  // Avulso com preço 0: "preço a definir" e Gerar PDF bloqueado, com o motivo.
+  // Avulso com preço 0: "preço a definir" e Gerar orçamento bloqueado, com o motivo.
   await sala.getByRole("button", { name: "Adicionar item avulso" }).click();
   await page.getByLabel("Descrição do item avulso").fill("Pendente sob medida (teste)");
   await page.getByRole("button", { name: "Adicionar avulso" }).click();
@@ -194,7 +192,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await expect(page).toHaveURL(new RegExp(`/orcamentos/${id}$`), { timeout: 90_000 });
   await expect(page.getByRole("heading", { name: `Orçamento ${orc.data!.numero}` })).toBeVisible();
   await expect(page.getByText("Gerado", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "PDF (versão 1)" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Orçamento (versão 1)" })).toBeVisible();
   await expect(page.getByText("Compartilhar no WhatsApp")).toBeVisible();
   await expect(page.getByText("PDF gerado (versão 1)")).toBeVisible(); // linha do tempo
   await print(page, "10-orcamento-gerado", true);
@@ -221,7 +219,10 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
     page.waitForEvent("download"),
     page.getByRole("link", { name: "Baixar PDF" }).click(),
   ]);
-  expect(download.suggestedFilename()).toBe(`Orcamento-${orc.data!.numero}.pdf`);
+  // Nome no costume da loja: NOME DO CLIENTE DD.MM.AA.pdf
+  expect(download.suggestedFilename()).toMatch(
+    new RegExp(`^${NOME} \\d{2}\\.\\d{2}\\.\\d{2}\\.pdf$`),
+  );
   const stream = await download.createReadStream();
   const partes: Buffer[] = [];
   for await (const p of stream) partes.push(Buffer.from(p));
@@ -230,14 +231,41 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   expect(bytes.length).toBeGreaterThan(2000);
   const { extractText } = await import("unpdf");
   const { text } = await extractText(new Uint8Array(bytes), { mergePages: true });
-  // A extração de texto do unpdf perde a letra "s" desta fonte; por isso compara sem ela e sem espaços.
-  const semS = (t: string) => t.replace(/[\s]+/g, "").replace(/s/gi, "");
-  expect(semS(text)).toContain(semS("deixa a sala acolhedora e destaca o painel"));
+  const texto = text.replace(/\s+/g, " ");
+  expect(texto).toContain(orc.data!.numero);
+  expect(texto).toContain("STELLA DIC 6W 2.7K");
+  // Sem análise do ambiente nem motivo dos produtos (dia 8).
+  expect(texto.replaceAll(" ", "")).not.toContain("ANÁLISEDOAMBIENTE");
   // Com o logo em public/marca, ele vai embutido no PDF (sem logo o arquivo tem poucos KB).
   if (existsSync("public/marca/logo.png")) expect(bytes.length).toBeGreaterThan(100_000);
 
+  // Planilha XLSX do mesmo orçamento, com fórmulas.
+  const [baixaXlsx] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("link", { name: "Baixar planilha (XLSX)" }).click(),
+  ]);
+  expect(baixaXlsx.suggestedFilename()).toMatch(
+    new RegExp(`^${NOME} \\d{2}\\.\\d{2}\\.\\d{2}\\.xlsx$`),
+  );
+  const fluxo = await baixaXlsx.createReadStream();
+  const partesX: Buffer[] = [];
+  for await (const p of fluxo) partesX.push(Buffer.from(p));
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(Buffer.concat(partesX) as unknown as ExcelJS.Buffer);
+  const ws = wb.getWorksheet("ORÇAMENTO")!;
+  let achouTotal = false;
+  ws.eachRow((r) => {
+    if (r.getCell(1).value === "TOTAL") {
+      achouTotal = true;
+      const v = r.getCell(6).value as { formula: string; result: number };
+      expect(v.formula).toMatch(/^SUM\(F\d+:F\d+\)$/);
+      expect(v.result).toBeCloseTo(totalEsperado, 2);
+    }
+  });
+  expect(achouTotal).toBe(true);
+
   // Editar volta para a revisão (gera nova versão depois).
   await page.getByRole("link", { name: "Editar (gera nova versão)" }).click();
-  await expect(page.getByRole("heading", { name: "Revisão do orçamento" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Gerar nova versão do PDF" })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Produtos do orçamento" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Gerar nova versão do orçamento" })).toBeEnabled();
 });

@@ -95,3 +95,13 @@ Item com código tem preço e descrição **sempre do catálogo**: a tela não e
 - Nova tabela `orcamento_ambientes` (`orcamento_id`, `nome`, `ordem`, `analise`, `anexos_usados`, único por orçamento e nome sem diferenciar maiúsculas). RLS como `orcamento_itens`: a dona lê e escreve; a gerente só lê; visitante nada.
 - `orcamento_itens.motivo_cliente` (texto para o cliente; a `justificativa` continua interna) e `orcamentos.mostrar_analise_pdf` (padrão verdadeiro).
 - `uso_ia.tipo` (montagem ou reescrita de análise) e nova versão de `substituir_itens_orcamento`, que também grava os ambientes e as análises.
+
+## Ajustes do dia 8A (`20261110000300_selecao_manual.sql`)
+
+- `orcamento_itens.origem` (`manual`, `lista_colada`, `indicacao_ia`, `montagem_ia`; padrão `manual`; os itens antigos com `justificativa` viraram `montagem_ia`) e `orcamento_itens.descricao_manual` (a vendedora escreveu a descrição; a IA não padroniza essa).
+- `uso_ia.tipo` agora aceita `indicacao` e `formatacao`, além de `montagem` e `reescrever_analise`. Os dois novos contam no limite diário.
+- Nova tabela `indicacoes_ia` (orçamento, vendedora, ambiente, pedido do cliente, pedido do arquiteto, descrição do ambiente, `usou_anexos`, `resposta` jsonb). RLS como `orcamento_itens`: a dona lê e escreve, a gerente só lê.
+- Nova tabela `produtos_descricao_formatada` (código, descrição padronizada, `descricao_origem`, `origem_atualizado_em`). Todas as logadas leem; ninguém grava, só o service role.
+- `orcamentos.xlsx_caminho`; as entradas de `pdf_versoes` ganham `xlsx_caminho` (as antigas ficam só com PDF). O bucket `pdfs` aceita também o tipo do XLSX.
+- `gerar_orcamento` ganha o parâmetro `p_xlsx_caminho`, mantém a trava de que **só a dona gera** e **deixa de reescrever a descrição** (o servidor grava a final antes); o preço continua sempre vindo de `produtos`.
+- A pergunta 6 (`pedido_cliente`) passa a ser opcional.

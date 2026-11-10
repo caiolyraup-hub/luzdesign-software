@@ -1,6 +1,5 @@
 import "server-only";
 import { DEFINICOES_FERRAMENTAS, type ExecutorFerramentas } from "./ferramentas";
-import { ESQUEMA_JSON_SAIDA } from "./esquema";
 
 /** Pedaço da Responses API que usamos. O cliente `openai` real satisfaz esta forma; nos testes, um falso. */
 export interface ItemRespostaIA {
@@ -36,8 +35,10 @@ export interface OpcoesMotor {
   executor: ExecutorFerramentas;
   maxRodadas: number;
   raciocinio?: "low" | "medium" | "high" | null;
-  /** Esquema da resposta (padrão: o do orçamento completo). */
-  esquema?: object;
+  /** Esquema JSON estrito da resposta. */
+  esquema: object;
+  /** Nome do esquema na API. */
+  nomeEsquema?: string;
   /** false = sem ferramentas (por exemplo, só reescrever uma análise). */
   usarFerramentas?: boolean;
   timeoutMs?: number;
@@ -97,9 +98,9 @@ export async function executarMotor(o: OpcoesMotor): Promise<ResultadoMotor> {
       text: {
         format: {
           type: "json_schema",
-          name: "orcamento_luz_design",
+          name: o.nomeEsquema ?? "resposta_luz_design",
           strict: true,
-          schema: o.esquema ?? ESQUEMA_JSON_SAIDA,
+          schema: o.esquema,
         },
       },
     };

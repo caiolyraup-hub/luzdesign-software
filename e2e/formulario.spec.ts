@@ -165,8 +165,10 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   await expect(page.getByText("Sala, Cozinha")).toBeVisible();
   await expect(page.getByText("Aceita encomenda (30 a 45 dias úteis)")).toBeVisible();
   await expect(page.getByText("10% à vista combinado.")).toBeVisible();
-  // Respostas completas: o botão da IA está habilitado (o teste NÃO clica: não chama a API real).
-  await expect(page.getByRole("button", { name: "Montar orçamento com IA" })).toBeEnabled();
+  // Respostas completas: "Selecionar produtos" está liberado (a IA não monta mais o orçamento).
+  const selecionar = page.getByRole("link", { name: "Selecionar produtos" });
+  await expect(selecionar).toBeVisible();
+  await expect(selecionar).not.toHaveAttribute("aria-disabled", "true");
   // Sem itens montados, a tela de itens leva de volta ao resumo.
   const { data: orcResumo } = await admin
     .from("orcamentos")
@@ -179,7 +181,7 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   // A tela antiga /itens agora leva para a revisão; depois voltamos ao resumo para seguir o teste.
   await page.goto(`/orcamentos/${orcResumo!.id}/itens`);
   await expect(page).toHaveURL(/\/revisao$/);
-  await expect(page.getByRole("heading", { name: "Revisão do orçamento" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Produtos do orçamento" })).toBeVisible();
   await page.goto(`/orcamentos/${orcResumo!.id}/editar?passo=12`);
   await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fotos e arquivos (1 de 4)" })).toBeVisible();
@@ -274,7 +276,7 @@ test("rascunho incompleto volta para a primeira pergunta obrigatória vazia", as
   await expect(page.getByRole("textbox", { name: /whatsapp/i })).toHaveValue("+5582900009997");
 });
 
-test("com respostas faltando, o botão de montar com IA fica desabilitado", async ({ page }) => {
+test("com respostas faltando, Selecionar produtos fica desabilitado", async ({ page }) => {
   await entrar(page);
   // Rascunho próprio, só com as perguntas 1 e 2 respondidas.
   await comecar(page, `${NOME_PARCIAL} ia`, "(82) 90000-9996");
@@ -283,5 +285,8 @@ test("com respostas faltando, o botão de montar com IA fica desabilitado", asyn
   await page.goto(`${page.url().split("?")[0]}?passo=12`);
   await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
   await expect(page.getByText("Faltam respostas obrigatórias:")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Montar orçamento com IA" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Selecionar produtos" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
 });

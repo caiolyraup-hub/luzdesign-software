@@ -6,32 +6,31 @@ import { buscarProdutos, type ProdutoBusca } from "@/lib/estoque/buscar";
 import {
   carregarItensRevisao,
   SELECT_ITENS,
+  descricaoIdeal,
   paraItemRevisao,
   type LinhaItem,
 } from "@/lib/orcamento/carregar-itens";
-import { nomeAmbienteValido, normalizarQuantidade, type ItemRevisao } from "@/lib/orcamento/itens";
-import { MAX_ANALISE, MAX_MOTIVO } from "@/lib/ia/esquema";
+import {
+  nomeAmbienteValido,
+  normalizarQuantidade,
+  type ItemRevisao,
+  type OrigemItem,
+} from "@/lib/orcamento/itens";
+import { interpretarLista } from "@/lib/orcamento/lista-colada";
+import { subtotalCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 type Falha = { ok: false; erro: string };
 const falha = (erro: string): Falha => ({ ok: false, erro });
 const ERRO_GENERICO = "Não foi possível salvar agora. Tente de novo.";
+const MAX_DESCRICAO = 300;
 
 /** O que a tela precisa depois de cada alteração (o total vem recalculado do banco). */
 export interface EstadoRevisao {
   itens: ItemRevisao[];
   valorTotal: number;
   ambientesExtras: string[];
-  /** Análise de cada ambiente (texto para o cliente). */
-  analises: AnaliseRevisao[];
-  mostrarAnalise: boolean;
-}
-
-export interface AnaliseRevisao {
-  nome: string;
-  analise: string;
-  anexosUsados: string[];
 }
 
 export type RespostaRevisao = Falha | { ok: true; estado: EstadoRevisao };
@@ -45,8 +44,8 @@ export interface ItemSalvo {
   quantidade: number;
   ambiente: string;
   avulso: boolean;
-  justificativa: string | null;
-  motivo_cliente?: string | null;
+  origem: OrigemItem;
+  descricao_manual: boolean;
   ordem: number;
 }
 
@@ -67,7 +66,7 @@ async function abrirContexto(orcamentoId: string): Promise<Contexto | Falha> {
     .maybeSingle();
   if (!data || data.vendedora_id !== usuario.id) return falha("Orçamento não encontrado.");
   if (data.status !== "rascunho" && data.status !== "gerado") {
-    return falha("Este orçamento não pode mais ser alterado.");
+    return falha("Este orçamento já foi enviado e não pode mais ser alterado.");
   }
   return { supabase, orcamentoId, montagem: data.montagem as Contexto["montagem"] };
 }
@@ -81,26 +80,12 @@ async function estadoAtual(c: Contexto): Promise<RespostaRevisao> {
   });
   if (error) return falha(ERRO_GENERICO);
   const itens = await carregarItensRevisao(c.supabase, c.orcamentoId);
-  const [{ data: ambientes }, { data: flag }] = await Promise.all([
-    c.supabase
-      .from("orcamento_ambientes")
-      .select("nome, analise, anexos_usados")
-      .eq("orcamento_id", c.orcamentoId)
-      .order("ordem"),
-    c.supabase.from("orcamentos").select("mostrar_analise_pdf").eq("id", c.orcamentoId).single(),
-  ]);
   return {
     ok: true,
     estado: {
       itens,
       valorTotal: Number(total ?? 0),
       ambientesExtras: c.montagem?.ambientes_extras ?? [],
-      analises: (ambientes ?? []).map((a) => ({
-        nome: a.nome,
-        analise: a.analise ?? "",
-        anexosUsados: a.anexos_usados ?? [],
-      })),
-      mostrarAnalise: flag?.mostrar_analise_pdf ?? true,
     },
   };
 }
@@ -117,21 +102,59 @@ async function lerItem(c: Contexto, itemId: string): Promise<ItemRevisao | null>
 
 interface ProdutoCatalogo {
   codigo: string;
+  /** Descrição que o item recebe: a padronizada (se ainda vale) ou a do catálogo. */
   descricao: string;
   unidade: "un" | "m";
   preco_unitario: number;
   ativo: boolean;
+  categoria: string | null;
+  marca: string | null;
+}
+
+const SELECT_PRODUTO =
+  "codigo, descricao, unidade, preco_unitario, ativo, categoria, marca, produtos_descricao_formatada(descricao_formatada, descricao_origem)";
+
+function paraProduto(linha: Record<string, unknown>): ProdutoCatalogo {
+  const l = linha as unknown as Parameters<typeof descricaoIdeal>[0] & {
+    codigo: string;
+    unidade: "un" | "m";
+    preco_unitario: number | string;
+    ativo: boolean;
+    categoria: string | null;
+    marca: string | null;
+  };
+  return {
+    codigo: l.codigo,
+    descricao: descricaoIdeal(l),
+    unidade: l.unidade,
+    preco_unitario: Number(l.preco_unitario),
+    ativo: l.ativo,
+    categoria: l.categoria,
+    marca: l.marca,
+  };
 }
 
 async function lerProduto(c: Contexto, codigo: string): Promise<ProdutoCatalogo | null> {
   const { data } = await c.supabase
     .from("produtos")
-    .select("codigo, descricao, unidade, preco_unitario, ativo")
+    .select(SELECT_PRODUTO)
     .eq("codigo", codigo)
     .maybeSingle();
-  return data
-    ? { ...(data as ProdutoCatalogo), preco_unitario: Number(data.preco_unitario) }
-    : null;
+  return data ? paraProduto(data) : null;
+}
+
+async function lerProdutos(
+  supabase: SupabaseClient,
+  codigos: string[],
+): Promise<Map<string, ProdutoCatalogo>> {
+  const mapa = new Map<string, ProdutoCatalogo>();
+  if (codigos.length === 0) return mapa;
+  const { data } = await supabase.from("produtos").select(SELECT_PRODUTO).in("codigo", codigos);
+  for (const l of data ?? []) {
+    const p = paraProduto(l);
+    mapa.set(p.codigo, p);
+  }
+  return mapa;
 }
 
 async function proximaOrdem(c: Contexto): Promise<number> {
@@ -158,7 +181,7 @@ const precoSchema = z
 
 export type RespostaBusca = Falha | { ok: true; produtos: ProdutoBusca[] };
 
-/** Busca no catálogo com a sessão da vendedora (RLS). Só produtos ativos. */
+/** Busca no catálogo com a sessão da vendedora (RLS). Só produtos ativos. Código exato vem primeiro. */
 export async function buscarProdutosRevisao(texto: string): Promise<RespostaBusca> {
   await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
@@ -209,7 +232,8 @@ export async function alterarAvulso(
   const mudanca: Record<string, unknown> = {};
   if (campos.descricao !== undefined) {
     const d = campos.descricao.trim();
-    if (d.length < 2 || d.length > 300) return falha("Descreva o item (2 a 300 caracteres).");
+    if (d.length < 2 || d.length > MAX_DESCRICAO)
+      return falha("Descreva o item (2 a 300 caracteres).");
     mudanca.descricao_congelada = d;
   }
   if (campos.preco !== undefined) {
@@ -219,6 +243,35 @@ export async function alterarAvulso(
   }
   if (Object.keys(mudanca).length === 0) return estadoAtual(c);
 
+  const { error } = await c.supabase.from("orcamento_itens").update(mudanca).eq("id", itemId);
+  if (error) return falha(ERRO_GENERICO);
+  return estadoAtual(c);
+}
+
+/**
+ * Descrição de um item com código, escrita pela vendedora (texto curto) antes de gerar. Texto vazio
+ * volta para a descrição padronizada do catálogo. O preço continua sendo o do catálogo.
+ */
+export async function editarDescricao(
+  orcamentoId: string,
+  itemId: string,
+  texto: string,
+): Promise<RespostaRevisao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const item = await lerItem(c, itemId);
+  if (!item) return falha("Item não encontrado.");
+  const d = texto.replace(/\s+/g, " ").trim();
+  if (item.avulso) return alterarAvulso(orcamentoId, itemId, { descricao: d });
+
+  if (d.length > MAX_DESCRICAO) return falha("Use até 300 caracteres na descrição.");
+  const mudanca =
+    d.length === 0
+      ? { descricao_congelada: item.descricaoCatalogo ?? item.descricao, descricao_manual: false }
+      : d.length < 2
+        ? null
+        : { descricao_congelada: d, descricao_manual: true };
+  if (!mudanca) return falha("Descreva o item (2 a 300 caracteres).");
   const { error } = await c.supabase.from("orcamento_itens").update(mudanca).eq("id", itemId);
   if (error) return falha(ERRO_GENERICO);
   return estadoAtual(c);
@@ -245,10 +298,9 @@ export async function trocarProduto(
     .update({
       codigo: produto.codigo,
       descricao_congelada: produto.descricao,
+      descricao_manual: false,
       preco_unitario_congelado: produto.preco_unitario,
       avulso: false,
-      // O motivo escrito para o produto antigo não vale para o novo.
-      motivo_cliente: null,
       quantidade: q.ok ? q.valor : 1,
     })
     .eq("id", itemId);
@@ -298,8 +350,8 @@ export async function removerItem(orcamentoId: string, itemId: string): Promise<
       quantidade: item.quantidade,
       ambiente: item.ambiente,
       avulso: item.avulso,
-      justificativa: item.justificativa,
-      motivo_cliente: item.motivo ?? null,
+      origem: item.origem ?? "manual",
+      descricao_manual: item.descricaoManual ?? false,
       ordem: item.ordem,
     },
   };
@@ -318,9 +370,10 @@ export async function restaurarItem(
     const produto = await lerProduto(c, salvo.codigo);
     if (!produto || !produto.ativo)
       return falha("Esse produto não está mais disponível no catálogo.");
-    descricao = produto.descricao;
+    if (!salvo.descricao_manual) descricao = produto.descricao;
     preco = produto.preco_unitario;
   }
+  const origens: OrigemItem[] = ["manual", "lista_colada", "indicacao_ia", "montagem_ia"];
   const { error } = await c.supabase.from("orcamento_itens").insert({
     orcamento_id: orcamentoId,
     codigo: salvo.avulso ? null : salvo.codigo,
@@ -329,15 +382,111 @@ export async function restaurarItem(
     quantidade: salvo.quantidade,
     ambiente: salvo.ambiente,
     avulso: salvo.avulso,
-    justificativa: salvo.justificativa,
-    motivo_cliente: salvo.motivo_cliente ?? null,
+    origem: origens.includes(salvo.origem) ? salvo.origem : "manual",
+    descricao_manual: Boolean(salvo.descricao_manual),
     ordem: salvo.ordem,
   });
   if (error) return falha(ERRO_GENERICO);
   return estadoAtual(c);
 }
 
-/** Adiciona um produto do catálogo ao ambiente. Se já está lá, soma na quantidade. */
+/** Linha de produto a adicionar (o preço NUNCA vem do navegador). */
+export interface LinhaAdicionar {
+  codigo: string;
+  quantidade: number;
+}
+
+/**
+ * Adiciona produtos do catálogo a um ambiente: preço e descrição do catálogo, quantidade
+ * validada. Se o produto já está no ambiente, soma na quantidade. Devolve avisos do que não coube.
+ */
+async function inserirProdutos(
+  c: Contexto,
+  ambiente: string,
+  linhas: LinhaAdicionar[],
+  origem: OrigemItem,
+): Promise<{ ok: true; avisos: string[]; adicionados: number } | Falha> {
+  const nome = nomeAmbienteValido(ambiente);
+  if (!nome) return falha("Informe o ambiente.");
+  if (linhas.length === 0) return falha("Nada para adicionar.");
+  if (linhas.length > 200) return falha("Itens demais de uma vez (no máximo 200).");
+
+  const codigos = [...new Set(linhas.map((l) => l.codigo))];
+  if (!codigos.every((x) => codigoSchema.safeParse(x).success)) return falha("Código inválido.");
+  const catalogo = await lerProdutos(c.supabase, codigos);
+  const itens = await carregarItensRevisao(c.supabase, c.orcamentoId);
+  let ordem = await proximaOrdem(c);
+  const avisos: string[] = [];
+  let adicionados = 0;
+
+  for (const l of linhas) {
+    const produto = catalogo.get(l.codigo);
+    if (!produto || !produto.ativo) {
+      avisos.push(`O produto ${l.codigo} não está disponível no catálogo.`);
+      continue;
+    }
+    const q = normalizarQuantidade(produto.unidade, Number(l.quantidade));
+    if (!q.ok) {
+      avisos.push(`Produto ${l.codigo}: ${q.erro}`);
+      continue;
+    }
+    const igual = itens.find(
+      (i) => i.codigo === produto.codigo && i.ambiente.toLowerCase() === nome.toLowerCase(),
+    );
+    if (igual) {
+      const soma = normalizarQuantidade(produto.unidade, igual.quantidade + q.valor);
+      if (!soma.ok) {
+        avisos.push(`Produto ${l.codigo}: ${soma.erro}`);
+        continue;
+      }
+      const { error } = await c.supabase
+        .from("orcamento_itens")
+        .update({ quantidade: soma.valor })
+        .eq("id", igual.id);
+      if (error) return falha(ERRO_GENERICO);
+      igual.quantidade = soma.valor;
+    } else {
+      const { data, error } = await c.supabase
+        .from("orcamento_itens")
+        .insert({
+          orcamento_id: c.orcamentoId,
+          codigo: produto.codigo,
+          descricao_congelada: produto.descricao,
+          preco_unitario_congelado: produto.preco_unitario,
+          quantidade: q.valor,
+          ambiente: nome,
+          avulso: false,
+          origem,
+          ordem: ordem++,
+        })
+        .select("id")
+        .single();
+      if (error || !data) return falha(ERRO_GENERICO);
+      itens.push({
+        id: data.id,
+        codigo: produto.codigo,
+        descricao: produto.descricao,
+        preco: produto.preco_unitario,
+        quantidade: q.valor,
+        ambiente: nome,
+        avulso: false,
+        justificativa: null,
+        ordem: ordem - 1,
+        marca: produto.marca,
+        unidade: produto.unidade,
+        produtoAtivo: true,
+        precoCatalogo: produto.preco_unitario,
+      });
+    }
+    adicionados++;
+  }
+  return { ok: true, avisos, adicionados };
+}
+
+export type RespostaAdicao =
+  Falha | { ok: true; estado: EstadoRevisao; avisos: string[]; adicionados: number };
+
+/** Adiciona UM produto do catálogo ao ambiente (busca). Soma se já está lá. */
 export async function adicionarProduto(
   orcamentoId: string,
   ambiente: string,
@@ -346,42 +495,132 @@ export async function adicionarProduto(
 ): Promise<RespostaRevisao> {
   const c = await abrirContexto(orcamentoId);
   if (eFalha(c)) return c;
-  const nome = nomeAmbienteValido(ambiente);
-  if (!nome) return falha("Informe o ambiente.");
-  const cod = codigoSchema.safeParse(codigo);
-  if (!cod.success) return falha(cod.error.issues[0].message);
-  const produto = await lerProduto(c, cod.data);
-  if (!produto || !produto.ativo) return falha("Esse produto não está disponível no catálogo.");
-  const q = normalizarQuantidade(produto.unidade, quantidade);
-  if (!q.ok) return falha(q.erro);
-
-  const itens = await carregarItensRevisao(c.supabase, orcamentoId);
-  const igual = itens.find(
-    (i) => i.codigo === produto.codigo && i.ambiente.toLowerCase() === nome.toLowerCase(),
-  );
-  if (igual) {
-    const soma = normalizarQuantidade(produto.unidade, igual.quantidade + q.valor);
-    if (!soma.ok) return falha(soma.erro);
-    const { error } = await c.supabase
-      .from("orcamento_itens")
-      .update({ quantidade: soma.valor })
-      .eq("id", igual.id);
-    if (error) return falha(ERRO_GENERICO);
-  } else {
-    const { error } = await c.supabase.from("orcamento_itens").insert({
-      orcamento_id: orcamentoId,
-      codigo: produto.codigo,
-      descricao_congelada: produto.descricao,
-      preco_unitario_congelado: produto.preco_unitario,
-      quantidade: q.valor,
-      ambiente: nome,
-      avulso: false,
-      ordem: await proximaOrdem(c),
-    });
-    if (error) return falha(ERRO_GENERICO);
-  }
+  const r = await inserirProdutos(c, ambiente, [{ codigo, quantidade }], "manual");
+  if (!r.ok) return r;
+  if (r.adicionados === 0) return falha(r.avisos[0] ?? "Esse produto não está disponível.");
   return estadoAtual(c);
 }
+
+/** Adiciona sugestões da Indicação da IA que a vendedora escolheu (origem = indicacao_ia). */
+export async function adicionarSugestoes(
+  orcamentoId: string,
+  ambiente: string,
+  linhas: LinhaAdicionar[],
+): Promise<RespostaAdicao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const r = await inserirProdutos(c, ambiente, linhas, "indicacao_ia");
+  if (!r.ok) return r;
+  const e = await estadoAtual(c);
+  if (!e.ok) return e;
+  return { ok: true, estado: e.estado, avisos: r.avisos, adicionados: r.adicionados };
+}
+
+// ---------------------------------------------------------------- lista colada
+
+export interface LinhaPrevia {
+  linha: number;
+  texto: string;
+  codigo: string;
+  /** Quantidade que vai entrar (já ajustada à unidade do produto). */
+  quantidade: number;
+  descricao: string;
+  unidade: "un" | "m";
+  precoUnitario: number;
+  subtotalCentavos: number;
+  aviso: string | null;
+}
+
+export interface PreviaLista {
+  reconhecidas: LinhaPrevia[];
+  /** Códigos que não existem no catálogo (ou estão inativos). */
+  naoEncontradas: { linha: number; texto: string; codigo: string; motivo: string }[];
+  naoEntendidas: { linha: number; texto: string; motivo: string }[];
+  excedeu: boolean;
+}
+
+export type RespostaPrevia = Falha | { ok: true; previa: PreviaLista };
+
+/** Confere a lista colada com o catálogo, sem gravar nada (determinístico, sem IA). */
+export async function previaListaColada(texto: string): Promise<RespostaPrevia> {
+  await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  if (texto.length > 20_000) return falha("Lista grande demais.");
+  const { linhas, excedeu } = interpretarLista(texto);
+  if (linhas.length === 0) return falha("Cole ao menos uma linha com o código do produto.");
+
+  const codigos = [...new Set(linhas.flatMap((l) => (l.tipo === "reconhecida" ? [l.codigo] : [])))];
+  const catalogo = await lerProdutos(supabase, codigos);
+
+  const previa: PreviaLista = {
+    reconhecidas: [],
+    naoEncontradas: [],
+    naoEntendidas: [],
+    excedeu,
+  };
+  for (const l of linhas) {
+    if (l.tipo === "nao_entendida") {
+      previa.naoEntendidas.push({ linha: l.linha, texto: l.texto, motivo: l.motivo });
+      continue;
+    }
+    const p = catalogo.get(l.codigo);
+    if (!p || !p.ativo) {
+      previa.naoEncontradas.push({
+        linha: l.linha,
+        texto: l.texto,
+        codigo: l.codigo,
+        motivo: p ? "Produto inativo." : "Código não encontrado no catálogo.",
+      });
+      continue;
+    }
+    const q = normalizarQuantidade(p.unidade, l.quantidade);
+    if (!q.ok) {
+      previa.naoEntendidas.push({ linha: l.linha, texto: l.texto, motivo: q.erro });
+      continue;
+    }
+    let aviso: string | null = null;
+    if (q.ajustada && p.unidade === "un") aviso = `Quantidade arredondada para ${q.valor}.`;
+    else if (l.unidade && l.unidade !== p.unidade)
+      aviso = `Este produto é vendido por ${p.unidade === "m" ? "metro" : "unidade"}.`;
+    previa.reconhecidas.push({
+      linha: l.linha,
+      texto: l.texto,
+      codigo: p.codigo,
+      quantidade: q.valor,
+      descricao: p.descricao,
+      unidade: p.unidade,
+      precoUnitario: p.preco_unitario,
+      subtotalCentavos: subtotalCentavos(p.preco_unitario, q.valor),
+      aviso,
+    });
+  }
+  return { ok: true, previa };
+}
+
+/**
+ * Confirma a lista colada: o servidor lê o texto de novo (não confia no que o navegador conferiu) e
+ * adiciona as linhas reconhecidas com preço e descrição do catálogo, origem = lista_colada.
+ */
+export async function adicionarListaColada(
+  orcamentoId: string,
+  ambiente: string,
+  texto: string,
+): Promise<RespostaAdicao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  if (texto.length > 20_000) return falha("Lista grande demais.");
+  const { linhas } = interpretarLista(texto);
+  const validas = linhas.flatMap((l) =>
+    l.tipo === "reconhecida" ? [{ codigo: l.codigo, quantidade: l.quantidade }] : [],
+  );
+  const r = await inserirProdutos(c, ambiente, validas, "lista_colada");
+  if (!r.ok) return r;
+  const e = await estadoAtual(c);
+  if (!e.ok) return e;
+  return { ok: true, estado: e.estado, avisos: r.avisos, adicionados: r.adicionados };
+}
+
+// ---------------------------------------------------------------- avulso, ambientes e preços
 
 /** Item avulso: descrição, quantidade e preço manual (0 = "preço a definir"). */
 export async function adicionarAvulso(
@@ -396,7 +635,8 @@ export async function adicionarAvulso(
   const nome = nomeAmbienteValido(ambiente);
   if (!nome) return falha("Informe o ambiente.");
   const d = descricao.trim();
-  if (d.length < 2 || d.length > 300) return falha("Descreva o item (2 a 300 caracteres).");
+  if (d.length < 2 || d.length > MAX_DESCRICAO)
+    return falha("Descreva o item (2 a 300 caracteres).");
   const q = normalizarQuantidade("un", quantidade, true);
   if (!q.ok) return falha(q.erro);
   const p = precoSchema.safeParse(preco);
@@ -410,13 +650,12 @@ export async function adicionarAvulso(
     quantidade: q.valor,
     ambiente: nome,
     avulso: true,
+    descricao_manual: true,
     ordem: await proximaOrdem(c),
   });
   if (error) return falha(ERRO_GENERICO);
   return estadoAtual(c);
 }
-
-// ---------------------------------------------------------------- ambientes e preços
 
 export async function adicionarAmbiente(
   orcamentoId: string,
@@ -440,95 +679,24 @@ export async function adicionarAmbiente(
   return estadoAtual(c);
 }
 
-/** Traz para os itens com código o preço e a descrição atuais do catálogo. */
+/** Traz para os itens com código o preço atual do catálogo (e a descrição, se não foi escrita à mão). */
 export async function atualizarPrecos(orcamentoId: string): Promise<RespostaRevisao> {
   const c = await abrirContexto(orcamentoId);
   if (eFalha(c)) return c;
   const itens = await carregarItensRevisao(c.supabase, orcamentoId);
   for (const i of itens) {
     if (i.avulso || i.precoCatalogo === null) continue;
+    const novaDescricao = i.descricaoManual ? i.descricao : (i.descricaoCatalogo ?? i.descricao);
     if (
       Math.round(i.precoCatalogo * 100) === Math.round(i.preco * 100) &&
-      i.descricaoCatalogo === i.descricao
+      novaDescricao === i.descricao
     )
       continue;
     const { error } = await c.supabase
       .from("orcamento_itens")
-      .update({
-        preco_unitario_congelado: i.precoCatalogo,
-        descricao_congelada: i.descricaoCatalogo ?? i.descricao,
-      })
+      .update({ preco_unitario_congelado: i.precoCatalogo, descricao_congelada: novaDescricao })
       .eq("id", i.id);
     if (error) return falha(ERRO_GENERICO);
   }
-  return estadoAtual(c);
-}
-
-// ---------------------------------------------------------------- textos para o cliente
-
-/** Motivo curto de um produto, para o cliente (vai no PDF). Vazio apaga. */
-export async function salvarMotivo(
-  orcamentoId: string,
-  itemId: string,
-  texto: string,
-): Promise<RespostaRevisao> {
-  const c = await abrirContexto(orcamentoId);
-  if (eFalha(c)) return c;
-  const limpo = texto.replace(/s+/g, " ").trim();
-  if (limpo.length > MAX_MOTIVO) return falha(`Use até ${MAX_MOTIVO} caracteres no motivo.`);
-  const { error } = await c.supabase
-    .from("orcamento_itens")
-    .update({ motivo_cliente: limpo || null })
-    .eq("id", itemId)
-    .eq("orcamento_id", orcamentoId);
-  if (error) return falha(ERRO_GENERICO);
-  return estadoAtual(c);
-}
-
-/** Análise de um ambiente (texto para o cliente). Vazio apaga o texto. */
-export async function salvarAnalise(
-  orcamentoId: string,
-  ambiente: string,
-  texto: string,
-): Promise<RespostaRevisao> {
-  const c = await abrirContexto(orcamentoId);
-  if (eFalha(c)) return c;
-  const nome = nomeAmbienteValido(ambiente);
-  if (!nome) return falha("Informe o ambiente.");
-  const limpo = texto.replace(/[ 	]+/g, " ").trim();
-  if (limpo.length > MAX_ANALISE) return falha(`Use até ${MAX_ANALISE} caracteres na análise.`);
-
-  const { data: existentes } = await c.supabase
-    .from("orcamento_ambientes")
-    .select("id, nome")
-    .eq("orcamento_id", orcamentoId);
-  const atual = (existentes ?? []).find((a) => a.nome.trim().toLowerCase() === nome.toLowerCase());
-  const { error } = atual
-    ? await c.supabase
-        .from("orcamento_ambientes")
-        .update({ analise: limpo || null })
-        .eq("id", atual.id)
-    : await c.supabase.from("orcamento_ambientes").insert({
-        orcamento_id: orcamentoId,
-        nome,
-        ordem: (existentes ?? []).length,
-        analise: limpo || null,
-      });
-  if (error) return falha(ERRO_GENERICO);
-  return estadoAtual(c);
-}
-
-/** Liga ou desliga análise e motivos no PDF. */
-export async function alternarMostrarAnalise(
-  orcamentoId: string,
-  mostrar: boolean,
-): Promise<RespostaRevisao> {
-  const c = await abrirContexto(orcamentoId);
-  if (eFalha(c)) return c;
-  const { error } = await c.supabase
-    .from("orcamentos")
-    .update({ mostrar_analise_pdf: mostrar })
-    .eq("id", orcamentoId);
-  if (error) return falha(ERRO_GENERICO);
   return estadoAtual(c);
 }

@@ -19,34 +19,19 @@ export interface ConfigPdf {
   linhas_rodape: string;
 }
 
-export interface MiniaturaPdf {
-  data: Uint8Array;
-  format: "png" | "jpg";
-}
-
-/** Análise de um ambiente (texto para o cliente) e a foto que a embasou, se houver. */
-export interface AnaliseAmbiente {
-  nome: string;
-  analise: string | null;
-  miniatura?: MiniaturaPdf | null;
-}
-
 export interface ItemPdf {
   quantidade: number;
   unidade: "un" | "m";
   codigo: string | null;
   descricao: string;
   marca: string | null;
+  categoria: string | null;
   precoCentavos: number;
   totalCentavos: number;
-  /** Motivo da indicação para o cliente (null = não mostrar). */
-  motivo: string | null;
 }
 
 export interface AmbientePdf {
   nome: string;
-  analise: string | null;
-  miniatura: MiniaturaPdf | null;
   itens: ItemPdf[];
   subtotalCentavos: number;
 }
@@ -79,9 +64,6 @@ export interface EntradaDadosPdf {
   /** Ordem preferida dos ambientes (os que não aparecerem vão depois). */
   ambientes?: string[];
   agora?: Date;
-  analises?: AnaliseAmbiente[];
-  /** Mostrar análise e motivos no PDF (padrão: sim). */
-  mostrarAnalise?: boolean;
 }
 
 const numeroBR = (n: number) => String(n).replace(".", ",");
@@ -103,25 +85,19 @@ export function montarDadosPdf(e: EntradaDadosPdf): DadosPdf {
   const hoje = hojeMaceioISO(e.agora);
   const grupos = agruparPorAmbiente(e.itens, e.ambientes ?? []).filter((g) => g.itens.length > 0);
 
-  const mostrar = e.mostrarAnalise !== false;
   const ambientes: AmbientePdf[] = grupos.map((g) => {
-    const info = (e.analises ?? []).find(
-      (a) => a.nome.trim().toLowerCase() === g.nome.trim().toLowerCase(),
-    );
     const itens: ItemPdf[] = g.itens.map((i) => ({
       quantidade: i.quantidade,
       unidade: i.unidade,
       codigo: i.avulso ? null : i.codigo,
       descricao: i.descricao,
       marca: i.marca,
+      categoria: i.avulso ? null : (i.categoria ?? null),
       precoCentavos: Math.round(i.preco * 100),
       totalCentavos: subtotalCentavos(i.preco, i.quantidade),
-      motivo: mostrar && i.motivo?.trim() ? i.motivo.trim() : null,
     }));
     return {
       nome: g.nome,
-      analise: mostrar && info?.analise?.trim() ? info.analise.trim() : null,
-      miniatura: mostrar ? (info?.miniatura ?? null) : null,
       itens,
       subtotalCentavos: itens.reduce((s, i) => s + i.totalCentavos, 0),
     };

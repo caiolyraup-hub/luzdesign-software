@@ -28,7 +28,6 @@ interface Props {
   respostasIniciais: Respostas;
   anexosIniciais: AnexoView[];
   passoInicial: number;
-  montadoEm?: string | null;
 }
 
 type Estado = "parado" | "salvando" | "salvo" | "erro";
@@ -36,13 +35,7 @@ type Estado = "parado" | "salvando" | "salvo" | "erro";
 const ATRASO_AUTOSAVE_MS = 1000;
 const ATRASO_BUSCA_CLIENTE_MS = 600;
 
-export function Editor({
-  orcamentoId,
-  respostasIniciais,
-  anexosIniciais,
-  passoInicial,
-  montadoEm = null,
-}: Props) {
+export function Editor({ orcamentoId, respostasIniciais, anexosIniciais, passoInicial }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [passo, setPasso] = useState(passoInicial);
@@ -250,7 +243,6 @@ export function Editor({
           anexos={anexos}
           onAnexos={setAnexos}
           onEditar={editarDoResumo}
-          montadoEm={montadoEm}
         />
       ) : null}
 

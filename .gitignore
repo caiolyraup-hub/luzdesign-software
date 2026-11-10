@@ -54,6 +54,7 @@ supabase/.temp/
 
 # PDF de exemplo (visual para conferência)
 /dados/exemplo-orcamento.pdf
+/dados/exemplo-orcamento.xlsx
 
 # Avaliação da IA (pedidos derivados dos orçamentos reais e relatórios)
 /dados/avaliacao/

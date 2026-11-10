@@ -42,10 +42,11 @@ describe("as 10 perguntas como dados", () => {
     expect(PERGUNTAS.map((x) => x.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
-  it("obrigatórias são 1 a 7 e 9; 8 e 10 são opcionais", () => {
+  it("obrigatórias são 1 a 5, 7 e 9; 6, 8 e 10 são opcionais", () => {
     expect(PERGUNTAS.filter((x) => x.obrigatoria).map((x) => x.numero)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 9,
+      1, 2, 3, 4, 5, 7, 9,
     ]);
+    expect(perguntaDoPasso(6)?.obrigatoria).toBe(false);
     expect(perguntaDoPasso(8)?.obrigatoria).toBe(false);
   });
 });
@@ -140,8 +141,8 @@ describe("validação por tipo de pergunta", () => {
     expect(validarPergunta(p("ambientes"), { ambientes: ["garagem"] }).ok).toBe(false);
   });
 
-  it("texto longo: obrigatório na 6, opcional na 10", () => {
-    expect(validarPergunta(p("pedido_cliente"), {}).ok).toBe(false);
+  it("texto longo: opcional na 6 e na 10", () => {
+    expect(validarPergunta(p("pedido_cliente"), {}).ok).toBe(true);
     expect(validarPergunta(p("pedido_cliente"), { pedido_cliente: "Spots 9520 x4" }).ok).toBe(true);
     expect(validarPergunta(p("observacoes"), {})).toEqual({
       ok: true,
@@ -229,7 +230,7 @@ describe("conjunto de respostas", () => {
     }
     expect(validarRespostas({ cliente_nome: "Ana" })).toEqual({
       ok: false,
-      pendentes: [2, 3, 4, 5, 6, 7, 9],
+      pendentes: [2, 3, 4, 5, 7, 9],
     });
   });
 
