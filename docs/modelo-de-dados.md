@@ -126,3 +126,7 @@ Definições das métricas em `docs/metricas.md`.
 - `configuracoes_loja.cambio_usd_brl` (padrão 5,50; entre 0 e 100): converte o custo de IA em reais; é estimativa, a gerente edita em Ajustes.
 - Índices por data de etapa em `orcamentos` (`vendedora_id` + criado/gerado/enviado/fechado/perdido), `indicacoes_ia (vendedora_id, criado_em)` e `uso_ia (criado_em)`. O plano com 6.000 orçamentos usa `BitmapOr` sobre eles (teste `plano-sql.test.ts`).
 - Follow-ups vencidos não vêm do SQL: são calculados no servidor com `src/lib/orcamento/followup.ts` (mesma regra do dia 8).
+
+## Ajustes do dia 9B
+
+Sem migration: os atalhos (kit de fita, mais usados e duplicar ambiente) usam as tabelas e colunas existentes. Os itens do kit e as cópias de ambiente entram com `origem = manual`. Os dados do catálogo que o kit lê: `produtos.atributos` (`w` potência em W ou W/m, `comprimento` da barra em m; `v`/`tensao` e `comprimento_rolo` se existirem) e, na falta, a descrição ("22W/M", "3M", "24V"). O catálogo provisório não informa a tensão: o kit sugere e pede para confirmar.

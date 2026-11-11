@@ -25,21 +25,21 @@ Faça em duas partes, com um commit e um deploy ao fim de cada uma. **A parte A 
 
 Para um período (padrão: **mês atual**; opções: mês anterior, últimos 90 dias e intervalo personalizado) e uma vendedora (ou todas, para a gerente):
 
-| Métrica                 | Definição                                                                                                                                                                                      |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Criados                 | orçamentos com `criado_em` no período (inclui rascunhos)                                                                                                                                      |
-| Gerados                 | `gerado_em` no período                                                                                                                                                                         |
-| Enviados                | `enviado_em` (o **primeiro** envio) no período                                                                                                                                                 |
-| Fechados / valor vendido | `fechado_em` no período; valor = soma de `valor_fechado`                                                                                                                                      |
-| Perdidos / valor perdido | `perdido_em` no período; valor = soma de `valor_total`, também separado **por motivo**                                                                                                       |
-| Conversão (quantidade)  | dos orçamentos **enviados no período**: fechados ÷ (fechados + perdidos). Mostre junto quantos dessa safra ainda estão em andamento, para não parecer pior ou melhor do que é               |
-| Conversão (valor)       | da mesma safra: soma de `valor_fechado` ÷ soma de `valor_total` dos que já fecharam ou perderam                                                                                                |
-| Em aberto (agora)       | status `enviado`, `followup_d5` ou `followup_d10`, hoje, sem filtro de período; quantidade e soma de `valor_total`                                                                             |
-| Ticket médio            | valor vendido ÷ fechados do período                                                                                                                                                            |
-| Tempo até fechar        | mediana de dias entre `enviado_em` e `fechado_em`, dos fechados no período                                                                                                                     |
-| Follow-ups vencidos     | agora, com a mesma regra do dia 8 (`src/lib/orcamento/followup.ts`)                                                                                                                            |
-| Uso da Indicação da IA  | indicações pedidas no período (`indicacoes_ia`) e % dos itens dos orçamentos gerados no período com `origem = indicacao_ia`; também % com `lista_colada`                                       |
-| Custo de IA (só gerente) | soma de `uso_ia.custo_estimado` no período, em US$ e em R$ (câmbio de `configuracoes_loja`, ver A4), separado em Indicação e padronização de descrições se o registro permitir               |
+| Métrica                  | Definição                                                                                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Criados                  | orçamentos com `criado_em` no período (inclui rascunhos)                                                                                                                       |
+| Gerados                  | `gerado_em` no período                                                                                                                                                         |
+| Enviados                 | `enviado_em` (o **primeiro** envio) no período                                                                                                                                 |
+| Fechados / valor vendido | `fechado_em` no período; valor = soma de `valor_fechado`                                                                                                                       |
+| Perdidos / valor perdido | `perdido_em` no período; valor = soma de `valor_total`, também separado **por motivo**                                                                                         |
+| Conversão (quantidade)   | dos orçamentos **enviados no período**: fechados ÷ (fechados + perdidos). Mostre junto quantos dessa safra ainda estão em andamento, para não parecer pior ou melhor do que é  |
+| Conversão (valor)        | da mesma safra: soma de `valor_fechado` ÷ soma de `valor_total` dos que já fecharam ou perderam                                                                                |
+| Em aberto (agora)        | status `enviado`, `followup_d5` ou `followup_d10`, hoje, sem filtro de período; quantidade e soma de `valor_total`                                                             |
+| Ticket médio             | valor vendido ÷ fechados do período                                                                                                                                            |
+| Tempo até fechar         | mediana de dias entre `enviado_em` e `fechado_em`, dos fechados no período                                                                                                     |
+| Follow-ups vencidos      | agora, com a mesma regra do dia 8 (`src/lib/orcamento/followup.ts`)                                                                                                            |
+| Uso da Indicação da IA   | indicações pedidas no período (`indicacoes_ia`) e % dos itens dos orçamentos gerados no período com `origem = indicacao_ia`; também % com `lista_colada`                       |
+| Custo de IA (só gerente) | soma de `uso_ia.custo_estimado` no período, em US$ e em R$ (câmbio de `configuracoes_loja`, ver A4), separado em Indicação e padronização de descrições se o registro permitir |
 
 Se alguma definição esbarrar em um dado que não existe ou é ambíguo (por exemplo, orçamento fechado sem `enviado_em`), decida o mais simples, escreva a regra no `docs/metricas.md` e me conte no relatório.
 

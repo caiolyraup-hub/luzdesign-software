@@ -7,12 +7,14 @@ import { gerarOrcamentoCompleto } from "@/app/(app)/orcamentos/acoes-pdf";
 import {
   adicionarAmbiente,
   adicionarAvulso,
+  adicionarKit,
   adicionarListaColada,
   adicionarProduto,
   adicionarSugestoes,
   alterarAvulso,
   alterarQuantidade,
   atualizarPrecos,
+  duplicarAmbiente,
   editarDescricao,
   mudarAmbiente,
   removerItem,
@@ -25,10 +27,12 @@ import {
   type RespostaRevisao,
 } from "@/app/(app)/orcamentos/acoes-revisao";
 import type { ProdutoBusca } from "@/lib/estoque/buscar";
+import { sugerirNomeDuplicado } from "@/lib/orcamento/atalhos";
 import { agruparPorAmbiente, itensComPrecoMudado, nomeAmbienteValido } from "@/lib/orcamento/itens";
 import { moedaCentavos, motivosBloqueioGerar, totaisDoOrcamento } from "@/lib/orcamento/totais";
 import { BuscaProduto } from "./BuscaProduto";
 import { ColarLista } from "./ColarLista";
+import { KitFita } from "./KitFita";
 import { IndicacaoIA, type HistoricoIndicacao } from "./IndicacaoIA";
 import { ItemCard } from "./ItemCard";
 
@@ -70,6 +74,8 @@ export function Revisao(p: Props) {
   const [avulsoEm, setAvulsoEm] = useState<string | null>(null);
   const [colarEm, setColarEm] = useState<string | null>(null);
   const [formAvulso, setFormAvulso] = useState({ descricao: "", quantidade: "1", preco: "" });
+  const [kitEm, setKitEm] = useState<string | null>(null);
+  const [duplicarEm, setDuplicarEm] = useState<{ origem: string; nome: string } | null>(null);
   const [novoAmbiente, setNovoAmbiente] = useState<string | null>(null);
   const [desfazer, setDesfazer] = useState<ItemSalvo | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -184,6 +190,33 @@ export function Revisao(p: Props) {
         : `${r.adicionados} ${r.adicionados === 1 ? "item adicionado" : "itens adicionados"}.`,
     );
     return null;
+  }
+
+  async function confirmarKit(
+    ambiente: string,
+    linhas: { codigo: string; quantidade: number }[],
+  ): Promise<string | null> {
+    const r = await enviar(() => adicionarKit(p.orcamentoId, ambiente, linhas));
+    if (!r) return "Não foi possível adicionar o kit agora. Tente de novo.";
+    setAviso(
+      r.avisos.length > 0
+        ? r.avisos.join(" ")
+        : `Kit adicionado em ${ambiente} (${r.adicionados} ${r.adicionados === 1 ? "item" : "itens"}).`,
+    );
+    return null;
+  }
+
+  async function confirmarDuplicar() {
+    if (!duplicarEm) return;
+    const { origem, nome } = duplicarEm;
+    const r = await enviar(() => duplicarAmbiente(p.orcamentoId, origem, nome));
+    if (!r) return;
+    setDuplicarEm(null);
+    setAviso(
+      r.avisos.length > 0
+        ? r.avisos.join(" ")
+        : `${origem} copiado para ${nome.trim()} (${r.adicionados} ${r.adicionados === 1 ? "item" : "itens"}, com os preços de hoje).`,
+    );
   }
 
   async function salvarAvulso(ambiente: string) {
@@ -387,6 +420,50 @@ export function Revisao(p: Props) {
               onConfirmar={(texto) => confirmarLista(g.nome, texto)}
               onFechar={() => setColarEm(null)}
             />
+          ) : kitEm === g.nome ? (
+            <KitFita
+              ambiente={g.nome}
+              onConfirmar={(linhas) => confirmarKit(g.nome, linhas)}
+              onFechar={() => setKitEm(null)}
+            />
+          ) : duplicarEm?.origem === g.nome ? (
+            <div
+              role="group"
+              aria-label={`Duplicar ${g.nome}`}
+              className="space-y-3 rounded-lg border-2 border-amber-700 bg-amber-50 p-4"
+            >
+              <p className="text-lg font-medium">Duplicar {g.nome}</p>
+              <label className="block space-y-1">
+                <span className="text-base">Nome do novo ambiente</span>
+                <input
+                  type="text"
+                  autoFocus
+                  value={duplicarEm.nome}
+                  onChange={(e) => setDuplicarEm({ origem: g.nome, nome: e.target.value })}
+                  className={`${campo} w-full`}
+                />
+              </label>
+              <p className="text-base text-zinc-700">
+                Os itens vão com as mesmas quantidades e com o preço de hoje do catálogo.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDuplicarEm(null)}
+                  className={`${botao} flex-1`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmarDuplicar()}
+                  disabled={!nomeAmbienteValido(duplicarEm.nome) || salvando}
+                  className="min-h-12 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+                >
+                  Duplicar ambiente
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-wrap gap-3">
               <button
@@ -402,6 +479,23 @@ export function Revisao(p: Props) {
               <button type="button" onClick={() => setAvulsoEm(g.nome)} className={botao}>
                 Adicionar item avulso
               </button>
+              <button type="button" onClick={() => setKitEm(g.nome)} className={botao}>
+                Adicionar kit de fita
+              </button>
+              {g.itens.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDuplicarEm({
+                      origem: g.nome,
+                      nome: sugerirNomeDuplicado(g.nome, nomesAmbientes),
+                    })
+                  }
+                  className={botao}
+                >
+                  Duplicar ambiente
+                </button>
+              ) : null}
             </div>
           )}
         </section>

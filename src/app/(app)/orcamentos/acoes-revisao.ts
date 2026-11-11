@@ -16,6 +16,8 @@ import {
   type ItemRevisao,
   type OrigemItem,
 } from "@/lib/orcamento/itens";
+import { codigosMaisUsados, DIAS_MAIS_USADOS } from "@/lib/orcamento/atalhos";
+import { calcularKit, lerMetros, type ProdutoKit } from "@/lib/orcamento/kit-fita";
 import { interpretarLista } from "@/lib/orcamento/lista-colada";
 import { subtotalCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
@@ -182,13 +184,20 @@ const precoSchema = z
 export type RespostaBusca = Falha | { ok: true; produtos: ProdutoBusca[] };
 
 /** Busca no catálogo com a sessão da vendedora (RLS). Só produtos ativos. Código exato vem primeiro. */
-export async function buscarProdutosRevisao(texto: string): Promise<RespostaBusca> {
+export async function buscarProdutosRevisao(
+  texto: string,
+  categoria: string | null = null,
+): Promise<RespostaBusca> {
   await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
   try {
     return {
       ok: true,
-      produtos: await buscarProdutos(supabase, { texto: texto.slice(0, 120), limite: 20 }),
+      produtos: await buscarProdutos(supabase, {
+        texto: texto.slice(0, 120),
+        categoria: categoria ? categoria.slice(0, 40) : null,
+        limite: 20,
+      }),
     };
   } catch {
     return falha("Não foi possível buscar agora.");
@@ -699,4 +708,258 @@ export async function atualizarPrecos(orcamentoId: string): Promise<RespostaRevi
     if (error) return falha(ERRO_GENERICO);
   }
   return estadoAtual(c);
+}
+
+// ---------------------------------------------------------------- seus mais usados
+
+/**
+ * Os 12 códigos que a própria vendedora mais colocou em orçamentos nos últimos 90 dias, com o preço
+ * atual (a RLS já limita aos orçamentos dela). Sem histórico, devolve lista vazia. Com `categoria`,
+ * só os dessa categoria (usado na escolha da fita, do perfil e da fonte do kit).
+ */
+export async function produtosMaisUsados(categoria: string | null = null): Promise<RespostaBusca> {
+  const usuario = await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const desde = new Date(Date.now() - DIAS_MAIS_USADOS * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from("orcamento_itens")
+    .select("codigo, orcamentos!inner(vendedora_id, criado_em)")
+    .not("codigo", "is", null)
+    .eq("orcamentos.vendedora_id", usuario.id)
+    .gte("orcamentos.criado_em", desde)
+    .limit(5000);
+  if (error) return falha("Não foi possível carregar os mais usados.");
+  const codigos = codigosMaisUsados(
+    ((data ?? []) as { codigo: string | null }[]).map((l) => ({ codigo: l.codigo })),
+    200,
+  );
+  if (codigos.length === 0) return { ok: true, produtos: [] };
+
+  let consulta = supabase
+    .from("produtos")
+    .select(
+      "codigo, categoria, marca, descricao, unidade, preco_unitario, estoque_disponivel, atributos",
+    )
+    .eq("ativo", true)
+    .in("codigo", codigos);
+  if (categoria) consulta = consulta.ilike("categoria", categoria);
+  const { data: produtos } = await consulta;
+  const porCodigo = new Map((produtos ?? []).map((p) => [p.codigo as string, p]));
+  const lista = codigos
+    .map((c) => porCodigo.get(c))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .slice(0, 12)
+    .map((p) => ({
+      codigo: p.codigo as string,
+      categoria: p.categoria as string | null,
+      marca: p.marca as string | null,
+      descricao: p.descricao as string,
+      unidade: p.unidade as "un" | "m",
+      preco_unitario: Number(p.preco_unitario),
+      estoque_disponivel: p.estoque_disponivel === null ? null : Number(p.estoque_disponivel),
+      atributos: (p.atributos ?? {}) as Record<string, unknown>,
+      similaridade: 1,
+    }));
+  return { ok: true, produtos: lista };
+}
+
+// ---------------------------------------------------------------- kit de fita LED
+
+export interface LinhaPreviaKit {
+  papel: "fita" | "perfil" | "fonte";
+  codigo: string;
+  descricao: string;
+  unidade: "un" | "m";
+  precoUnitario: number;
+  /** Nulo quando faltou dado para calcular (a vendedora informa). */
+  quantidade: number | null;
+  conta: string;
+}
+
+export interface PreviaKit {
+  metros: number;
+  linhas: LinhaPreviaKit[];
+  fonte:
+    | { estado: "sugerida"; cargaW: number; necessariaW: number; confirmarTensao: boolean }
+    | { estado: "escolher"; motivo: string; cargaW: number | null; necessariaW: number | null }
+    | { estado: "nao_precisa"; motivo: string };
+  avisos: string[];
+}
+
+export type RespostaKit = Falha | { ok: true; previa: PreviaKit };
+
+const SELECT_KIT =
+  "codigo, categoria, unidade, preco_unitario, atributos, ativo, descricao, marca, produtos_descricao_formatada(descricao_formatada, descricao_origem)";
+
+function paraProdutoKit(l: Record<string, unknown>): ProdutoKit {
+  const p = paraProduto(l);
+  return {
+    codigo: p.codigo,
+    // Potência e comprimento são lidos da descrição do CATÁLOGO (a padronizada pode reescrever).
+    descricao: String(l.descricao ?? p.descricao),
+    categoria: p.categoria,
+    unidade: p.unidade,
+    preco: p.preco_unitario,
+    atributos: (l.atributos ?? {}) as Record<string, unknown>,
+  };
+}
+
+/** Prévia do kit (fita + perfil + fonte): nada é gravado. Preço sempre do catálogo. */
+export async function calcularKitFita(entrada: {
+  metros: string;
+  fita: string;
+  perfil: string | null;
+}): Promise<RespostaKit> {
+  await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const metros = lerMetros(entrada.metros);
+  if (!metros.ok) return falha(metros.erro);
+  const codigos = [entrada.fita, entrada.perfil].filter((c): c is string => !!c);
+  if (!codigos.every((x) => codigoSchema.safeParse(x).success)) return falha("Código inválido.");
+
+  const [{ data: escolhidos }, { data: fontes }] = await Promise.all([
+    supabase.from("produtos").select(SELECT_KIT).eq("ativo", true).in("codigo", codigos),
+    supabase
+      .from("produtos")
+      .select(SELECT_KIT)
+      .eq("ativo", true)
+      .ilike("categoria", "FONTE")
+      .limit(100),
+  ]);
+  const porCodigo = new Map((escolhidos ?? []).map((l) => [l.codigo as string, paraProdutoKit(l)]));
+  const fita = porCodigo.get(entrada.fita);
+  if (!fita) return falha("Escolha a fita no catálogo.");
+  const perfil = entrada.perfil ? (porCodigo.get(entrada.perfil) ?? null) : null;
+  if (entrada.perfil && !perfil) return falha("O perfil escolhido não está disponível.");
+
+  const r = calcularKit({
+    metros: metros.metros,
+    fita,
+    perfil,
+    fontes: (fontes ?? []).map(paraProdutoKit),
+  });
+
+  const linha = (
+    papel: LinhaPreviaKit["papel"],
+    x: { produto: ProdutoKit; quantidade: number | null; conta: string },
+  ): LinhaPreviaKit => ({
+    papel,
+    codigo: x.produto.codigo,
+    descricao: x.produto.descricao,
+    unidade: x.produto.unidade,
+    precoUnitario: x.produto.preco,
+    quantidade: x.quantidade,
+    conta: x.conta,
+  });
+  const linhas: LinhaPreviaKit[] = [linha("fita", r.fita)];
+  if (r.perfil) linhas.push(linha("perfil", r.perfil));
+  let fonte: PreviaKit["fonte"];
+  if (r.fonte.tipo === "sugerida") {
+    linhas.push(linha("fonte", r.fonte.linha));
+    fonte = {
+      estado: "sugerida",
+      cargaW: r.fonte.cargaW,
+      necessariaW: r.fonte.necessariaW,
+      confirmarTensao: r.fonte.confirmarTensao,
+    };
+  } else if (r.fonte.tipo === "escolher") {
+    fonte = {
+      estado: "escolher",
+      motivo: r.fonte.motivo,
+      cargaW: r.fonte.cargaW,
+      necessariaW: r.fonte.necessariaW,
+    };
+  } else {
+    fonte = { estado: "nao_precisa", motivo: r.fonte.motivo };
+  }
+  return { ok: true, previa: { metros: r.metros, linhas, fonte, avisos: r.avisos } };
+}
+
+/**
+ * Adiciona as linhas do kit (já confirmadas ou ajustadas pela vendedora) ao ambiente. Preço e
+ * descrição vêm do catálogo; a quantidade é validada como em qualquer produto.
+ */
+export async function adicionarKit(
+  orcamentoId: string,
+  ambiente: string,
+  linhas: LinhaAdicionar[],
+): Promise<RespostaAdicao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const r = await inserirProdutos(c, ambiente, linhas, "manual");
+  if (!r.ok) return r;
+  const e = await estadoAtual(c);
+  if (!e.ok) return e;
+  return { ok: true, estado: e.estado, avisos: r.avisos, adicionados: r.adicionados };
+}
+
+// ---------------------------------------------------------------- duplicar ambiente
+
+/**
+ * Copia os itens de um ambiente para um novo, com as mesmas quantidades. Item do catálogo é relido
+ * (preço e descrição atuais do estoque; a descrição escrita à mão é mantida); avulso leva o preço
+ * manual. Respeita o bloqueio de edição (só rascunho e gerado).
+ */
+export async function duplicarAmbiente(
+  orcamentoId: string,
+  origem: string,
+  novoNome: string,
+): Promise<RespostaAdicao> {
+  const c = await abrirContexto(orcamentoId);
+  if (eFalha(c)) return c;
+  const nome = nomeAmbienteValido(novoNome);
+  if (!nome) return falha("Informe o nome do novo ambiente (até 60 caracteres).");
+
+  const itens = await carregarItensRevisao(c.supabase, orcamentoId);
+  const doAmbiente = itens.filter((i) => i.ambiente.toLowerCase() === origem.trim().toLowerCase());
+  if (doAmbiente.length === 0) return falha("Esse ambiente não tem itens para copiar.");
+  if (itens.some((i) => i.ambiente.toLowerCase() === nome.toLowerCase()))
+    return falha("Já existe um ambiente com esse nome e itens. Escolha outro nome.");
+
+  const catalogo = await lerProdutos(c.supabase, [
+    ...new Set(doAmbiente.filter((i) => !i.avulso && i.codigo).map((i) => i.codigo!)),
+  ]);
+  const avisos: string[] = [];
+  let ordem = await proximaOrdem(c);
+  const novas: Record<string, unknown>[] = [];
+  for (const i of doAmbiente) {
+    if (i.avulso) {
+      novas.push({
+        orcamento_id: orcamentoId,
+        codigo: null,
+        descricao_congelada: i.descricao,
+        preco_unitario_congelado: i.preco, // avulso: o preço manual
+        quantidade: i.quantidade,
+        ambiente: nome,
+        avulso: true,
+        origem: "manual",
+        descricao_manual: false,
+        ordem: ordem++,
+      });
+      continue;
+    }
+    const produto = catalogo.get(i.codigo ?? "");
+    if (!produto || !produto.ativo) {
+      avisos.push(`O produto ${i.codigo} não está mais disponível e não foi copiado.`);
+      continue;
+    }
+    novas.push({
+      orcamento_id: orcamentoId,
+      codigo: produto.codigo,
+      descricao_congelada: i.descricaoManual ? i.descricao : produto.descricao,
+      preco_unitario_congelado: produto.preco_unitario, // preço atual do catálogo
+      quantidade: i.quantidade,
+      ambiente: nome,
+      avulso: false,
+      origem: "manual",
+      descricao_manual: i.descricaoManual,
+      ordem: ordem++,
+    });
+  }
+  if (novas.length === 0) return falha(avisos[0] ?? "Nada para copiar.");
+  const { error } = await c.supabase.from("orcamento_itens").insert(novas);
+  if (error) return falha(ERRO_GENERICO);
+  const e = await estadoAtual(c);
+  if (!e.ok) return e;
+  return { ok: true, estado: e.estado, avisos, adicionados: novas.length };
 }
