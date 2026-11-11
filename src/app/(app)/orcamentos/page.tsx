@@ -1,6 +1,8 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { CartaoOrcamento, type DadosCartao } from "@/components/orcamento/CartaoOrcamento";
+import { AvisoFiltro } from "@/components/numeros/AvisoFiltro";
+import { aplicarFiltroPeriodo, lerFiltroPeriodo } from "@/lib/metricas/lista";
 import { FILTROS, FiltrosStatus, filtroPorId } from "@/components/orcamento/FiltrosStatus";
 import { lerConfigFollowup } from "@/lib/orcamento/config-followup";
 import { obterUsuarioAtual } from "@/lib/sessao";
@@ -14,14 +16,20 @@ interface Linha {
   valor_fechado: number | string | null;
   motivo_perda: string | null;
   atualizado_em: string;
+  criado_em: string;
   gerado_em: string | null;
+  enviado_em: string | null;
+  fechado_em: string | null;
+  perdido_em: string | null;
   ultimo_envio_em: string | null;
   clientes: { nome: string } | { nome: string }[] | null;
 }
 
 async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchParams">) {
   await connection();
-  const { filtro: bruto } = await searchParams;
+  const params = await searchParams;
+  const { filtro: bruto } = params;
+  const filtroPeriodo = lerFiltroPeriodo(params);
   const filtro = filtroPorId(Array.isArray(bruto) ? bruto[0] : bruto);
 
   const usuario = await obterUsuarioAtual();
@@ -30,14 +38,19 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
   const { data, error } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, valor_total, valor_fechado, motivo_perda, atualizado_em, gerado_em, ultimo_envio_em, clientes(nome)",
+      "id, numero, status, valor_total, valor_fechado, motivo_perda, atualizado_em, criado_em, gerado_em, enviado_em, fechado_em, perdido_em, ultimo_envio_em, clientes(nome)",
     )
     .eq("vendedora_id", usuario.id)
     .order("atualizado_em", { ascending: false });
 
   if (error) return <p role="alert">Não foi possível carregar os orçamentos.</p>;
   const config = await lerConfigFollowup(supabase);
-  const linhas = (data ?? []) as unknown as Linha[];
+  // Aberta por um número de Meus números: só o que cai naquele período (e sem os de teste).
+  const linhas = await aplicarFiltroPeriodo(
+    supabase,
+    (data ?? []) as unknown as Linha[],
+    filtroPeriodo,
+  );
 
   const contagens = Object.fromEntries(
     FILTROS.map((f) => [
@@ -67,7 +80,35 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
 
   return (
     <div className="space-y-4">
-      <FiltrosStatus base="/orcamentos" atual={filtro.id} contagens={contagens} />
+      {filtroPeriodo ? (
+        <AvisoFiltro
+          filtro={filtroPeriodo}
+          limparHref={`/orcamentos?filtro=${filtro.id}`}
+          voltarHref={`/meus-numeros?${new URLSearchParams(
+            Array.isArray(params.periodo) || !params.periodo
+              ? {}
+              : params.periodo === "personalizado"
+                ? { periodo: "personalizado", de: filtroPeriodo.de, ate: filtroPeriodo.ate }
+                : { periodo: params.periodo },
+          ).toString()}`}
+        />
+      ) : null}
+      <FiltrosStatus
+        base="/orcamentos"
+        atual={filtro.id}
+        contagens={contagens}
+        extra={
+          filtroPeriodo
+            ? {
+                data: filtroPeriodo.campo,
+                de: filtroPeriodo.de,
+                ate: filtroPeriodo.ate,
+                motivo: filtroPeriodo.motivo,
+                periodo: Array.isArray(params.periodo) ? params.periodo[0] : params.periodo,
+              }
+            : {}
+        }
+      />
       {cartoes.length === 0 ? (
         <p className="text-lg text-zinc-600">
           {linhas.length === 0

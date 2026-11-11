@@ -46,6 +46,10 @@ const schema = z
       .int("Use um número inteiro de dias.")
       .min(2, "O segundo follow-up é de 2 a 90 dias.")
       .max(90, "O segundo follow-up é de 2 a 90 dias."),
+    cambio_usd_brl: z.coerce
+      .number()
+      .gt(0, "O dólar precisa ser maior que zero.")
+      .lt(100, "Confira o valor do dólar."),
     mensagem_d5: z.string().trim().min(5, "Escreva a mensagem do primeiro follow-up.").max(600),
     mensagem_d10: z.string().trim().min(5, "Escreva a mensagem do segundo follow-up.").max(600),
   })
@@ -67,7 +71,11 @@ export async function salvarConfiguracoes(
   const bruto = Object.fromEntries(
     [...formData.entries()].map(([k, v]) => [
       k,
-      typeof v === "string" ? (k === "desconto_avista_pct" ? v.replace(",", ".") : v) : "",
+      typeof v === "string"
+        ? k === "desconto_avista_pct" || k === "cambio_usd_brl"
+          ? v.replace(",", ".")
+          : v
+        : "",
     ]),
   );
   const r = schema.safeParse(bruto);

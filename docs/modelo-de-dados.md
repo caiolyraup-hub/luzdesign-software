@@ -114,3 +114,15 @@ Item com código tem preço e descrição **sempre do catálogo**: a tela não e
 - Gatilho `bloquear_edicao_itens` em `orcamento_itens` e `orcamento_ambientes`: inserir, alterar ou apagar com o orçamento fora de `rascunho`/`gerado` falha com `EDICAO_BLOQUEADA` (vale para a dona, a gerência e o service role). Apagar o orçamento inteiro continua possível.
 - `configuracoes_loja`: `followup_d5_dias` (padrão 5), `followup_d10_dias` (padrão 10, maior que o primeiro), `mensagem_d5` e `mensagem_d10` (marcadores `{cliente}`, `{numero}`, `{vendedora}`). A gerente edita em `/gerencia/configuracoes`.
 - Os follow-ups **não** usam cron: são calculados na leitura (`src/lib/orcamento/followup.ts`), em dias corridos do calendário de Maceió a partir de `ultimo_envio_em`.
+
+## Ajustes do dia 9A (`20261111000100_paineis.sql`)
+
+Definições das métricas em `docs/metricas.md`.
+
+- `orcamento_eh_teste(respostas, cliente_id)` e a view `orcamentos_reais` (`security_invoker`): **um único lugar** que decide o que é teste (`respostas.teste = true`, `respostas.teste_rls = "true"` ou cliente cujo nome começa com a palavra TESTE). Todos os números usam a view.
+- `metricas_orcamentos(p_inicio, p_fim, p_vendedora)` (`security invoker`): jsonb com uma linha por vendedora e o total (criados, gerados, enviados, fechados e valor, perdidos e valor, perdas por motivo, safra de conversão, em aberto, ticket médio, mediana de dias, indicações pedidas e % de itens por origem). Dias de Maceió, início e fim inclusivos. Com a RLS, a vendedora recebe só a própria linha.
+- `serie_semanal_orcamentos(p_fim, p_vendedora)`: 13 semanas (segunda a domingo, Maceió) de enviados, fechados e valor vendido por vendedora.
+- `custo_ia_orcamentos(p_inicio, p_fim)`: soma de `uso_ia.custo_estimado` (status `ok`, sem orçamentos de teste) por tipo e o número de orçamentos gerados. Só a gerente executa (`SEM_PERMISSAO` para a vendedora; a RLS de `uso_ia` também esconde as linhas).
+- `configuracoes_loja.cambio_usd_brl` (padrão 5,50; entre 0 e 100): converte o custo de IA em reais; é estimativa, a gerente edita em Ajustes.
+- Índices por data de etapa em `orcamentos` (`vendedora_id` + criado/gerado/enviado/fechado/perdido), `indicacoes_ia (vendedora_id, criado_em)` e `uso_ia (criado_em)`. O plano com 6.000 orçamentos usa `BitmapOr` sobre eles (teste `plano-sql.test.ts`).
+- Follow-ups vencidos não vêm do SQL: são calculados no servidor com `src/lib/orcamento/followup.ts` (mesma regra do dia 8).

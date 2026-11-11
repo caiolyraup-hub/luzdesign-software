@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "usuarios": "tsx --env-file=.env.local scripts/criar-usuarios.mts",
-    "test:rls": "tsx --env-file=.env.local scripts/testar-isolamento.mts && tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/testar-revisao-pdf.mts",
+    "test:rls": "tsx --env-file=.env.local scripts/testar-isolamento.mts && tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/testar-revisao-pdf.mts && tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/testar-numeros.mts",
     "catalogo:provisorio": "tsx --env-file=.env.local scripts/catalogo-provisorio.mts",
     "test:e2e": "playwright test",
     "ia:testar": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/ia-testar.mts",

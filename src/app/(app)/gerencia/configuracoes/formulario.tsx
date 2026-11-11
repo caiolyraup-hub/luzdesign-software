@@ -19,6 +19,7 @@ export interface ConfiguracoesLoja {
   followup_d10_dias: number;
   mensagem_d5: string;
   mensagem_d10: string;
+  cambio_usd_brl: number;
 }
 
 const inicial: EstadoConfiguracoes = { ok: null, erro: null };
@@ -143,6 +144,16 @@ export function FormularioConfiguracoes({ config }: { config: ConfiguracoesLoja 
             <code>{"{vendedora}"}</code>.
           </span>
         </label>
+      </fieldset>
+
+      <fieldset className="space-y-4 rounded-lg border border-zinc-300 p-4">
+        <legend className="px-2 text-lg font-semibold">Custo da IA</legend>
+        <Campo
+          nome="cambio_usd_brl"
+          rotulo="Dólar (R$ por US$ 1)"
+          valor={String(config.cambio_usd_brl).replace(".", ",")}
+          dica="Só serve para converter o custo estimado da IA em reais na tela Equipe. É uma estimativa, não o valor cobrado. Padrão 5,50."
+        />
       </fieldset>
 
       {estado.erro ? (

@@ -17,6 +17,7 @@ async function Dados() {
       config={{
         ...(data as ConfiguracoesLoja),
         desconto_avista_pct: Number(data.desconto_avista_pct),
+        cambio_usd_brl: Number(data.cambio_usd_brl),
       }}
     />
   );
