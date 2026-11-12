@@ -1,27 +1,7 @@
 import Link from "next/link";
-import type { StatusOrcamento } from "@/lib/dominio";
+import { PRESETS } from "@/lib/orcamento/filtros-lista";
 
-export interface Filtro {
-  id: string;
-  rotulo: string;
-  status: StatusOrcamento[] | null; // null = todos
-}
-
-export const FILTROS: Filtro[] = [
-  {
-    id: "andamento",
-    rotulo: "Em andamento",
-    status: ["rascunho", "gerado", "enviado", "followup_d5", "followup_d10"],
-  },
-  { id: "followup", rotulo: "Follow-up", status: ["enviado", "followup_d5", "followup_d10"] },
-  { id: "fechados", rotulo: "Fechados", status: ["fechado"] },
-  { id: "perdidos", rotulo: "Perdidos", status: ["perdido"] },
-  { id: "todos", rotulo: "Todos", status: null },
-];
-
-export function filtroPorId(id: string | undefined): Filtro {
-  return FILTROS.find((f) => f.id === id) ?? FILTROS[0];
-}
+export { PRESETS as FILTROS, presetPorId as filtroPorId } from "@/lib/orcamento/filtros-lista";
 
 /** Chips de filtro (links, funcionam sem JavaScript). `extra` mantém outros parâmetros da URL. */
 export function FiltrosStatus({
@@ -43,7 +23,7 @@ export function FiltrosStatus({
   };
   return (
     <nav aria-label="Filtrar por status" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-      {FILTROS.map((f) => (
+      {PRESETS.map((f) => (
         <Link
           key={f.id}
           href={montar(f.id)}

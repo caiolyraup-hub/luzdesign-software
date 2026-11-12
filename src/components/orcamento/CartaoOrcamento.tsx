@@ -10,6 +10,7 @@ export interface DadosCartao {
   id: string;
   numero: string;
   status: string;
+  clienteId?: string;
   clienteNome: string;
   /** Só na visão da gerência. */
   vendedoraNome?: string | null;
@@ -20,6 +21,8 @@ export interface DadosCartao {
   geradoEm: string | null;
   /** Envio mais recente: de onde contam os follow-ups. */
   ultimoEnvioEm: string | null;
+  /** Validade do orçamento gerado (AAAA-MM-DD). */
+  validade?: string | null;
 }
 
 /** Cartão de orçamento com o acompanhamento (status e follow-up) a um toque, para vendedora e gerência. */

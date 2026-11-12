@@ -130,3 +130,9 @@ Definições das métricas em `docs/metricas.md`.
 ## Ajustes do dia 9B
 
 Sem migration: os atalhos (kit de fita, mais usados e duplicar ambiente) usam as tabelas e colunas existentes. Os itens do kit e as cópias de ambiente entram com `origem = manual`. Os dados do catálogo que o kit lê: `produtos.atributos` (`w` potência em W ou W/m, `comprimento` da barra em m; `v`/`tensao` e `comprimento_rolo` se existirem) e, na falta, a descrição ("22W/M", "3M", "24V"). O catálogo provisório não informa a tensão: o kit sugere e pede para confirmar.
+
+## Ajustes do dia 10A (`20261112000100_busca_lista.sql`)
+
+- `hoje_maceio()` e `orcamento_dias_para_vencer(status, validade, hoje)`: **a** regra de vencimento (dias até a validade; 0 = vence hoje, negativo = vencido; nulo para rascunho, fechado, perdido e sem validade). A mesma regra, em TypeScript, está em `src/lib/orcamento/validade.ts`; `busca-sql.test.ts` confere que as duas concordam para todos os status e distâncias.
+- `listar_orcamentos(p jsonb)` (`security invoker`): busca, filtros, ordem e paginação por cursor da lista de orçamentos. Entrada e saída descritas no comentário da migration. A busca olha número, nome do cliente, nome do arquiteto, WhatsApp (só dígitos, a partir de 3) e código (exato) ou descrição de produto nos itens. Dígitos de um código também casam com WhatsApp (ruído aceito; não perde resultado).
+- `clientes.whatsapp_digitos` (coluna gerada, só os dígitos do WhatsApp) e índices `pg_trgm` em número do orçamento, nome e arquiteto do cliente, dígitos do WhatsApp e descrição do item; índice em `orcamento_itens(codigo)`; índices `(vendedora_id, atualizado_em desc, id desc)` e `(vendedora_id, validade)` em `orcamentos`.
