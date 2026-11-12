@@ -2,13 +2,19 @@ import { Suspense } from "react";
 import { BarraNavegacao } from "@/components/BarraNavegacao";
 import { sair } from "@/lib/acoes-sessao";
 import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
+import { paraRenovarDeHoje } from "@/lib/orcamento/para-renovar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 async function Moldura({ children }: { children: React.ReactNode }) {
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
-  const vencidos = (await followupsDeHoje(supabase, usuario)).length;
+  // O badge do Início soma os follow-ups vencidos e os orçamentos para renovar.
+  const [followups, renovar] = await Promise.all([
+    followupsDeHoje(supabase, usuario),
+    paraRenovarDeHoje(supabase, usuario),
+  ]);
+  const vencidos = followups.length + renovar.length;
   return (
     <>
       <header className="border-b border-zinc-200">

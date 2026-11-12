@@ -4,6 +4,8 @@ import type { StatusOrcamento } from "@/lib/dominio";
 import { formatarDataHora, formatarMoeda } from "@/lib/formatar";
 import { followupDeHoje, type ConfigFollowup } from "@/lib/orcamento/followup";
 import { rotuloMotivo } from "@/lib/orcamento/status";
+import { avisoValidade } from "@/lib/orcamento/validade";
+import { BadgeValidade } from "./BadgeValidade";
 import { StatusAcoes } from "./StatusAcoes";
 
 export interface DadosCartao {
@@ -36,6 +38,7 @@ export function CartaoOrcamento({
   config?: ConfigFollowup;
 }) {
   const devido = followupDeHoje({ status: d.status, ultimoEnvioEm: d.ultimoEnvioEm, config });
+  const venc = avisoValidade(d.status, d.validade);
   const valor = d.status === "fechado" && d.valorFechado ? d.valorFechado : d.valorTotal;
 
   return (
@@ -61,6 +64,7 @@ export function CartaoOrcamento({
           {d.status === "perdido" && d.motivoPerda ? (
             <span className="text-base text-zinc-700">{rotuloMotivo(d.motivoPerda)}</span>
           ) : null}
+          {venc ? <BadgeValidade aviso={venc} /> : null}
           {devido ? (
             <span className="rounded-full bg-amber-200 px-3 py-1 text-base font-semibold text-amber-950">
               {devido.etapa === "ENCERRAR"
@@ -72,6 +76,15 @@ export function CartaoOrcamento({
           ) : null}
         </span>
       </Link>
+
+      {venc && podeAgir ? (
+        <Link
+          href={`/orcamentos/${d.id}?renovar=1`}
+          className="flex min-h-12 items-center justify-center rounded-lg border border-amber-700 text-lg font-semibold text-amber-800"
+        >
+          Renovar validade
+        </Link>
+      ) : null}
 
       {d.status === "rascunho" ? (
         podeAgir ? (

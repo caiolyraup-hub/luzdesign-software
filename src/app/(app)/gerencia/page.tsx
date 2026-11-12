@@ -25,6 +25,7 @@ import {
 } from "@/lib/orcamento/filtros-lista";
 import { followupDeHoje, textoPrazoFollowup } from "@/lib/orcamento/followup";
 import { contagemDosPresets, listarOrcamentos } from "@/lib/orcamento/listar";
+import { STATUS_QUE_VENCEM } from "@/lib/orcamento/validade";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 interface LinhaVencida {
@@ -53,18 +54,29 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
   });
 
   const supabase = await criarClienteServidor();
-  const [pagina, config, { data: listaVendedoras }, { data: abertos }] = await Promise.all([
-    listarOrcamentos(supabase, filtros, { mostrarVendedora: true }),
-    lerConfigFollowup(supabase),
-    supabase.from("usuarios").select("id, nome").eq("perfil", "vendedora").order("nome"),
-    supabase
-      .from("orcamentos")
-      .select("id, numero, status, vendedora_id, ultimo_envio_em, clientes(nome), usuarios(nome)")
-      .in("status", ["enviado", "followup_d5", "followup_d10"]),
-  ]);
+  const [pagina, config, { data: listaVendedoras }, { data: abertos }, { data: vencidosValidade }] =
+    await Promise.all([
+      listarOrcamentos(supabase, filtros, { mostrarVendedora: true }),
+      lerConfigFollowup(supabase),
+      supabase.from("usuarios").select("id, nome").eq("perfil", "vendedora").order("nome"),
+      supabase
+        .from("orcamentos")
+        .select("id, numero, status, vendedora_id, ultimo_envio_em, clientes(nome), usuarios(nome)")
+        .in("status", ["enviado", "followup_d5", "followup_d10"]),
+      // Validade vencida sem renovação (só os que entram nos números: sem os de teste).
+      supabase
+        .from("orcamentos_reais")
+        .select("vendedora_id")
+        .in("status", [...STATUS_QUE_VENCEM])
+        .lt("validade", hojeMaceioISO()),
+    ]);
   if (!pagina) return <p role="alert">Não foi possível carregar os orçamentos.</p>;
   const vendedoras = (listaVendedoras ?? []) as { id: string; nome: string }[];
   const nomeDe = (id: string) => vendedoras.find((v) => v.id === id)?.nome ?? "Vendedora";
+
+  const vencidosSemRenovacao = new Map<string, number>();
+  for (const l of (vencidosValidade ?? []) as { vendedora_id: string }[])
+    vencidosSemRenovacao.set(l.vendedora_id, (vencidosSemRenovacao.get(l.vendedora_id) ?? 0) + 1);
 
   // Follow-ups vencidos por vendedora (só leitura): do mais atrasado para o mais novo.
   const vencidosLista = ((abertos ?? []) as unknown as LinhaVencida[])
@@ -145,6 +157,37 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
             voltarHref={voltarHref}
           />
         ) : null}
+        <section
+          aria-label="Vencidos sem renovação"
+          className="space-y-2 rounded-lg border border-zinc-300 p-4"
+        >
+          <h2 className="text-xl font-semibold">Vencidos sem renovação</h2>
+          <ul className="space-y-1">
+            {vendedoras.map((v) => {
+              const n = vencidosSemRenovacao.get(v.id) ?? 0;
+              return (
+                <li key={v.id} className="flex items-baseline justify-between gap-3 text-lg">
+                  <span>{v.nome}</span>
+                  {n > 0 ? (
+                    <Link
+                      href={hrefDeFiltros(
+                        "/gerencia",
+                        { ...filtros, preset: "todos", validade: "vencida", vendedora: v.id },
+                        manter,
+                        ANCORA,
+                      )}
+                      className="inline-flex min-h-11 items-center font-semibold underline"
+                    >
+                      {n} {n === 1 ? "orçamento" : "orçamentos"}
+                    </Link>
+                  ) : (
+                    <span className="text-zinc-600">nenhum</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
         {vencidos > 0 ? (
           <section
             aria-label="Follow-ups vencidos"

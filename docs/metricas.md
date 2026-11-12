@@ -44,3 +44,7 @@ Série semanal: últimas 13 semanas (segunda a domingo, Maceió) terminando na s
 5. **Custo de IA de orçamento apagado** (`orcamento_id` nulo): conta, porque o dinheiro foi gasto. Custo ligado a orçamento de teste não conta.
 6. **Safra por status de hoje**: a conversão de um mês pode subir depois, quando os "em andamento" se resolvem. Por isso a tela mostra a quantidade em andamento junto.
 7. **Valor fechado ausente** (não deveria ocorrer; o banco exige valor ao fechar): usa `valor_total`.
+
+## Vencidos (dia 10B)
+
+Orçamento com validade vencida **não muda nenhuma métrica** acima (continua em "Em aberto" e na conversão pelo status). O único número novo é o contador **Vencidos sem renovação** por vendedora, na tela Equipe: orçamentos em `gerado`, `enviado` ou follow-up com `validade < hoje` (Maceió), sem os de teste (view `orcamentos_reais`). A regra é a de `docs/arquitetura.md` (Validade vencida).

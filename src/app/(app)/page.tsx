@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { CartaoFollowup } from "@/components/orcamento/CartaoFollowup";
 import { formatarDataHora } from "@/lib/formatar";
+import { BadgeValidade } from "@/components/orcamento/BadgeValidade";
+import { formatarMoeda, isoParaBR } from "@/lib/formatar";
 import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
+import { paraRenovarDeHoje } from "@/lib/orcamento/para-renovar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -24,6 +27,54 @@ async function FollowupsDeHoje() {
       <ul className="space-y-3">
         {cartoes.map((c) => (
           <CartaoFollowup key={c.id} d={c} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+async function ParaRenovar() {
+  const usuario = await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const lista = await paraRenovarDeHoje(supabase, usuario);
+  if (lista.length === 0) return null;
+  return (
+    <section aria-label="Para renovar" className="space-y-3">
+      <h2 className="text-xl font-semibold">Para renovar ({lista.length})</h2>
+      <ul className="space-y-3">
+        {lista.map((r) => (
+          <li key={r.id} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+            <Link href={`/orcamentos/${r.id}`} className="block space-y-1">
+              <span className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-lg font-medium">{r.clienteNome}</span>
+                {r.valorTotal > 0 ? (
+                  <span className="shrink-0 text-lg font-semibold">
+                    {formatarMoeda(r.valorTotal)}
+                  </span>
+                ) : null}
+              </span>
+              <span className="block text-base text-zinc-600">
+                {r.numero} · validade {isoParaBR(r.validade).slice(0, 5)}
+              </span>
+              <BadgeValidade aviso={r.aviso} />
+            </Link>
+            <div className="grid grid-cols-2 gap-3">
+              <Link
+                href={`/orcamentos/${r.id}?renovar=1`}
+                className="flex min-h-12 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+              >
+                Renovar
+              </Link>
+              <a
+                href={r.linkWhatsapp}
+                target="_blank"
+                rel="noopener"
+                className="flex min-h-12 items-center justify-center rounded-lg border border-emerald-700 text-lg font-semibold text-emerald-800"
+              >
+                Abrir WhatsApp
+              </a>
+            </div>
+          </li>
         ))}
       </ul>
     </section>
@@ -91,6 +142,9 @@ export default function Page() {
       </Link>
       <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
         <FollowupsDeHoje />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ParaRenovar />
       </Suspense>
       <Suspense fallback={null}>
         <RascunhosParaTerminar />

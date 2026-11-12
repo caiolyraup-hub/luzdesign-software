@@ -163,6 +163,112 @@ try {
     const r = await anon.rpc("listar_orcamentos", { p: {} });
     assert.ok(r.error, "listar_orcamentos deveria negar o acesso sem login");
   });
+
+  // ---- Renovar validade (dia 10B): só a dona e a gerência; a vendedora não renova o da outra.
+  let contadorZap = 0;
+  async function vencido(dono: Pessoa) {
+    const id = await criar(dono, `+5582977${String(++contadorZap).padStart(6, "0")}`, true);
+    const hoje = new Date().toISOString().slice(0, 10);
+    const u = await admin
+      .from("orcamentos")
+      .update({
+        status: "enviado",
+        pdf_versao: 1,
+        pdf_caminho: `${dono.id}/${id}/x-v1.pdf`,
+        validade: new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10) || hoje,
+      })
+      .eq("id", id);
+    assert.equal(u.error, null, u.error?.message);
+    return id;
+  }
+  const renovar = (
+    p: Pessoa,
+    id: string,
+    dono: Pessoa,
+    total: number,
+    versao = 2,
+    manter = false,
+  ) =>
+    p.cliente.rpc("renovar_validade", {
+      p_orcamento: id,
+      p_pdf_caminho: `${dono.id}/${id}/x-v${versao}.pdf`,
+      p_xlsx_caminho: `${dono.id}/${id}/x-v${versao}.xlsx`,
+      p_versao: versao,
+      p_total_esperado: total,
+      p_validade: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10),
+      p_manter_precos: manter,
+    });
+
+  await caso("renovar: a Aline não renova o orçamento da Kely; sem login também não", async () => {
+    const dela = await vencido(kely);
+    const r = await renovar(aline, dela, kely, 1);
+    assert.ok(r.error, "a Aline não pode renovar o orçamento da Kely");
+    assert.match(r.error!.message, /SEM_PERMISSAO/);
+    const anon = createClient(url, anonKey, opcoes);
+    const r2 = await anon.rpc("renovar_validade", {
+      p_orcamento: dela,
+      p_pdf_caminho: "x",
+      p_versao: 2,
+      p_total_esperado: 1,
+      p_validade: "2030-01-01",
+    });
+    assert.ok(r2.error, "sem login não renova");
+    const { data } = await admin
+      .from("orcamentos")
+      .select("status, pdf_versao")
+      .eq("id", dela)
+      .single();
+    assert.deepEqual(data, { status: "enviado", pdf_versao: 1 });
+  });
+
+  await caso(
+    "renovar: a dona renova (preço do catálogo) e a gerente renova o de outra",
+    async () => {
+      const { data: prod } = await admin
+        .from("produtos")
+        .select("preco_unitario")
+        .eq("codigo", "9520")
+        .single();
+      const preco = Number(prod!.preco_unitario);
+      const minha = await vencido(aline);
+      const r = await renovar(aline, minha, aline, preco);
+      assert.equal(r.error, null, r.error?.message);
+      const { data: o } = await admin
+        .from("orcamentos")
+        .select("status, pdf_versao, pdf_versoes")
+        .eq("id", minha)
+        .single();
+      assert.equal(o!.status, "gerado");
+      assert.equal(o!.pdf_versao, 2);
+      assert.equal((o!.pdf_versoes as { renovada?: boolean }[]).at(-1)?.renovada, true);
+
+      const dela = await vencido(kely);
+      const g = await renovar(gerente, dela, kely, preco);
+      assert.equal(g.error, null, g.error?.message);
+      const { data: o2 } = await admin
+        .from("orcamentos")
+        .select("status, pdf_versao")
+        .eq("id", dela)
+        .single();
+      assert.deepEqual(o2, { status: "gerado", pdf_versao: 2 });
+    },
+  );
+
+  await caso("renovar: total errado desfaz tudo; fechado não renova", async () => {
+    const id = await vencido(aline);
+    const r = await renovar(aline, id, aline, 123456);
+    assert.ok(r.error);
+    assert.match(r.error!.message, /TOTAL_DIVERGENTE/);
+    const { data } = await admin
+      .from("orcamentos")
+      .select("status, pdf_versao")
+      .eq("id", id)
+      .single();
+    assert.deepEqual(data, { status: "enviado", pdf_versao: 1 });
+    await admin.from("orcamentos").update({ status: "fechado", valor_fechado: 1 }).eq("id", id);
+    const r2 = await renovar(aline, id, aline, 1);
+    assert.match(r2.error?.message ?? "", /ORCAMENTO_NAO_RENOVAVEL/);
+  });
 } finally {
   await limpar();
 }

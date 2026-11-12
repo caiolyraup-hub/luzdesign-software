@@ -6,6 +6,8 @@ import { BadgeStatus } from "@/components/BadgeStatus";
 import { StatusAcoes } from "@/components/orcamento/StatusAcoes";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
 import { ReabrirEdicao } from "@/components/orcamento/ReabrirEdicao";
+import { RenovarValidade } from "@/components/orcamento/RenovarValidade";
+import { avisoValidade, STATUS_QUE_VENCEM } from "@/lib/orcamento/validade";
 import { PreviaPdf } from "@/components/orcamento/PreviaPdf";
 import { formatarDataBR, formatarDataHora, isoParaBR } from "@/lib/formatar";
 import { nomeArquivoOrcamento } from "@/lib/orcamento/arquivos";
@@ -14,6 +16,9 @@ import { rotuloMotivo } from "@/lib/orcamento/status";
 import { descontoAvistaCentavos, moedaCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+
+// A renovação gera PDF e planilha numa ação do servidor chamada desta página.
+export const maxDuration = 300;
 
 const VALIDADE_URL_SEGUNDOS = 3600;
 
@@ -24,10 +29,17 @@ interface VersaoPdf {
   xlsx_caminho?: string | null;
   gerado_em: string;
   valor_total: number;
+  /** Versão gerada por "Renovar validade". */
+  renovada?: boolean;
+  validade?: string;
 }
 
-async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">) {
+async function Detalhe({
+  params,
+  searchParams,
+}: Pick<PageProps<"/orcamentos/[id]">, "params" | "searchParams">) {
   const { id } = await params;
+  const { renovar } = await searchParams;
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
 
@@ -111,7 +123,12 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
   const linhaDoTempo = montarLinhaDoTempo({
     criadoEm: orc.criado_em,
     montadoEm: orc.montado_em,
-    versoesPdf: versoes.map((v) => ({ versao: v.versao, gerado_em: v.gerado_em })),
+    versoesPdf: versoes.map((v) => ({
+      versao: v.versao,
+      gerado_em: v.gerado_em,
+      renovada: v.renovada,
+      validade: v.validade,
+    })),
     eventos: eventos ?? [],
   });
 
@@ -123,14 +140,51 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
   const zap = cliente?.whatsapp ? cliente.whatsapp.replace(/\D/g, "") : null;
   const podeAcompanhar = (minha || usuario.perfil === "gerente") && orc.status !== "rascunho";
   const editavel = minha && (orc.status === "rascunho" || orc.status === "gerado");
+  // Vencido não é um status: é a validade passada (regra única em lib/orcamento/validade.ts).
+  const aviso = avisoValidade(orc.status, orc.validade);
+  const podeRenovar =
+    (minha || usuario.perfil === "gerente") &&
+    temPdf &&
+    (STATUS_QUE_VENCEM as readonly string[]).includes(orc.status);
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Orçamento {orc.numero}</h1>
         <p className="text-lg text-zinc-600">{cliente?.nome ?? "Sem cliente"}</p>
-        <BadgeStatus status={orc.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <BadgeStatus status={orc.status} />
+          {aviso ? (
+            <span
+              className={`rounded-full px-3 py-1 text-base font-medium ${
+                aviso.tipo === "vencido"
+                  ? "bg-rose-100 text-rose-900"
+                  : "bg-amber-100 text-amber-900"
+              }`}
+            >
+              {aviso.texto}
+            </span>
+          ) : null}
+        </div>
+        {aviso?.tipo === "vencido" && orc.validade ? (
+          <p
+            role="alert"
+            className="rounded-lg border-2 border-rose-700 bg-rose-50 p-3 text-lg text-rose-950"
+          >
+            Os preços e a validade expiraram em {isoParaBR(orc.validade).slice(0, 5)}. Renove para
+            mandar de novo.
+          </p>
+        ) : null}
       </div>
+
+      {podeRenovar ? (
+        <RenovarValidade
+          orcamentoId={id}
+          abrirInicial={renovar === "1"}
+          podeEditar={minha}
+          vencido={aviso?.tipo === "vencido"}
+        />
+      ) : null}
 
       {orc.status === "rascunho" && minha ? (
         <div className="space-y-3">
@@ -314,10 +368,10 @@ async function Detalhe({ params }: Pick<PageProps<"/orcamentos/[id]">, "params">
   );
 }
 
-export default function Page({ params }: PageProps<"/orcamentos/[id]">) {
+export default function Page({ params, searchParams }: PageProps<"/orcamentos/[id]">) {
   return (
     <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
-      <Detalhe params={params} />
+      <Detalhe params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
