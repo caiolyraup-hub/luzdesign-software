@@ -58,3 +58,4 @@ supabase/.temp/
 
 # Avaliação da IA (pedidos derivados dos orçamentos reais e relatórios)
 /dados/avaliacao/
+/dados/exemplo-exportacao.xlsx

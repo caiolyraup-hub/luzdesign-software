@@ -5,6 +5,7 @@ import { AvisoFiltro } from "@/components/numeros/AvisoFiltro";
 import { PainelGerencia } from "@/components/numeros/PainelGerencia";
 import { SeletorPeriodo } from "@/components/numeros/SeletorPeriodo";
 import { BuscaFiltros } from "@/components/orcamento/BuscaFiltros";
+import { ExportarPlanilha } from "@/components/orcamento/ExportarPlanilha";
 import { FiltrosStatus } from "@/components/orcamento/FiltrosStatus";
 import { ListaOrcamentos } from "@/components/orcamento/ListaOrcamentos";
 import { hojeMaceioISO } from "@/lib/formatar";
@@ -232,6 +233,7 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
           vendedoras={vendedoras}
           ancora={ANCORA}
         />
+        <ExportarPlanilha query={paraParams(filtros).toString()} gerencia />
         <FiltrosStatus
           base="/gerencia"
           atual={filtros.preset}

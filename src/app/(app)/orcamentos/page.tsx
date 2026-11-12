@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { AvisoFiltro } from "@/components/numeros/AvisoFiltro";
 import { BuscaFiltros } from "@/components/orcamento/BuscaFiltros";
+import { ExportarPlanilha } from "@/components/orcamento/ExportarPlanilha";
 import { FiltrosStatus } from "@/components/orcamento/FiltrosStatus";
 import { ListaOrcamentos } from "@/components/orcamento/ListaOrcamentos";
 import { lerFiltroPeriodo } from "@/lib/metricas/lista";
@@ -69,6 +70,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
         chips={chips}
         total={pagina.total}
       />
+      <ExportarPlanilha query={paraParams(filtros).toString()} gerencia={false} />
       <FiltrosStatus
         base="/orcamentos"
         atual={filtros.preset}

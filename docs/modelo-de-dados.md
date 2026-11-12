@@ -140,3 +140,8 @@ Sem migration: os atalhos (kit de fita, mais usados e duplicar ambiente) usam as
 ## Ajustes do dia 10B (`20261112000200_renovar_validade.sql`)
 
 - Função `renovar_validade(p_orcamento, p_pdf_caminho, p_xlsx_caminho, p_versao, p_total_esperado, p_validade, p_manter_precos)` (`security definer`; dona ou gerência): volta para `gerado` sem apagar as datas de envio, aplica o preço do catálogo (ou mantém os congelados), grava a nova versão e a validade e marca a versão em `pdf_versoes` com `renovada`, `manteve_precos`, `validade` e `por`. Recusa: sem permissão, status fora de gerado/enviado/follow-ups, versão repetida, caminho fora da pasta da dona, sem itens, avulso sem preço, produto inativo e total divergente (tudo desfeito).
+
+## Ajustes do dia 10C (`20261112000300_exportacao.sql`)
+
+- Nova tabela `eventos_exportacao` (usuario_id, criado_em, `filtros` jsonb, `incluiu_teste`, `linhas` = orçamentos exportados, `detalhes` jsonb com as contagens por aba): auditoria de quem exportou o quê. RLS: a gerência lê tudo, a vendedora só as próprias; **sem política de escrita** (só o servidor grava, com a chave de serviço, na rota `/exportar`).
+- `listar_orcamentos` ganha o parâmetro `sem_contagem` (pula o total e a contagem por status; a exportação pagina em lotes de 100 e não precisa deles).
