@@ -163,7 +163,7 @@ test("gera, vence ontem, avisa, renova atualizando um preço e o PDF novo traz a
   await expect(page).toHaveURL(new RegExp(`/orcamentos/${id}\\?renovar=1`));
   const painel = page.getByRole("region", { name: "Renovar validade" });
   await expect(painel.getByText("1 item mudou de preço.")).toBeVisible();
-  await expect(painel.getByText("STELLA DIC 6W 2.7K")).toBeVisible();
+  await expect(painel.getByText(/Cód. 9520/)).toBeVisible();
   await expect(painel.getByText("+R$ 5,00", { exact: false })).toBeVisible();
   await expect(painel.getByText(/Estes preços podem estar defasados/)).toBeVisible();
   await page.screenshot({ path: "test-results/telas/dia10-6-renovar.png", fullPage: true });
