@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { LinkClientes } from "@/components/orcamento/LinkClientes";
 import { Suspense } from "react";
 import { AvisoFiltro } from "@/components/numeros/AvisoFiltro";
 import { BuscaFiltros } from "@/components/orcamento/BuscaFiltros";
@@ -96,7 +97,10 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
 export default function Page({ searchParams }: PageProps<"/orcamentos">) {
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Meus orçamentos</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Meus orçamentos</h1>
+        <LinkClientes />
+      </div>
       <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
         <Lista searchParams={searchParams} />
       </Suspense>

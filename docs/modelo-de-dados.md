@@ -145,3 +145,10 @@ Sem migration: os atalhos (kit de fita, mais usados e duplicar ambiente) usam as
 
 - Nova tabela `eventos_exportacao` (usuario_id, criado_em, `filtros` jsonb, `incluiu_teste`, `linhas` = orçamentos exportados, `detalhes` jsonb com as contagens por aba): auditoria de quem exportou o quê. RLS: a gerência lê tudo, a vendedora só as próprias; **sem política de escrita** (só o servidor grava, com a chave de serviço, na rota `/exportar`).
 - `listar_orcamentos` ganha o parâmetro `sem_contagem` (pula o total e a contagem por status; a exportação pagina em lotes de 100 e não precisa deles).
+
+## Ajustes do dia 10D (`20261112000400_clientes.sql`)
+
+- `clientes.observacoes` (texto de até 1.000 caracteres): notas da vendedora sobre o cliente ("prefere fita 3000 K, obra termina em dezembro"). Usa a RLS que já existia (só a dona altera; a gerência lê) e **nunca é enviada à OpenAI**.
+- `listar_clientes(p jsonb)` (`security invoker`): lista paginada por cursor (nome + id), com busca por nome, arquiteto ou WhatsApp (só dígitos) e, para a gerência, filtro por vendedora; devolve por cliente a quantidade de orçamentos, fechados, valor vendido e a data do último.
+- `possiveis_duplicados()` (só a gerência, `SEM_PERMISSAO` para a vendedora): pares de clientes da **mesma vendedora** com o mesmo WhatsApp (só dígitos) ou nome muito parecido (similaridade de trigramas ≥ 0,6).
+- `juntar_clientes(p_manter, p_remover)` (`security definer`, só a gerência): move os orçamentos do removido para o mantido, junta as observações, completa WhatsApp e arquiteto se faltarem, grava o registro em `clientes_fusoes` (o cadastro removido inteiro, quantos orçamentos moveu e quem juntou; só a gerência lê, ninguém grava pelo cliente) e apaga o removido. Recusa clientes de vendedoras diferentes.

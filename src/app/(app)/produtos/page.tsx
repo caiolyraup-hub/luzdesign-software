@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { LinkClientes } from "@/components/orcamento/LinkClientes";
 import { connection } from "next/server";
 import { buscarProdutos } from "@/lib/estoque/buscar";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -54,7 +55,10 @@ async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParam
 export default function Page({ searchParams }: PageProps<"/produtos">) {
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Produtos</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Produtos</h1>
+        <LinkClientes />
+      </div>
       <form action="/produtos" method="get" className="flex gap-2">
         <input
           name="q"

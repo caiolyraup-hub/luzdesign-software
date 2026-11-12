@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   OPCOES_AMBIENTES,
   OPCOES_ESTADO_OBRA,
@@ -19,6 +20,8 @@ const campoLongo = "min-h-48 w-full rounded-lg border border-zinc-300 bg-white p
 export interface ClienteEncontrado {
   id: string;
   nome: string;
+  /** Histórico do cliente ("3 orçamentos, 1 fechado, último em 04/11"). */
+  historico?: string;
 }
 
 interface Props {
@@ -97,6 +100,14 @@ export function PassoPergunta({
           {clienteEncontrado ? (
             <div className="space-y-2 rounded-lg border-2 border-amber-700 bg-amber-50 p-4">
               <p className="text-lg">Já existe um cliente com este WhatsApp.</p>
+              {clienteEncontrado.historico ? (
+                <p className="text-base text-zinc-700">
+                  {clienteEncontrado.nome}: {clienteEncontrado.historico}.{" "}
+                  <Link href={`/clientes/${clienteEncontrado.id}`} className="underline">
+                    Ver ficha
+                  </Link>
+                </p>
+              ) : null}
               <button
                 type="button"
                 onClick={onUsarCliente}

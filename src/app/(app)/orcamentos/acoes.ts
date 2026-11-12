@@ -20,6 +20,7 @@ import {
   type Respostas,
   type TipoAnexo,
 } from "@/lib/orcamento/perguntas";
+import { resumoDoCliente, textoHistorico } from "@/lib/clientes/resumo";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -238,7 +239,13 @@ async function sincronizarCliente(
 // ---------------------------------------------------------------- cliente pelo WhatsApp
 
 export type RespostaCliente =
-  Falha | { ok: true; normalizado: string; encontrado: { id: string; nome: string } | null };
+  | Falha
+  | {
+      ok: true;
+      normalizado: string;
+      /** Cliente já cadastrado, com o histórico dele ("3 orçamentos, 1 fechado, último em 04/11"). */
+      encontrado: { id: string; nome: string; historico: string } | null;
+    };
 
 /** Procura cliente da própria vendedora com este WhatsApp (a RLS já limita às dela). */
 export async function procurarCliente(
@@ -260,7 +267,24 @@ export async function procurarCliente(
     .eq("whatsapp", normalizado)
     .neq("id", orcamento.cliente_id)
     .maybeSingle();
-  return { ok: true, normalizado, encontrado: data ?? null };
+  if (!data) return { ok: true, normalizado, encontrado: null };
+  const { data: orcs } = await supabase
+    .from("orcamentos")
+    .select("status, valor_total, valor_fechado, criado_em")
+    .eq("cliente_id", data.id);
+  const r = resumoDoCliente(
+    (orcs ?? []).map((o) => ({
+      status: o.status as string,
+      valor_total: Number(o.valor_total),
+      valor_fechado: o.valor_fechado === null ? null : Number(o.valor_fechado),
+      criado_em: o.criado_em as string,
+    })),
+  );
+  return {
+    ok: true,
+    normalizado,
+    encontrado: { id: data.id, nome: data.nome, historico: textoHistorico(r) },
+  };
 }
 
 // ---------------------------------------------------------------- anexos

@@ -23,7 +23,12 @@ const ITENS_GERENTE = [
 function ativo(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href === "/orcamentos")
-    return pathname === "/orcamentos" || /^\/orcamentos\/(?!novo$)/.test(pathname);
+    return (
+      pathname === "/orcamentos" ||
+      /^\/orcamentos\/(?!novo$)/.test(pathname) ||
+      pathname === "/clientes" ||
+      pathname.startsWith("/clientes/")
+    );
   if (href === "/gerencia") return pathname === "/gerencia";
   return pathname === href || pathname.startsWith(`${href}/`);
 }

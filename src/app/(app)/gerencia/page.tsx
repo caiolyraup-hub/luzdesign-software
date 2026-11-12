@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkClientes } from "@/components/orcamento/LinkClientes";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { AvisoFiltro } from "@/components/numeros/AvisoFiltro";
@@ -256,7 +257,10 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
 export default function Page({ searchParams }: PageProps<"/gerencia">) {
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Orçamentos da equipe</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Orçamentos da equipe</h1>
+        <LinkClientes />
+      </div>
       <p className="text-lg text-zinc-600">
         Números da equipe no período e, abaixo, todos os orçamentos para acompanhar e mudar o
         status.

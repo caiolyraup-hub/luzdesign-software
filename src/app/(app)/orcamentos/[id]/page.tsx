@@ -46,7 +46,7 @@ async function Detalhe({
   const { data: orc } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, vendedora_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, enviado_em, ultimo_envio_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
+      "id, numero, status, vendedora_id, cliente_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, enviado_em, ultimo_envio_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, clientes(nome, whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -151,7 +151,15 @@ async function Detalhe({
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Orçamento {orc.numero}</h1>
-        <p className="text-lg text-zinc-600">{cliente?.nome ?? "Sem cliente"}</p>
+        <p className="text-lg text-zinc-600">
+          {cliente?.nome ? (
+            <Link href={`/clientes/${orc.cliente_id}`} className="underline">
+              {cliente.nome}
+            </Link>
+          ) : (
+            "Sem cliente"
+          )}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <BadgeStatus status={orc.status} />
           {aviso ? (
