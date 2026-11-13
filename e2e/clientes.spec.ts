@@ -140,8 +140,8 @@ test("clientes: lista, ficha, notas, novo orçamento pulando para a pergunta 4 e
 
   // ---- Novo orçamento para este cliente: o formulário abre na pergunta 4 (1 a 3 já respondidas).
   await page.getByRole("button", { name: "Novo orçamento para este cliente" }).click();
-  await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]+\/editar/);
-  await expect(page.getByRole("heading", { name: "Que tipo de obra é?" })).toBeVisible();
+  await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]+\/editar\?passo=4/);
+  await expect(page.getByRole("heading", { name: "Qual é o endereço da obra?" })).toBeVisible();
   const { data: novo } = await admin
     .from("orcamentos")
     .select("cliente_id, respostas, status")

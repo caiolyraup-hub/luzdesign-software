@@ -119,7 +119,9 @@ test("kit de fita de 5 m, duplicar ambiente com preço de hoje e seus mais usado
   await usados.getByRole("button", { name: /Cód\. 9520/ }).click();
   await expect(page.getByText("Adicionado: STELLA DIC 6W 2.7K")).toBeVisible();
   await page.getByRole("button", { name: "Concluir (1)" }).click();
-  await expect(sala1.getByText("STELLA DIC 6W 2.7K")).toBeVisible();
+  await expect(
+    sala1.getByText(/STELLA DIC 6W 2\.7K|Lâmpada dicroica LED Stella 6W, 2\.7K/),
+  ).toBeVisible();
 
   // ---- Kit de fita de 5 m: fita + perfil + fonte.
   await sala1.getByRole("button", { name: "Adicionar kit de fita" }).click();

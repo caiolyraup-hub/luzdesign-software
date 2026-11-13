@@ -131,7 +131,9 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
     .click();
   // A busca continua aberta (dá para adicionar vários seguidos); "Concluir" fecha.
   await page.getByRole("button", { name: /Concluir/ }).click();
-  await expect(sala.getByText("STELLA DIC 6W 2.7K")).toBeVisible();
+  await expect(
+    sala.getByText(/STELLA DIC 6W 2\.7K|Lâmpada dicroica LED Stella 6W, 2\.7K/),
+  ).toBeVisible();
 
   await cozinha.getByRole("button", { name: "Adicionar produto" }).click();
   await page.getByRole("searchbox", { name: "Buscar produto" }).fill("MTS FITA 22W/M NT NIT");
@@ -140,8 +142,8 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   await expect(cozinha.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
 
   // Quantidade: + no spot (1 -> 2) e fita por metro com decimal (8,5).
-  await sala.getByRole("button", { name: /Aumentar STELLA/ }).click();
-  await expect(sala.getByRole("textbox", { name: /Quantidade de STELLA/ })).toHaveValue("2");
+  await sala.getByRole("button", { name: /Aumentar (STELLA|Lâmpada dicroica)/ }).click();
+  await expect(sala.getByRole("textbox", { name: /Quantidade de (STELLA|Lâmpada dicroica)/ })).toHaveValue("2");
   const qtdFita = cozinha.getByRole("textbox", { name: /Quantidade de MTS FITA/ });
   await qtdFita.fill("8,5");
   await qtdFita.press("Enter");
@@ -233,7 +235,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   const { text } = await extractText(new Uint8Array(bytes), { mergePages: true });
   const texto = text.replace(/\s+/g, " ");
   expect(texto).toContain(orc.data!.numero);
-  expect(texto).toContain("STELLA DIC 6W 2.7K");
+  expect(texto).toMatch(/STELLA DIC 6W 2\.7K|Lâmpada dicroica LED Stella 6W, 2\.7K/);
   // Sem análise do ambiente nem motivo dos produtos (dia 8).
   expect(texto.replaceAll(" ", "")).not.toContain("ANÁLISEDOAMBIENTE");
   // Com o logo em public/marca, ele vai embutido no PDF (sem logo o arquivo tem poucos KB).

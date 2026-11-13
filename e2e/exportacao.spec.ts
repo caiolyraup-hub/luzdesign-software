@@ -119,7 +119,7 @@ test("a vendedora exporta só os dados dela; a gerência recebe Eventos e escolh
   expect(numeros).not.toContain(nT); // teste: fora por padrão
   expect(coluna(wb, "Itens", 4).filter((d) => d.includes(MARCA))).toHaveLength(3);
   expect(coluna(wb, "Itens", 4).join("|")).not.toContain("Kely");
-  const valor = wb.getWorksheet("Orçamentos")!.getRow(2).getCell(8);
+  const valor = wb.getWorksheet("Orçamentos")!.getRow(2).getCell(9);
   expect(typeof valor.value).toBe("number");
   expect(valor.numFmt).toBe('"R$" #,##0.00');
 

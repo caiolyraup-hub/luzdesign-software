@@ -58,7 +58,7 @@ export async function novoOrcamentoParaCliente(
   const supabase = await criarClienteServidor();
   const { data: c } = await supabase
     .from("clientes")
-    .select("id, vendedora_id, nome, whatsapp, tipo, arquiteto_indicador")
+    .select("id, vendedora_id, nome, whatsapp, tipo, arquiteto_indicador, endereco")
     .eq("id", clienteId)
     .maybeSingle();
   if (!c || c.vendedora_id !== usuario.id) return falha("Cliente não encontrado.");
@@ -69,6 +69,7 @@ export async function novoOrcamentoParaCliente(
     cliente_nome: c.nome,
     ...(c.whatsapp ? { cliente_whatsapp: c.whatsapp } : {}),
     tipo_cliente: c.tipo,
+    ...(c.endereco ? { endereco: c.endereco } : {}),
     ...(arquiteto
       ? {
           arquiteto_indicador: arquiteto,
@@ -80,7 +81,12 @@ export async function novoOrcamentoParaCliente(
   };
   const { data: o, error } = await supabase
     .from("orcamentos")
-    .insert({ vendedora_id: usuario.id, cliente_id: c.id, respostas })
+    .insert({
+      vendedora_id: usuario.id,
+      cliente_id: c.id,
+      respostas,
+      endereco: (c.endereco as string | null) ?? null,
+    })
     .select("id")
     .single();
   if (error || !o) return falha("Não foi possível criar o orçamento agora. Tente de novo.");

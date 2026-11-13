@@ -23,8 +23,8 @@ export function NovoOrcamentoDoCliente({ clienteId }: { clienteId: string }) {
       setOcupado(false);
       return setErro(r.erro);
     }
-    // Sem ?passo: o formulário abre na primeira pergunta que ainda falta (a 4, com nome, WhatsApp e tipo prontos).
-    router.push(`/orcamentos/${r.id}/editar`);
+    // Nome, WhatsApp e tipo já vêm prontos: o formulário abre no endereço da obra (pergunta 4).
+    router.push(`/orcamentos/${r.id}/editar?passo=4`);
   }
 
   return (
