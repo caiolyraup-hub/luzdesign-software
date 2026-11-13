@@ -146,6 +146,8 @@ export const schemaTipoCliente = z
     /** O cliente veio indicado por um arquiteto (vale para qualquer tipo que não seja arquiteto). */
     indicacao_arquiteto: z.boolean().nullish(),
     arquiteto_indicador: textoOpcional(120),
+    /** Arquiteto escolhido no cadastro compartilhado (o nome acima vem dele). */
+    arquiteto_id: z.string().uuid().nullish(),
   })
   .superRefine((v, ctx) => {
     const exige = v.tipo_cliente === "arquiteto" || v.indicacao_arquiteto === true;
@@ -167,6 +169,7 @@ export const schemaTipoCliente = z
       indicacao_arquiteto:
         v.tipo_cliente === "arquiteto" ? undefined : (v.indicacao_arquiteto ?? false),
       arquiteto_indicador: exige ? v.arquiteto_indicador : undefined,
+      arquiteto_id: exige ? (v.arquiteto_id ?? undefined) : undefined,
     };
   });
 
@@ -238,7 +241,7 @@ export const PERGUNTAS: Pergunta[] = [
     rotulo: "Que tipo de cliente é?",
     tipo: "cards",
     obrigatoria: true,
-    campos: ["tipo_cliente", "indicacao_arquiteto", "arquiteto_indicador"],
+    campos: ["tipo_cliente", "indicacao_arquiteto", "arquiteto_indicador", "arquiteto_id"],
     schema: schemaTipoCliente,
     resumo: "Tipo de cliente",
   },

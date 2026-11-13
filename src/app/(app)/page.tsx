@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { aniversariosDeHoje } from "@/lib/arquitetos/aniversarios-hoje";
+import { rotuloAniversario } from "@/lib/arquitetos/aniversario";
 import { CartaoFollowup } from "@/components/orcamento/CartaoFollowup";
 import { formatarDataHora } from "@/lib/formatar";
 import { BadgeValidade } from "@/components/orcamento/BadgeValidade";
@@ -81,6 +83,44 @@ async function ParaRenovar() {
   );
 }
 
+async function Aniversarios() {
+  const usuario = await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const lista = await aniversariosDeHoje(supabase, usuario);
+  if (lista.length === 0) return null;
+  return (
+    <section aria-label="Aniversários" className="space-y-3">
+      <h2 className="text-xl font-semibold">Aniversários ({lista.length})</h2>
+      <ul className="space-y-3">
+        {lista.map((a) => (
+          <li key={a.id} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+            <Link href={`/arquitetos/${a.id}`} className="block space-y-1">
+              <span className="block truncate text-lg font-medium">{a.nome}</span>
+              <span
+                className={`block text-base ${a.dias === 0 ? "font-semibold text-amber-800" : "text-zinc-600"}`}
+              >
+                Aniversário {rotuloAniversario(a.dias, a.data)}
+              </span>
+            </Link>
+            {a.linkWhatsapp ? (
+              <a
+                href={a.linkWhatsapp}
+                target="_blank"
+                rel="noopener"
+                className="flex min-h-12 items-center justify-center rounded-lg border border-emerald-700 text-lg font-semibold text-emerald-800"
+              >
+                Abrir WhatsApp
+              </a>
+            ) : (
+              <p className="text-base text-zinc-600">Sem WhatsApp cadastrado.</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 async function RascunhosParaTerminar() {
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
@@ -145,6 +185,9 @@ export default function Page() {
       </Suspense>
       <Suspense fallback={null}>
         <ParaRenovar />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Aniversarios />
       </Suspense>
       <Suspense fallback={null}>
         <RascunhosParaTerminar />

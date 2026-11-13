@@ -30,7 +30,7 @@ async function Carregar({
   const { data: orcamento } = await supabase
     .from("orcamentos")
     .select(
-      "id, vendedora_id, status, respostas, montado_em, clientes(nome, whatsapp, tipo, arquiteto_indicador)",
+      "id, vendedora_id, status, respostas, montado_em, clientes(nome, whatsapp, tipo, arquiteto_indicador, arquiteto_id)",
     )
     .eq("id", id)
     .maybeSingle();

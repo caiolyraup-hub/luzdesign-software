@@ -128,6 +128,16 @@ export async function salvarResposta(
     const v = validarPergunta(pergunta, entrada);
     if (!v.ok) return falha(Object.values(v.erros)[0] ?? "Confira a resposta.", v.erros);
     for (const campo of pergunta.campos) patch[campo] = v.valores[campo] ?? null;
+    // Arquiteto escolhido no cadastro: o nome gravado é o do cadastro, não o que veio do navegador.
+    if (typeof patch.arquiteto_id === "string") {
+      const { data: arq } = await supabase
+        .from("arquitetos")
+        .select("id, nome")
+        .eq("id", patch.arquiteto_id)
+        .maybeSingle();
+      if (!arq) return falha("Arquiteto(a) não encontrado(a). Escolha de novo na lista.");
+      patch.arquiteto_indicador = arq.nome;
+    }
   } else {
     for (const [campo, valor] of Object.entries(entrada)) {
       const max = CAMPOS_TEXTO_LIVRE[campo];
@@ -145,13 +155,20 @@ export async function salvarResposta(
   });
   if (error || !respostas) return falha(ERRO_GENERICO);
 
+  if ("arquiteto_id" in patch) {
+    await supabase
+      .from("orcamentos")
+      .update({ arquiteto_id: typeof patch.arquiteto_id === "string" ? patch.arquiteto_id : null })
+      .eq("id", orcamentoId);
+  }
+
   // O endereço da obra fica também na coluna do orçamento (PDF, XLSX e exportação leem dela).
   if ("endereco" in patch) {
     const endereco = typeof patch.endereco === "string" ? patch.endereco : null;
     await supabase.from("orcamentos").update({ endereco }).eq("id", orcamentoId);
   }
 
-  let clienteVinculado: { id: string; nome: string; endereco?: string | null } | undefined;
+  let clienteVinculado: ClienteVinculado | undefined;
   try {
     clienteVinculado = await sincronizarCliente(supabase, usuario.id, orcamento, patch);
   } catch {
@@ -170,6 +187,15 @@ export async function salvarResposta(
         .update({ endereco: clienteVinculado.endereco })
         .eq("id", orcamentoId);
     }
+    // O arquiteto do cliente já cadastrado vem preenchido (se a vendedora ainda não escolheu um).
+    if (!(respostas as Respostas).arquiteto_indicador && clienteVinculado.arquiteto_id) {
+      patchCliente.arquiteto_id = clienteVinculado.arquiteto_id;
+      patchCliente.arquiteto_indicador = clienteVinculado.arquiteto_indicador;
+      await supabase
+        .from("orcamentos")
+        .update({ arquiteto_id: clienteVinculado.arquiteto_id })
+        .eq("id", orcamentoId);
+    }
     final =
       (
         await supabase.rpc("mesclar_respostas", {
@@ -182,13 +208,21 @@ export async function salvarResposta(
   return { ok: true, respostas: final as Respostas, clienteVinculado };
 }
 
+interface ClienteVinculado {
+  id: string;
+  nome: string;
+  endereco?: string | null;
+  arquiteto_id?: string | null;
+  arquiteto_indicador?: string | null;
+}
+
 /** Reflete nome, WhatsApp, tipo e arquiteto no cadastro do cliente (quando é só deste orçamento). */
 async function sincronizarCliente(
   supabase: SupabaseClient,
   usuarioId: string,
   orcamento: OrcamentoBasico,
   patch: Record<string, unknown>,
-): Promise<{ id: string; nome: string; endereco?: string | null } | undefined> {
+): Promise<ClienteVinculado | undefined> {
   const atual = orcamento.cliente_id;
   const whatsapp = typeof patch.cliente_whatsapp === "string" ? patch.cliente_whatsapp : null;
 
@@ -196,7 +230,7 @@ async function sincronizarCliente(
   if (whatsapp) {
     const { data: existente } = await supabase
       .from("clientes")
-      .select("id, nome, endereco")
+      .select("id, nome, endereco, arquiteto_id, arquiteto_indicador")
       .eq("vendedora_id", usuarioId)
       .eq("whatsapp", whatsapp)
       .maybeSingle();
@@ -215,7 +249,13 @@ async function sincronizarCliente(
       if ((count ?? 0) === 0) {
         await supabase.from("clientes").delete().eq("id", atual).is("whatsapp", null);
       }
-      return { id: existente.id, nome: existente.nome, endereco: existente.endereco };
+      return {
+        id: existente.id,
+        nome: existente.nome,
+        endereco: existente.endereco,
+        arquiteto_id: existente.arquiteto_id,
+        arquiteto_indicador: existente.arquiteto_indicador,
+      };
     }
   }
 
@@ -225,6 +265,7 @@ async function sincronizarCliente(
   if (typeof patch.tipo_cliente === "string") {
     campos.tipo = patch.tipo_cliente;
     campos.arquiteto_indicador = (patch.arquiteto_indicador as string | null | undefined) ?? null;
+    campos.arquiteto_id = typeof patch.arquiteto_id === "string" ? patch.arquiteto_id : null;
   }
   // O cliente guarda sempre o último endereço informado, mesmo quando é compartilhado.
   if (typeof patch.endereco === "string" && patch.endereco) {

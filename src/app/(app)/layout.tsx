@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { BarraNavegacao } from "@/components/BarraNavegacao";
 import { sair } from "@/lib/acoes-sessao";
+import { aniversariosDeHoje } from "@/lib/arquitetos/aniversarios-hoje";
 import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
 import { paraRenovarDeHoje } from "@/lib/orcamento/para-renovar";
 import { obterUsuarioAtual } from "@/lib/sessao";
@@ -10,11 +11,14 @@ async function Moldura({ children }: { children: React.ReactNode }) {
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
   // O badge do Início soma os follow-ups vencidos e os orçamentos para renovar.
-  const [followups, renovar] = await Promise.all([
+  const [followups, renovar, aniversarios] = await Promise.all([
     followupsDeHoje(supabase, usuario),
     paraRenovarDeHoje(supabase, usuario),
+    aniversariosDeHoje(supabase, usuario),
   ]);
-  const vencidos = followups.length + renovar.length;
+  // Aniversário só entra no badge no próprio dia.
+  const vencidos =
+    followups.length + renovar.length + aniversarios.filter((a) => a.dias === 0).length;
   return (
     <>
       <header className="border-b border-zinc-200">

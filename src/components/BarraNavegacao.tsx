@@ -27,7 +27,9 @@ function ativo(pathname: string, href: string) {
       pathname === "/orcamentos" ||
       /^\/orcamentos\/(?!novo$)/.test(pathname) ||
       pathname === "/clientes" ||
-      pathname.startsWith("/clientes/")
+      pathname.startsWith("/clientes/") ||
+      pathname === "/arquitetos" ||
+      pathname.startsWith("/arquitetos/")
     );
   if (href === "/gerencia") return pathname === "/gerencia";
   return pathname === href || pathname.startsWith(`${href}/`);

@@ -143,7 +143,9 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
 
   // Quantidade: + no spot (1 -> 2) e fita por metro com decimal (8,5).
   await sala.getByRole("button", { name: /Aumentar (STELLA|Lâmpada dicroica)/ }).click();
-  await expect(sala.getByRole("textbox", { name: /Quantidade de (STELLA|Lâmpada dicroica)/ })).toHaveValue("2");
+  await expect(
+    sala.getByRole("textbox", { name: /Quantidade de (STELLA|Lâmpada dicroica)/ }),
+  ).toHaveValue("2");
   const qtdFita = cozinha.getByRole("textbox", { name: /Quantidade de MTS FITA/ });
   await qtdFita.fill("8,5");
   await qtdFita.press("Enter");

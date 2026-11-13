@@ -52,6 +52,11 @@ const schema = z
       .lt(100, "Confira o valor do dólar."),
     mensagem_d5: z.string().trim().min(5, "Escreva a mensagem do primeiro follow-up.").max(600),
     mensagem_d10: z.string().trim().min(5, "Escreva a mensagem do segundo follow-up.").max(600),
+    mensagem_aniversario: z
+      .string()
+      .trim()
+      .min(5, "Escreva a mensagem de aniversário.")
+      .max(600, "Use no máximo 600 caracteres."),
   })
   .refine((v) => v.followup_d10_dias > v.followup_d5_dias, {
     message: "O segundo follow-up precisa ser depois do primeiro.",

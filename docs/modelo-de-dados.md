@@ -157,3 +157,16 @@ Sem migration: os atalhos (kit de fita, mais usados e duplicar ambiente) usam as
 
 - `orcamentos.endereco` e `clientes.endereco` (texto, nulo, até 200 caracteres). O do cliente é o último informado e pré-preenche o formulário quando o WhatsApp já existe. Migration `20261113000100_endereco.sql` (também devolve `endereco` em `listar_orcamentos`).
 - Aparece na tela do orçamento, na ficha do cliente, no PDF e no XLSX do orçamento (só se preenchido) e na exportação da base (aba Orçamentos: "Endereço da obra"; aba Clientes: "Último endereço informado"). Não vai à OpenAI.
+
+## Dia 11B: arquitetos
+
+Migrations `20261113000200_arquitetos.sql`, `..300_filtro_arquiteto.sql` e `..400_exportacao_arquiteto.sql`.
+
+- `arquitetos` (id, nome, escritorio, whatsapp, email, `aniversario_dia`/`aniversario_mes` juntos e `aniversario_ano` opcional, `foto_path`, observacoes, ativo, criado_por, timestamps). Índices `pg_trgm` em nome e escritório. **Nenhuma coluna de comissão** (as do dia 11D vivem em tabelas só do dono). 29/02 é aceito; 31/04 não.
+- RLS: todo logado **lê os ativos** (a gerência lê também os desativados); qualquer logado **cria** em nome próprio (`criado_por = auth.uid()`); **editar, desativar, apagar e juntar** só a gerência.
+- Foto: bucket privado `arquitetos`, sem política para o cliente. O navegador reduz para 400 x 400 JPEG 0,8; o servidor confere tipo/tamanho (300 KB), grava com a chave de serviço e entrega por URL assinada de 5 min (`src/lib/arquitetos/servidor.ts`).
+- `clientes.arquiteto_id` e `orcamentos.arquiteto_id` (FK, `on delete set null`). `clientes.arquiteto_indicador` continua como texto, mas agora é copiado do cadastro por trigger (e acompanha renomeações). `clientes.arquiteto_texto_legado` guarda o que foi digitado antes, para conferência.
+- Migração dos dados: um cadastro por nome normalizado (minúsculas, sem acento, espaços únicos; `normalizar_nome_arquiteto`, espelhada em TypeScript e testada). No banco real virou 3 cadastros (Guilherme, Mario Gama Teste, Ulisses), sem grafias duplicadas.
+- `listar_arquitetos(p)` (security invoker): números de indicados, fechados e vendido respeitam a RLS (a vendedora vê só os dela). `juntar_arquitetos(manter, remover)` (security definer, só gerência): move orçamentos e clientes, completa os dados que faltam, apaga o outro e registra em `eventos_arquiteto` (só a gerência lê; só o servidor grava).
+- `configuracoes_loja.mensagem_aniversario` (padrão cordial, com `{arquiteto}` e `{vendedora}`), editável em Ajustes.
+- `listar_orcamentos` aceita `arquiteto_id` e devolve `endereco` e `arquiteto_id`.

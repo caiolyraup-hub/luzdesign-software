@@ -19,6 +19,7 @@ export interface ConfiguracoesLoja {
   followup_d10_dias: number;
   mensagem_d5: string;
   mensagem_d10: string;
+  mensagem_aniversario: string;
   cambio_usd_brl: number;
 }
 
@@ -142,6 +143,22 @@ export function FormularioConfiguracoes({ config }: { config: ConfiguracoesLoja 
           <span className="block text-base text-zinc-600">
             Dá para usar <code>{"{cliente}"}</code> (primeiro nome), <code>{"{numero}"}</code> e{" "}
             <code>{"{vendedora}"}</code>.
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset className="space-y-4 rounded-lg border border-zinc-300 p-4">
+        <legend className="px-2 text-lg font-semibold">Aniversário dos arquitetos</legend>
+        <label className="block space-y-1">
+          <span className="text-lg font-medium">Mensagem de aniversário</span>
+          <textarea
+            name="mensagem_aniversario"
+            defaultValue={config.mensagem_aniversario}
+            className="min-h-28 w-full rounded-lg border border-zinc-300 px-4 py-3 text-lg"
+          />
+          <span className="block text-base text-zinc-600">
+            Dá para usar <code>{"{arquiteto}"}</code> (primeiro nome) e <code>{"{vendedora}"}</code>
+            .
           </span>
         </label>
       </fieldset>

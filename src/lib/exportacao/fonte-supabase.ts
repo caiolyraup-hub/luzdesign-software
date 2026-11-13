@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { paraRpc, type FiltrosLista } from "../orcamento/filtros-lista";
 import {
   TAMANHO_LOTE,
+  type ArquitetoExport,
   type EventoExport,
   type FonteExportacao,
   type ItemExport,
@@ -63,6 +64,7 @@ export async function carregarFonteExportacao(
         cliente_tipo: txt(l.cliente_tipo),
         arquiteto_indicador: txt(l.arquiteto_indicador),
         endereco: txt(l.endereco),
+        arquiteto_id: txt(l.arquiteto_id),
         status: String(l.status),
         valor_total: Number(l.valor_total),
         valor_fechado: num(l.valor_fechado),
@@ -147,5 +149,16 @@ export async function carregarFonteExportacao(
     }));
   };
 
-  return { orcamentos, itens, eventos };
+  // Cadastro de arquitetos sem foto (a RLS entrega só os ativos à vendedora; a aba é da gerência).
+  const arquitetos = async (): Promise<ArquitetoExport[]> =>
+    lerTudo<ArquitetoExport>((de, ate) =>
+      supabase
+        .from("arquitetos")
+        .select("id, nome, escritorio, whatsapp, email, aniversario_dia, aniversario_mes, ativo")
+        .order("nome")
+        .order("id")
+        .range(de, ate),
+    );
+
+  return { orcamentos, itens, eventos, arquitetos };
 }

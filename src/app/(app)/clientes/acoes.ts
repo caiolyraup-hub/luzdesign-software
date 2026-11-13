@@ -58,7 +58,7 @@ export async function novoOrcamentoParaCliente(
   const supabase = await criarClienteServidor();
   const { data: c } = await supabase
     .from("clientes")
-    .select("id, vendedora_id, nome, whatsapp, tipo, arquiteto_indicador, endereco")
+    .select("id, vendedora_id, nome, whatsapp, tipo, arquiteto_indicador, arquiteto_id, endereco")
     .eq("id", clienteId)
     .maybeSingle();
   if (!c || c.vendedora_id !== usuario.id) return falha("Cliente não encontrado.");
@@ -73,6 +73,7 @@ export async function novoOrcamentoParaCliente(
     ...(arquiteto
       ? {
           arquiteto_indicador: arquiteto,
+          ...(c.arquiteto_id ? { arquiteto_id: c.arquiteto_id } : {}),
           ...(c.tipo === "arquiteto" ? {} : { indicacao_arquiteto: true }),
         }
       : c.tipo === "arquiteto"
@@ -86,6 +87,7 @@ export async function novoOrcamentoParaCliente(
       cliente_id: c.id,
       respostas,
       endereco: (c.endereco as string | null) ?? null,
+      arquiteto_id: (c.arquiteto_id as string | null) ?? null,
     })
     .select("id")
     .single();

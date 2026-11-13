@@ -56,22 +56,30 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
   });
 
   const supabase = await criarClienteServidor();
-  const [pagina, config, { data: listaVendedoras }, { data: abertos }, { data: vencidosValidade }] =
-    await Promise.all([
-      listarOrcamentos(supabase, filtros, { mostrarVendedora: true }),
-      lerConfigFollowup(supabase),
-      supabase.from("usuarios").select("id, nome").eq("perfil", "vendedora").order("nome"),
-      supabase
-        .from("orcamentos")
-        .select("id, numero, status, vendedora_id, ultimo_envio_em, clientes(nome), usuarios(nome)")
-        .in("status", ["enviado", "followup_d5", "followup_d10"]),
-      // Validade vencida sem renovação (só os que entram nos números: sem os de teste).
-      supabase
-        .from("orcamentos_reais")
-        .select("vendedora_id")
-        .in("status", [...STATUS_QUE_VENCEM])
-        .lt("validade", hojeMaceioISO()),
-    ]);
+  const [
+    pagina,
+    config,
+    { data: listaVendedoras },
+    { data: abertos },
+    { data: vencidosValidade },
+    { data: listaArquitetos },
+  ] = await Promise.all([
+    listarOrcamentos(supabase, filtros, { mostrarVendedora: true }),
+    lerConfigFollowup(supabase),
+    supabase.from("usuarios").select("id, nome").eq("perfil", "vendedora").order("nome"),
+    supabase
+      .from("orcamentos")
+      .select("id, numero, status, vendedora_id, ultimo_envio_em, clientes(nome), usuarios(nome)")
+      .in("status", ["enviado", "followup_d5", "followup_d10"]),
+    // Validade vencida sem renovação (só os que entram nos números: sem os de teste).
+    supabase
+      .from("orcamentos_reais")
+      .select("vendedora_id")
+      .in("status", [...STATUS_QUE_VENCEM])
+      .lt("validade", hojeMaceioISO()),
+    supabase.from("arquitetos").select("id, nome").eq("ativo", true).order("nome"),
+  ]);
+  const arquitetos = (listaArquitetos ?? []) as { id: string; nome: string }[];
   if (!pagina) return <p role="alert">Não foi possível carregar os orçamentos.</p>;
   const vendedoras = (listaVendedoras ?? []) as { id: string; nome: string }[];
   const nomeDe = (id: string) => vendedoras.find((v) => v.id === id)?.nome ?? "Vendedora";
@@ -108,7 +116,11 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
     lerCambio(supabase),
   ]);
   const ANCORA = "#lista";
-  const chips = chipsAtivos(filtros, nomeDe).map((c) => ({
+  const chips = chipsAtivos(
+    filtros,
+    nomeDe,
+    (id) => arquitetos.find((a) => a.id === id)?.nome ?? "escolhido",
+  ).map((c) => ({
     id: c.id,
     rotulo: c.rotulo,
     href: hrefDeFiltros("/gerencia", c.semEle, manter, ANCORA),
@@ -232,6 +244,7 @@ async function Equipe({ searchParams }: Pick<PageProps<"/gerencia">, "searchPara
           chips={chips}
           total={pagina.total}
           vendedoras={vendedoras}
+          arquitetos={arquitetos}
           ancora={ANCORA}
         />
         <ExportarPlanilha query={paraParams(filtros).toString()} gerencia />

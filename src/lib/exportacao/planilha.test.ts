@@ -46,7 +46,13 @@ describe("planilha de exportação (conteúdo)", () => {
   it("abas, cabeçalhos, linhas, formatos e totais batem com os dados", async () => {
     const fonte = dadosSinteticos(60, 7);
     const { buffer, contagem } = await gerar(fonte, meta());
-    expect(contagem).toEqual({ orcamentos: 60, itens: 420, clientes: 60, eventos: 120 });
+    expect(contagem).toEqual({
+      orcamentos: 60,
+      itens: 420,
+      clientes: 60,
+      eventos: 120,
+      arquitetos: 0,
+    });
 
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
@@ -184,6 +190,87 @@ describe("planilha de exportação (conteúdo)", () => {
     expect(colVencido(6)).toBe("Não"); // perdido nunca vence
   });
 
+  it("aba Arquitetos (só a gerência): cadastro sem foto e números do filtro exportado", async () => {
+    const fonte = dadosSinteticos(6, 1);
+    // Os orçamentos 1 (rascunho), 2 (gerado), 5 (fechado) e 6 (perdido) ficam do arquiteto A.
+    const ids = [1, 2, 5, 6];
+    fonte.orcamentos.forEach((o, i) => {
+      if (ids.includes(i + 1)) o.arquiteto_id = "arq-a";
+    });
+    let leuArquitetos = false;
+    const arquitetos = async () => {
+      leuArquitetos = true;
+      return [
+        {
+          id: "arq-b",
+          nome: "Bruno Dias",
+          escritorio: null,
+          whatsapp: null,
+          email: null,
+          aniversario_dia: null,
+          aniversario_mes: null,
+          ativo: false,
+        },
+        {
+          id: "arq-a",
+          nome: "Ana Lima",
+          escritorio: "Lima Arquitetura",
+          whatsapp: "+5582999991234",
+          email: "ana@exemplo.com",
+          aniversario_dia: 29,
+          aniversario_mes: 2,
+          ativo: true,
+        },
+      ];
+    };
+    const { buffer, contagem } = await gerar({ ...fonte, arquitetos }, meta());
+    expect(contagem.arquitetos).toBe(2);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+    const ws = wb.getWorksheet("Arquitetos")!;
+    expect(ws.getRow(1).values).toEqual([
+      undefined,
+      "Arquiteto",
+      "Escritório",
+      "WhatsApp",
+      "E-mail",
+      "Aniversário",
+      "Ativo",
+      "Orçamentos indicados",
+      "Fechados",
+      "Valor vendido",
+      "Último orçamento",
+    ]);
+    // Ordem alfabética; Ana tem 3 indicados (o rascunho não conta) e 1 fechado.
+    expect(ws.getRow(2).getCell(1).value).toBe("Ana Lima");
+    expect(ws.getRow(2).getCell(5).value).toBe("29/02");
+    expect(ws.getRow(2).getCell(6).value).toBe("Sim");
+    expect(ws.getRow(2).getCell(7).value).toBe(3);
+    expect(ws.getRow(2).getCell(8).value).toBe(1);
+    expect(typeof ws.getRow(2).getCell(9).value).toBe("number");
+    expect(ws.getRow(3).getCell(1).value).toBe("Bruno Dias");
+    expect(ws.getRow(3).getCell(6).value).toBe("Não");
+    expect(ws.getRow(3).getCell(7).value).toBe(0);
+    // Sem foto e sem comissão em nenhuma coluna.
+    const cab = (ws.getRow(1).values as string[]).join("|").toLowerCase();
+    expect(cab).not.toMatch(/foto|comiss/);
+    expect(leuArquitetos).toBe(true);
+  });
+
+  it("vendedora: não recebe a aba Arquitetos nem lê o cadastro", async () => {
+    const fonte = dadosSinteticos(4, 1);
+    let leu = false;
+    const { buffer, contagem } = await gerar(
+      { ...fonte, arquitetos: async () => ((leu = true), []) },
+      meta({ gerencia: false, exportadoPor: "Aline" }),
+    );
+    expect(leu).toBe(false);
+    expect(contagem.arquitetos).toBe(0);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+    expect(wb.getWorksheet("Arquitetos")).toBeUndefined();
+  });
+
   it("vendedora: sem a aba Eventos e sem eventos lidos do banco", async () => {
     const fonte = dadosSinteticos(10, 2);
     let leuEventos = false;
@@ -200,7 +287,7 @@ describe("planilha de exportação (conteúdo)", () => {
 
   it("sem nenhum orçamento: gera o arquivo com os cabeçalhos", async () => {
     const { buffer, contagem } = await gerar({ orcamentos: [], itens: async () => [] }, meta());
-    expect(contagem).toEqual({ orcamentos: 0, itens: 0, clientes: 0, eventos: 0 });
+    expect(contagem).toEqual({ orcamentos: 0, itens: 0, clientes: 0, eventos: 0, arquitetos: 0 });
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
     expect(wb.getWorksheet("Orçamentos")!.rowCount).toBe(1);

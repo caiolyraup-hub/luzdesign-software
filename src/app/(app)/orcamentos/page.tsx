@@ -24,14 +24,20 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
   const filtros = lerFiltrosLista(params, { gerente: false });
   const filtroPeriodo = lerFiltroPeriodo(params);
   const supabase = await criarClienteServidor();
-  const [pagina, config] = await Promise.all([
+  const [pagina, config, { data: listaArquitetos }] = await Promise.all([
     listarOrcamentos(supabase, filtros),
     lerConfigFollowup(supabase),
+    supabase.from("arquitetos").select("id, nome").eq("ativo", true).order("nome"),
   ]);
+  const arquitetos = (listaArquitetos ?? []) as { id: string; nome: string }[];
   if (!pagina) return <p role="alert">Não foi possível carregar os orçamentos.</p>;
 
   const urlParams = Object.fromEntries(paraParams(filtros));
-  const chips = chipsAtivos(filtros).map((c) => ({
+  const chips = chipsAtivos(
+    filtros,
+    undefined,
+    (id) => arquitetos.find((a) => a.id === id)?.nome ?? "escolhido",
+  ).map((c) => ({
     id: c.id,
     rotulo: c.rotulo,
     href: hrefDeFiltros("/orcamentos", c.semEle),
@@ -70,6 +76,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchPar
         manter={params.periodo ? { periodo: String(params.periodo) } : {}}
         chips={chips}
         total={pagina.total}
+        arquitetos={arquitetos}
       />
       <ExportarPlanilha query={paraParams(filtros).toString()} gerencia={false} />
       <FiltrosStatus

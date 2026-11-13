@@ -69,6 +69,8 @@ export interface FiltrosLista {
   tipo?: string;
   temArquiteto: boolean;
   motivo?: string;
+  /** Arquiteto do cadastro (uuid). */
+  arquitetoId?: string;
   validade?: FiltroValidade;
   /** Só a gerente. */
   vendedora?: string;
@@ -115,6 +117,7 @@ export function lerFiltrosLista(
   const validade = um(params.validade);
   const ordem = um(params.ordem);
   const vendedora = um(params.vendedora);
+  const arquitetoId = um(params.arquiteto);
 
   return {
     q: q || undefined,
@@ -126,6 +129,7 @@ export function lerFiltrosLista(
     valorMax,
     tipo: (TIPOS_CLIENTE as readonly string[]).includes(tipo ?? "") ? tipo : undefined,
     temArquiteto: um(params.arq) === "1",
+    arquitetoId: arquitetoId && UUID.test(arquitetoId) ? arquitetoId : undefined,
     motivo: (MOTIVOS_PERDA as readonly string[]).includes(motivo ?? "") ? motivo : undefined,
     validade: (VALIDADES as readonly string[]).includes(validade ?? "")
       ? (validade as FiltroValidade)
@@ -149,6 +153,7 @@ export function paraParams(f: FiltrosLista): URLSearchParams {
   if (f.valorMax !== undefined) p.set("max", String(f.valorMax));
   if (f.tipo) p.set("tipo", f.tipo);
   if (f.temArquiteto) p.set("arq", "1");
+  if (f.arquitetoId) p.set("arquiteto", f.arquitetoId);
   if (f.motivo) p.set("motivo", f.motivo);
   if (f.validade) p.set("validade", f.validade);
   if (f.vendedora) p.set("vendedora", f.vendedora);
@@ -172,6 +177,7 @@ export function paraRpc(
     ...(f.valorMax !== undefined ? { valor_max: f.valorMax } : {}),
     ...(f.tipo ? { tipo: f.tipo } : {}),
     ...(f.temArquiteto ? { arquiteto: "1" } : {}),
+    ...(f.arquitetoId ? { arquiteto_id: f.arquitetoId } : {}),
     ...(f.motivo ? { motivo: f.motivo } : {}),
     ...(f.validade ? { validade: f.validade } : {}),
     ...(f.vendedora ? { vendedora: f.vendedora } : {}),
@@ -193,7 +199,11 @@ const real = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 /** Os filtros ativos da gaveta (o atalho de status e a ordem não viram chip). */
-export function chipsAtivos(f: FiltrosLista, nomeVendedora?: (id: string) => string): ChipFiltro[] {
+export function chipsAtivos(
+  f: FiltrosLista,
+  nomeVendedora?: (id: string) => string,
+  nomeArquiteto?: (id: string) => string,
+): ChipFiltro[] {
   const chips: ChipFiltro[] = [];
   const sem = (mudanca: Partial<FiltrosLista>): FiltrosLista => ({ ...f, ...mudanca });
   if (f.q) chips.push({ id: "q", rotulo: `Busca: ${f.q}`, semEle: sem({ q: undefined }) });
@@ -224,6 +234,12 @@ export function chipsAtivos(f: FiltrosLista, nomeVendedora?: (id: string) => str
     });
   if (f.temArquiteto)
     chips.push({ id: "arq", rotulo: "Tem arquiteto", semEle: sem({ temArquiteto: false }) });
+  if (f.arquitetoId)
+    chips.push({
+      id: "arquiteto",
+      rotulo: `Arquiteto: ${nomeArquiteto?.(f.arquitetoId) ?? "escolhido"}`,
+      semEle: sem({ arquitetoId: undefined }),
+    });
   if (f.motivo)
     chips.push({
       id: "motivo",

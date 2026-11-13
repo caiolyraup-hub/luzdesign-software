@@ -8,6 +8,7 @@ import {
   type Pergunta,
   type Respostas,
 } from "@/lib/orcamento/perguntas";
+import { ArquitetoSeletor } from "@/components/arquitetos/ArquitetoSeletor";
 import { CardsUnico } from "./Cards";
 
 const campoTexto = "min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg";
@@ -148,23 +149,21 @@ export function PassoPergunta({
             </div>
           ) : null}
           {pedeArquiteto ? (
-            <label className="block space-y-1 pt-2">
-              <span className="text-lg font-medium">
-                {tipo === "arquiteto" ? "Nome do arquiteto(a)" : "Qual arquiteto(a) indicou?"}
-              </span>
-              <input
-                name="arquiteto_indicador"
-                type="text"
-                autoComplete="off"
-                autoCapitalize="words"
-                value={str(respostas.arquiteto_indicador)}
-                onChange={(e) =>
-                  onMudar({ arquiteto_indicador: e.target.value }, ["arquiteto_indicador"])
-                }
-                className={campoTexto}
-              />
-              <Erro texto={erroDe("arquiteto_indicador")} />
-            </label>
+            <ArquitetoSeletor
+              rotulo={tipo === "arquiteto" ? "Arquiteto(a)" : "Qual arquiteto(a) indicou?"}
+              valor={
+                str(respostas.arquiteto_indicador)
+                  ? {
+                      id: str(respostas.arquiteto_id) || null,
+                      nome: str(respostas.arquiteto_indicador),
+                    }
+                  : null
+              }
+              onEscolher={(a) =>
+                onMudar({ arquiteto_id: a?.id ?? null, arquiteto_indicador: a?.nome ?? null })
+              }
+              erro={erroDe("arquiteto_indicador")}
+            />
           ) : null}
         </>
       );

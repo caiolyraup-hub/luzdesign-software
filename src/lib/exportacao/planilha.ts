@@ -26,6 +26,7 @@ export interface OrcamentoExport {
   cliente_tipo: string | null;
   arquiteto_indicador: string | null;
   endereco?: string | null;
+  arquiteto_id?: string | null;
   status: string;
   valor_total: number;
   valor_fechado: number | null;
@@ -60,6 +61,17 @@ export interface EventoExport {
   quem: string | null;
 }
 
+export interface ArquitetoExport {
+  id: string;
+  nome: string;
+  escritorio: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  aniversario_dia: number | null;
+  aniversario_mes: number | null;
+  ativo: boolean;
+}
+
 export interface FonteExportacao {
   /** Todos os orçamentos do filtro (já limitados pela RLS de quem exporta). */
   orcamentos: OrcamentoExport[];
@@ -67,6 +79,8 @@ export interface FonteExportacao {
   itens: (ids: string[]) => Promise<ItemExport[]>;
   /** Eventos de status de um lote de orçamentos (só a gerência usa). */
   eventos?: (ids: string[]) => Promise<EventoExport[]>;
+  /** Cadastro de arquitetos, sem foto (só a gerência usa). */
+  arquitetos?: () => Promise<ArquitetoExport[]>;
 }
 
 export interface MetaExportacao {
@@ -86,6 +100,7 @@ export interface ContagemExportacao {
   itens: number;
   clientes: number;
   eventos: number;
+  arquitetos: number;
 }
 
 export const TAMANHO_LOTE = 100;
@@ -227,6 +242,19 @@ const COL_CLIENTES: ColunaSpec[] = [
   { chave: "endereco", titulo: "Último endereço informado", largura: 36 },
   { chave: "orcamentos", titulo: "Orçamentos", largura: 12, formato: "0" },
   { chave: "enviados", titulo: "Enviados", largura: 10, formato: "0" },
+  { chave: "fechados", titulo: "Fechados", largura: 10, formato: "0" },
+  { chave: "vendido", titulo: "Valor vendido", largura: 15, formato: FORMATO_REAIS },
+  { chave: "ultimo", titulo: "Último orçamento", largura: 17, formato: FORMATO_DATA_HORA },
+];
+
+const COL_ARQUITETOS: ColunaSpec[] = [
+  { chave: "nome", titulo: "Arquiteto", largura: 28 },
+  { chave: "escritorio", titulo: "Escritório", largura: 26 },
+  { chave: "whatsapp", titulo: "WhatsApp", largura: 18, formato: "@" },
+  { chave: "email", titulo: "E-mail", largura: 28 },
+  { chave: "aniversario", titulo: "Aniversário", largura: 13, formato: "@" },
+  { chave: "ativo", titulo: "Ativo", largura: 8 },
+  { chave: "indicados", titulo: "Orçamentos indicados", largura: 14, formato: "0" },
   { chave: "fechados", titulo: "Fechados", largura: 10, formato: "0" },
   { chave: "vendido", titulo: "Valor vendido", largura: 15, formato: FORMATO_REAIS },
   { chave: "ultimo", titulo: "Último orçamento", largura: 17, formato: FORMATO_DATA_HORA },
@@ -541,11 +569,60 @@ export async function escreverExportacao(
     ws.commit();
   }
 
+  // ---------------------------------------------------------------- Arquitetos (só a gerência)
+  let totalArquitetos = 0;
+  if (meta.gerencia && fonte.arquitetos) {
+    const soma = new Map<
+      string,
+      { indicados: number; fechados: number; vendido: number; ultimo: string }
+    >();
+    for (const o of orcs) {
+      if (!o.arquiteto_id) continue;
+      const s = soma.get(o.arquiteto_id) ?? {
+        indicados: 0,
+        fechados: 0,
+        vendido: 0,
+        ultimo: o.criado_em,
+      };
+      if (o.status !== "rascunho") s.indicados++;
+      if (o.status === "fechado") {
+        s.fechados++;
+        s.vendido += o.valor_fechado ?? o.valor_total;
+      }
+      if (o.criado_em > s.ultimo) s.ultimo = o.criado_em;
+      soma.set(o.arquiteto_id, s);
+    }
+    const ws = novaAba(wb, "Arquitetos", COL_ARQUITETOS);
+    const lista = [...(await fonte.arquitetos())].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR"),
+    );
+    for (const a of lista) {
+      const s = soma.get(a.id);
+      linha(ws, COL_ARQUITETOS, [
+        a.nome,
+        a.escritorio ?? "",
+        a.whatsapp ?? "",
+        a.email ?? "",
+        a.aniversario_dia && a.aniversario_mes
+          ? `${String(a.aniversario_dia).padStart(2, "0")}/${String(a.aniversario_mes).padStart(2, "0")}`
+          : "",
+        a.ativo ? "Sim" : "Não",
+        s?.indicados ?? 0,
+        s?.fechados ?? 0,
+        arred(s?.vendido ?? 0),
+        s ? dataExcelMaceio(s.ultimo) : null,
+      ]);
+      totalArquitetos++;
+    }
+    ws.commit();
+  }
+
   const contagem: ContagemExportacao = {
     orcamentos: orcs.length,
     itens: totalItens,
     clientes: porCliente.size,
     eventos: totalEventos,
+    arquitetos: totalArquitetos,
   };
   await meta.aoFinalizar?.(contagem);
   await wb.commit();

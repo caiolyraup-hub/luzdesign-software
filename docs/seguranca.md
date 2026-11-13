@@ -67,3 +67,9 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - `orcamento_ambientes` tem a mesma RLS dos itens (testada em `pnpm test:rls`: outra vendedora não lê nem edita; a gerente só lê).
 - Análise e motivos são enviados ao cliente no PDF; o prompt proíbe preço, dados do cliente e afirmações sem base. A vendedora revisa tudo antes de gerar.
 - A avaliação (`pnpm ia:avaliar`) usa o login da Aline e dados de teste, e apaga tudo no fim.
+
+## Arquitetos (dia 11B)
+
+- Leitura aberta a todo usuário logado (as duas vendedoras atendem os mesmos arquitetos); criação só em nome próprio; edição, desativação e fusão só da gerência (RLS e função com `eh_gerente()`). Testado em `pnpm test:rls` (`scripts/testar-arquitetos.mts`) e no PGlite.
+- A foto e a data de aniversário são dados pessoais (LGPD): bucket privado sem política para o cliente, URL assinada de 5 minutos gerada no servidor, aviso "use a foto só com autorização do arquiteto" no cadastro. Nenhum dado de arquiteto (nome, foto, aniversário, WhatsApp) vai para a OpenAI.
+- Os números do arquiteto para a vendedora vêm de `listar_arquitetos` em `security invoker`: a RLS de `orcamentos` limita ao que é dela, mesmo com o mesmo arquiteto e o mesmo nome de cliente na outra vendedora.

@@ -220,6 +220,23 @@ describe("filtros", () => {
     expect(nums(await listar(ALINE, { arquiteto: "1" }))).toEqual(esperado(4, 5));
   });
 
+  it("arquiteto do cadastro: filtra por id e a vendedora não enxerga o da outra", async () => {
+    const ARQ = "00000000-0000-0000-0000-0000000000f1";
+    await db.exec(`
+      insert into arquitetos (id, nome, criado_por) values ('${ARQ}', 'Arq Filtro', '${GERENTE}');
+      update orcamentos set arquiteto_id = '${ARQ}', endereco = 'Rua do Filtro, 1'
+       where id in ('${orc(4)}', '${orc(7)}');
+    `);
+    // O orçamento 7 é da Kely: a Aline nunca o recebe, mesmo filtrando pelo mesmo arquiteto.
+    expect(nums(await listar(ALINE, { arquiteto_id: ARQ }))).toEqual(esperado(4));
+    expect(nums(await listar(GERENTE, { arquiteto_id: ARQ }))).toEqual(esperado(4, 7));
+    const r = await listar(ALINE, { arquiteto_id: ARQ });
+    expect(r.itens[0].endereco).toBe("Rua do Filtro, 1");
+    await db.exec(
+      `update orcamentos set arquiteto_id = null, endereco = null where arquiteto_id = '${ARQ}'`,
+    );
+  });
+
   it("motivo da perda", async () => {
     expect(nums(await listar(ALINE, { motivo: "preco" }))).toEqual(esperado(3));
     expect(nums(await listar(ALINE, { motivo: "desistiu" }))).toEqual([]);

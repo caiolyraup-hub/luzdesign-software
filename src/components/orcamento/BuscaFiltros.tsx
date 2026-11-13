@@ -31,6 +31,8 @@ interface Props {
   total: number;
   /** Só a gerência filtra por vendedora. */
   vendedoras?: { id: string; nome: string }[];
+  /** Arquitetos ativos do cadastro (todos os perfis). */
+  arquitetos?: { id: string; nome: string }[];
   /** Ancora para onde ir depois de filtrar (a lista, na tela da gerência). */
   ancora?: string;
 }
@@ -38,7 +40,16 @@ interface Props {
 const campo = "min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg";
 
 /** Campo de busca no topo, gaveta "Filtrar" que abre por baixo e chips dos filtros ativos. Tudo na URL. */
-export function BuscaFiltros({ base, filtros, manter, chips, total, vendedoras, ancora }: Props) {
+export function BuscaFiltros({
+  base,
+  filtros,
+  manter,
+  chips,
+  total,
+  vendedoras,
+  arquitetos,
+  ancora,
+}: Props) {
   const router = useRouter();
   const [aberta, setAberta] = useState(false);
   const [q, setQ] = useState(filtros.q ?? "");
@@ -276,6 +287,24 @@ export function BuscaFiltros({ base, filtros, manter, chips, total, vendedoras, 
                     ))}
                   </select>
                 </label>
+
+                {arquitetos && arquitetos.length > 0 ? (
+                  <label className="block space-y-1">
+                    <span className="text-lg font-medium">Arquiteto</span>
+                    <select
+                      name="arquiteto"
+                      defaultValue={filtros.arquitetoId ?? ""}
+                      className={campo}
+                    >
+                      <option value="">Todos</option>
+                      {arquitetos.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
 
                 {vendedoras && vendedoras.length > 0 ? (
                   <label className="block space-y-1">

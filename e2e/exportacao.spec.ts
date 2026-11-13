@@ -149,6 +149,7 @@ test("a vendedora exporta só os dados dela; a gerência recebe Eventos e escolh
     "Itens",
     "Clientes",
     "Eventos",
+    "Arquitetos",
   ]);
   const semNumeros = coluna(sem.wb, "Orçamentos", 1);
   expect(semNumeros).toContain(nA);

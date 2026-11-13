@@ -17,6 +17,7 @@ describe("lerFiltrosLista", () => {
       valorMax: undefined,
       tipo: undefined,
       temArquiteto: false,
+      arquitetoId: undefined,
       motivo: undefined,
       validade: undefined,
       vendedora: undefined,
@@ -74,6 +75,7 @@ describe("lerFiltrosLista", () => {
       validade: "eterna",
       ordem: "aleatoria",
       vendedora: "nao-e-uuid",
+      arquiteto: "nao-e-uuid",
     });
     expect(f).toMatchObject({
       preset: "andamento",
@@ -88,6 +90,7 @@ describe("lerFiltrosLista", () => {
       validade: undefined,
       ordem: "recentes",
       vendedora: undefined,
+      arquitetoId: undefined,
     });
   });
 
@@ -174,5 +177,29 @@ describe("chipsAtivos", () => {
     expect(sem.valorMin).toBeUndefined();
     expect(sem.q).toBe("silva");
     expect(chipsAtivos(ler({ filtro: "perdidos", ordem: "valor" }))).toEqual([]); // preset e ordem não viram chip
+  });
+});
+
+describe("filtro por arquiteto do cadastro", () => {
+  const ARQ = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+
+  it("vale para qualquer perfil, vai para a URL e para a função SQL", () => {
+    const f = ler({ arquiteto: ARQ });
+    expect(f.arquitetoId).toBe(ARQ);
+    expect(paraParams(f).get("arquiteto")).toBe(ARQ);
+    expect(paraRpc(f)).toMatchObject({ arquiteto_id: ARQ });
+    expect(ler({ arquiteto: ARQ }, true).arquitetoId).toBe(ARQ);
+  });
+
+  it("vira chip com o nome e sai ao remover", () => {
+    const f = ler({ arquiteto: ARQ });
+    const chip = chipsAtivos(f, undefined, () => "Lula Santana").find((c) => c.id === "arquiteto");
+    expect(chip?.rotulo).toBe("Arquiteto: Lula Santana");
+    expect(chip?.semEle.arquitetoId).toBeUndefined();
+  });
+
+  it("valor que não é uuid é ignorado", () => {
+    expect(ler({ arquiteto: "lula" }).arquitetoId).toBeUndefined();
+    expect(paraRpc(ler({ arquiteto: "lula" }))).not.toHaveProperty("arquiteto_id");
   });
 });
