@@ -102,6 +102,8 @@ export function agruparPorAmbiente(itens: ItemRevisao[], base: string[]): GrupoA
     const nome = item.ambiente.trim() || "Geral";
     (achar(nome) ?? grupos[grupos.push({ nome, itens: [] }) - 1]).itens.push(item);
   }
+  // Sem perguntas de ambiente (a partir da versão 2), a tela abre com "Geral".
+  if (grupos.length === 0) grupos.push({ nome: "Geral", itens: [] });
   return grupos;
 }
 

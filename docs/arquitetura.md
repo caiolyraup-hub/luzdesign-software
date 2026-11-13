@@ -9,7 +9,7 @@
 
 ## Fluxo de criação do orçamento (6 passos)
 
-1. **Perguntas**: a vendedora responde as 10 perguntas (`docs/perguntas.md`). As respostas ficam em `orcamentos.respostas` (jsonb).
+1. **Perguntas**: a vendedora responde as 8 perguntas (desde 13/11; ambientes são criados na tela de produtos, que abre com "Geral") (`docs/perguntas.md`). As respostas ficam em `orcamentos.respostas` (jsonb).
 2. **Anexos**: envia até 4 arquivos (foto, PDF, planta, print) para o Storage; registro em `anexos`.
 3. **Montagem pela IA**: o servidor busca candidatos no catálogo e pede ao GPT 5.6 itens por ambiente. A IA devolve **somente códigos e quantidades**; o que não tem código vira item avulso.
 4. **Cálculo no servidor**: o servidor aplica o preço do catálogo e calcula os totais. Nada de preço vindo da IA. Uso registrado em `uso_ia`.

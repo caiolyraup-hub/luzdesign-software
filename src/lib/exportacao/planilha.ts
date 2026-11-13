@@ -25,6 +25,7 @@ export interface OrcamentoExport {
   cliente_whatsapp: string | null;
   cliente_tipo: string | null;
   arquiteto_indicador: string | null;
+  endereco?: string | null;
   status: string;
   valor_total: number;
   valor_fechado: number | null;
@@ -189,6 +190,7 @@ const COL_ORCAMENTOS: ColunaSpec[] = [
   { chave: "whatsapp", titulo: "WhatsApp", largura: 18, formato: "@" },
   { chave: "tipo", titulo: "Tipo de cliente", largura: 16 },
   { chave: "arquiteto", titulo: "Arquiteto", largura: 22 },
+  { chave: "endereco", titulo: "Endereço da obra", largura: 36 },
   { chave: "status", titulo: "Status", largura: 16 },
   { chave: "valor", titulo: "Valor total", largura: 15, formato: FORMATO_REAIS },
   { chave: "fechado", titulo: "Valor fechado", largura: 15, formato: FORMATO_REAIS },
@@ -222,6 +224,7 @@ const COL_CLIENTES: ColunaSpec[] = [
   { chave: "whatsapp", titulo: "WhatsApp", largura: 18, formato: "@" },
   { chave: "tipo", titulo: "Tipo", largura: 16 },
   { chave: "arquiteto", titulo: "Arquiteto", largura: 22 },
+  { chave: "endereco", titulo: "Último endereço informado", largura: 36 },
   { chave: "orcamentos", titulo: "Orçamentos", largura: 12, formato: "0" },
   { chave: "enviados", titulo: "Enviados", largura: 10, formato: "0" },
   { chave: "fechados", titulo: "Fechados", largura: 10, formato: "0" },
@@ -305,6 +308,7 @@ export async function escreverExportacao(
       whatsapp: string | null;
       tipo: string | null;
       arquiteto: string | null;
+      endereco: string | null;
       orcamentos: number;
       enviados: number;
       fechados: number;
@@ -325,6 +329,7 @@ export async function escreverExportacao(
       whatsapp: o.cliente_whatsapp,
       tipo: o.cliente_tipo,
       arquiteto: o.arquiteto_indicador,
+      endereco: o.endereco ?? null,
       orcamentos: 0,
       enviados: 0,
       fechados: 0,
@@ -337,7 +342,10 @@ export async function escreverExportacao(
       c.fechados++;
       c.vendido += o.valor_fechado ?? o.valor_total;
     }
-    if (o.criado_em > c.ultimo) c.ultimo = o.criado_em;
+    if (o.criado_em > c.ultimo) {
+      c.ultimo = o.criado_em;
+      if (o.endereco) c.endereco = o.endereco;
+    }
     porCliente.set(o.cliente_id, c);
   }
 
@@ -442,6 +450,7 @@ export async function escreverExportacao(
         o.cliente_whatsapp ?? "",
         rotuloTipo(o.cliente_tipo),
         o.arquiteto_indicador ?? "",
+        o.endereco ?? "",
         rotuloStatus(o.status),
         arred(o.valor_total),
         o.valor_fechado === null ? null : arred(o.valor_fechado),
@@ -498,6 +507,7 @@ export async function escreverExportacao(
         c.whatsapp ?? "",
         rotuloTipo(c.tipo),
         c.arquiteto ?? "",
+        c.endereco ?? "",
         c.orcamentos,
         c.enviados,
         c.fechados,

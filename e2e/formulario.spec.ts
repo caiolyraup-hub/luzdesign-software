@@ -64,19 +64,19 @@ async function pergunta(page: Page, titulo: string | RegExp, progresso: string) 
 /** Responde as perguntas 1 e 2 e deixa o orçamento esperando na 3. */
 async function comecar(page: Page, nome: string, whatsapp: string) {
   await page.goto("/orcamentos/novo");
-  await pergunta(page, "Qual é o nome do cliente?", "1 de 10");
+  await pergunta(page, "Qual é o nome do cliente?", "1 de 8");
   await page.getByRole("textbox", { name: /nome do cliente/i }).fill(nome);
   await proxima(page).click();
 
   // Primeira resposta válida cria o rascunho e leva para /editar?passo=2.
   await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]{36}\/editar\?passo=2$/);
-  await pergunta(page, "Qual é o WhatsApp do cliente?", "2 de 10");
+  await pergunta(page, "Qual é o WhatsApp do cliente?", "2 de 8");
   await page.getByRole("textbox", { name: /whatsapp/i }).fill(whatsapp);
   await proxima(page).click();
-  await pergunta(page, "Que tipo de cliente é?", "3 de 10");
+  await pergunta(page, "Que tipo de cliente é?", "3 de 8");
 }
 
-test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunho na lista", async ({
+test("Aline responde as 8 perguntas, anexa uma imagem, vê o resumo e o rascunho na lista", async ({
   page,
 }) => {
   await entrar(page);
@@ -89,18 +89,14 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   await page.getByRole("radio", { name: "Cliente final" }).click();
   await proxima(page).click();
 
-  await pergunta(page, "Que tipo de obra é?", "4 de 10");
-  await page.getByRole("radio", { name: "Residencial" }).click();
-  await page.getByRole("radio", { name: "Reforma" }).click();
+  await pergunta(page, "Qual é o endereço da obra?", "4 de 8");
+  await expect(page.getByText("Opcional. Rua, número, bairro.")).toBeVisible();
+  await page
+    .getByRole("textbox", { name: /endereço da obra/i })
+    .fill("Rua das Flores, 10, Ponta Verde");
   await proxima(page).click();
 
-  await pergunta(page, "Quais ambientes?", "5 de 10");
-  await page.getByRole("button", { name: "Sala", exact: true }).click();
-  await page.getByRole("button", { name: "Cozinha", exact: true }).click();
-  await print(page, "2-ambientes");
-  await proxima(page).click();
-
-  await pergunta(page, "O que o cliente pediu?", "6 de 10");
+  await pergunta(page, "O que o cliente pediu?", "5 de 8");
   await expect(page.getByText("Pode colar a mensagem do WhatsApp do cliente")).toBeVisible();
   const pedido = page.getByRole("textbox", { name: /o que o cliente pediu/i });
   await pedido.fill("Spots embutidos na sala e fita LED na cozinha.");
@@ -111,18 +107,14 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   await print(page, "3-pedido-salvo");
   await proxima(page).click();
 
-  await pergunta(page, "Qual linha de produtos?", "7 de 10");
-  await page.getByRole("radio", { name: "Técnica" }).click();
+  await pergunta(page, /Quanto o cliente quer investir/, "6 de 8"); // opcional: segue vazio
   await proxima(page).click();
 
-  await pergunta(page, /Quanto o cliente quer investir/, "8 de 10"); // opcional: segue vazio
-  await proxima(page).click();
-
-  await pergunta(page, "Qual é o prazo?", "9 de 10");
+  await pergunta(page, "Qual é o prazo?", "7 de 8");
   await page.getByRole("radio", { name: /Aceita encomenda/ }).click();
   await proxima(page).click();
 
-  await pergunta(page, /Observações e condições especiais/, "10 de 10");
+  await pergunta(page, /Observações e condições especiais/, "8 de 8");
   await page.getByRole("textbox", { name: /observações/i }).fill("10% à vista combinado.");
   await proxima(page).click();
 
@@ -161,8 +153,7 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   await print(page, "5-resumo", true);
   await expect(page.getByText(NOME)).toBeVisible();
   await expect(page.getByText(ZAP_COMPLETO)).toBeVisible();
-  await expect(page.getByText("Residencial · Reforma")).toBeVisible();
-  await expect(page.getByText("Sala, Cozinha")).toBeVisible();
+  await expect(page.getByText("Rua das Flores, 10, Ponta Verde")).toBeVisible();
   await expect(page.getByText("Aceita encomenda (30 a 45 dias úteis)")).toBeVisible();
   await expect(page.getByText("10% à vista combinado.")).toBeVisible();
   // Respostas completas: "Selecionar produtos" está liberado (a IA não monta mais o orçamento).
@@ -182,7 +173,7 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   await page.goto(`/orcamentos/${orcResumo!.id}/itens`);
   await expect(page).toHaveURL(/\/revisao$/);
   await expect(page.getByRole("heading", { name: "Produtos do orçamento" })).toBeVisible();
-  await page.goto(`/orcamentos/${orcResumo!.id}/editar?passo=12`);
+  await page.goto(`/orcamentos/${orcResumo!.id}/editar?passo=10`);
   await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fotos e arquivos (1 de 4)" })).toBeVisible();
 
@@ -202,18 +193,17 @@ test("Aline responde as 10 perguntas, anexa uma imagem, vê o resumo e o rascunh
   expect(cliente).toMatchObject({ whatsapp: "+5582900009998", tipo: "final" });
   const { data: orc } = await admin
     .from("orcamentos")
-    .select("id, status, vendedora_id, respostas")
+    .select("id, status, vendedora_id, respostas, endereco")
     .eq("cliente_id", cliente!.id)
     .single();
   expect(orc!.status).toBe("rascunho");
+  expect(orc!.endereco).toBe("Rua das Flores, 10, Ponta Verde");
   expect(orc!.vendedora_id).toBe(cliente!.vendedora_id);
   expect(orc!.respostas).toMatchObject({
-    versao: 1,
+    versao: 2,
     cliente_nome: NOME,
     cliente_whatsapp: "+5582900009998",
-    tipo_obra: { uso: "residencial", estado: "reforma" },
-    ambientes: ["sala", "cozinha"],
-    linha: "tecnica",
+    endereco: "Rua das Flores, 10, Ponta Verde",
     prazo: "encomenda",
     observacoes: "10% à vista combinado.",
   });
@@ -268,11 +258,11 @@ test("rascunho incompleto volta para a primeira pergunta obrigatória vazia", as
   const cartao = page.getByRole("listitem").filter({ hasText: NOME_PARCIAL });
   await expect(cartao).toBeVisible();
   await cartao.getByRole("link", { name: "Continuar" }).click();
-  await pergunta(page, "Que tipo de cliente é?", "3 de 10");
+  await pergunta(page, "Que tipo de cliente é?", "3 de 8");
 
   // "Voltar" mostra o que já tinha sido respondido.
   await page.getByRole("button", { name: "Voltar" }).click();
-  await pergunta(page, "Qual é o WhatsApp do cliente?", "2 de 10");
+  await pergunta(page, "Qual é o WhatsApp do cliente?", "2 de 8");
   await expect(page.getByRole("textbox", { name: /whatsapp/i })).toHaveValue("+5582900009997");
 });
 
@@ -282,7 +272,7 @@ test("com respostas faltando, Selecionar produtos fica desabilitado", async ({ p
   await comecar(page, `${NOME_PARCIAL} ia`, "(82) 90000-9996");
 
   // Abre o resumo direto pelo passo 12, com respostas obrigatórias faltando.
-  await page.goto(`${page.url().split("?")[0]}?passo=12`);
+  await page.goto(`${page.url().split("?")[0]}?passo=10`);
   await expect(page.getByRole("heading", { name: "Resumo do orçamento" })).toBeVisible();
   await expect(page.getByText("Faltam respostas obrigatórias:")).toBeVisible();
   await expect(page.getByRole("link", { name: "Selecionar produtos" })).toHaveAttribute(

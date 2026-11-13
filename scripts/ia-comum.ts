@@ -100,17 +100,13 @@ export async function criarRascunho(
   const nome = `TESTE IA ${rotuloTeste}`;
   const whatsapp = `+55829000${String(2000 + p.indice).slice(-4)}`;
   const respostas = {
-    versao: 1,
+    versao: 2,
     teste_ia: "true",
     cliente_nome: nome,
     cliente_whatsapp: whatsapp,
     tipo_cliente: p.tipo_cliente,
     ...(extra.arquiteto ? { arquiteto_indicador: "Arquiteta (teste)" } : {}),
-    tipo_obra: p.tipo_obra,
-    ambientes: p.ambientes,
-    ...(p.ambiente_outro ? { ambiente_outro: p.ambiente_outro } : {}),
     ...(extra.pedidoCliente ? { pedido_cliente: extra.pedidoCliente } : {}),
-    linha: p.linha,
     ...(p.faixa_investimento ? { faixa_investimento: p.faixa_investimento } : {}),
     prazo: p.prazo,
   };

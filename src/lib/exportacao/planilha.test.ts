@@ -69,6 +69,7 @@ describe("planilha de exportação (conteúdo)", () => {
       "WhatsApp",
       "Tipo de cliente",
       "Arquiteto",
+      "Endereço da obra",
       "Status",
       "Valor total",
       "Valor fechado",
@@ -90,21 +91,21 @@ describe("planilha de exportação (conteúdo)", () => {
 
     const l2 = wo.getRow(2);
     expect(l2.getCell(1).value).toBe("2026-0001");
-    expect(typeof l2.getCell(8).value).toBe("number"); // valor é número, nunca texto
-    expect(l2.getCell(8).numFmt).toBe('"R$" #,##0.00');
+    expect(typeof l2.getCell(9).value).toBe("number"); // valor é número, nunca texto
+    expect(l2.getCell(9).numFmt).toBe('"R$" #,##0.00');
     expect(l2.getCell(4).value).toBe("+558298810000"); // WhatsApp como texto
     expect(typeof l2.getCell(4).value).toBe("string");
-    expect(l2.getCell(11).value).toBeInstanceOf(Date); // data do Excel
-    expect(l2.getCell(11).numFmt).toBe("dd/mm/yyyy hh:mm");
+    expect(l2.getCell(12).value).toBeInstanceOf(Date); // data do Excel
+    expect(l2.getCell(12).numFmt).toBe("dd/mm/yyyy hh:mm");
     // 15:00 UTC = 12:00 em Maceió
-    expect((l2.getCell(11).value as Date).toISOString()).toBe("2026-10-01T12:00:00.000Z");
-    expect(l2.getCell(7).value).toBe("Rascunho");
-    expect(wo.getRow(3).getCell(7).value).toBe("Gerado");
+    expect((l2.getCell(12).value as Date).toISOString()).toBe("2026-10-01T12:00:00.000Z");
+    expect(l2.getCell(8).value).toBe("Rascunho");
+    expect(wo.getRow(3).getCell(8).value).toBe("Gerado");
 
     // Soma da coluna Valor total confere com a soma dos dados.
     let soma = 0;
     wo.eachRow((r, n) => {
-      if (n > 1) soma += r.getCell(8).value as number;
+      if (n > 1) soma += r.getCell(9).value as number;
     });
     expect(soma).toBeCloseTo(
       fonte.orcamentos.reduce((s, o) => s + o.valor_total, 0),
@@ -133,7 +134,7 @@ describe("planilha de exportação (conteúdo)", () => {
     // Clientes e Eventos.
     const wc = wb.getWorksheet("Clientes")!;
     expect(wc.rowCount).toBe(61);
-    expect(wc.getRow(1).getCell(5).value).toBe("Orçamentos");
+    expect(wc.getRow(1).getCell(6).value).toBe("Orçamentos");
     const we = wb.getWorksheet("Eventos")!;
     expect(we.rowCount).toBe(121);
     expect(we.getRow(2).getCell(4).value).toBe("Rascunho");
@@ -176,7 +177,7 @@ describe("planilha de exportação (conteúdo)", () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
     const wo = wb.getWorksheet("Orçamentos")!;
-    const colVencido = (n: number) => wo.getRow(n + 1).getCell(18).value;
+    const colVencido = (n: number) => wo.getRow(n + 1).getCell(19).value;
     expect(colVencido(1)).toBe("Não"); // rascunho nunca vence
     expect(colVencido(2)).toBe("Sim"); // gerado com validade 2026-11-02
     expect(colVencido(5)).toBe("Não"); // fechado nunca vence

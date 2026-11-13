@@ -53,15 +53,12 @@ const catalogoBase = (): Map<string, ProdutoCatalogo> =>
   );
 
 const respostas: Respostas = {
-  versao: 1,
+  versao: 2,
   cliente_nome: "Maria Souza",
   cliente_whatsapp: "+5582999991234",
   tipo_cliente: "arquiteto",
   arquiteto_indicador: "Lula Santana",
-  tipo_obra: { uso: "residencial", estado: "reforma" },
-  ambientes: ["sala", "cozinha"],
   pedido_cliente: "Spots na sala.",
-  linha: "tecnica",
   faixa_investimento: "até 2 mil",
   prazo: "encomenda",
 };
@@ -557,6 +554,23 @@ describe("montarTextoIndicacao", () => {
     expect(t).toContain("O que o arquiteto pediu:");
     expect(t).toContain("Forro de gesso");
     expect(t).toContain("Prazo: Aceita encomenda (30 a 45 dias úteis)");
+  });
+
+  it("não manda tipo de obra, linha nem endereço à IA", () => {
+    const t = montarTextoIndicacao({
+      respostas: {
+        ...respostas,
+        endereco: "Rua das Flores, 10",
+        tipo_obra: { uso: "residencial", estado: "reforma" },
+        linha: "tecnica",
+      },
+      ambiente: "Sala",
+      pedidoCliente: "",
+      pedidoArquiteto: "",
+      descricaoAmbiente: "",
+      itensExistentes: [],
+    });
+    expect(t).not.toMatch(/Obra:|Linha:|Flores|residencial/i);
   });
 });
 

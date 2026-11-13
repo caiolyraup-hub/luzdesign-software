@@ -45,7 +45,13 @@ export interface DadosPdf {
   dataEmissao: string;
   /** DD/MM/AAAA */
   validade: string;
-  cliente: { nome: string; whatsapp: string | null; arquiteto: string | null };
+  cliente: {
+    nome: string;
+    whatsapp: string | null;
+    arquiteto: string | null;
+    /** Endereço da obra (opcional). */
+    endereco?: string | null;
+  };
   vendedora: string;
   ambientes: AmbientePdf[];
   totais: TotaisOrcamento;
@@ -57,7 +63,13 @@ export interface EntradaDadosPdf {
   config: ConfigPdf;
   numero: string;
   versao: number;
-  cliente: { nome: string; whatsapp: string | null; arquiteto: string | null };
+  cliente: {
+    nome: string;
+    whatsapp: string | null;
+    arquiteto: string | null;
+    /** Endereço da obra (opcional). */
+    endereco?: string | null;
+  };
   vendedora: string;
   /** Itens com o preço e a descrição já congelados do catálogo. */
   itens: ItemRevisao[];

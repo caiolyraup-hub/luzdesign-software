@@ -33,7 +33,7 @@ async function Ficha({ params }: Pick<PageProps<"/clientes/[id]">, "params">) {
   const { data: c } = await supabase
     .from("clientes")
     .select(
-      "id, nome, whatsapp, tipo, arquiteto_indicador, observacoes, vendedora_id, usuarios(nome)",
+      "id, nome, whatsapp, tipo, arquiteto_indicador, endereco, observacoes, vendedora_id, usuarios(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -70,6 +70,7 @@ async function Ficha({ params }: Pick<PageProps<"/clientes/[id]">, "params">) {
         {c.arquiteto_indicador ? (
           <p className="text-lg text-zinc-600">Arquiteto(a): {c.arquiteto_indicador}</p>
         ) : null}
+        {c.endereco ? <p className="text-lg text-zinc-600">Último endereço: {c.endereco}</p> : null}
       </div>
 
       <div className="space-y-3">

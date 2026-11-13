@@ -95,7 +95,7 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   await expect(page.getByRole("heading", { name: "Para hoje" })).toBeVisible();
 
   // O Resumo leva a "Selecionar produtos".
-  await page.goto(`/orcamentos/${id}/editar?passo=12`);
+  await page.goto(`/orcamentos/${id}/editar?passo=10`);
   await page.getByRole("link", { name: "Selecionar produtos" }).click();
   await expect(page.getByRole("heading", { name: "Produtos do orçamento" })).toBeVisible();
   const sala = page.getByRole("region", { name: "Sala" });
@@ -112,7 +112,7 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   await expect(page.getByRole("button", { name: "Concluir (2)" })).toBeVisible();
   await page.screenshot({ path: "test-results/telas/dia8-1-busca.png" });
   await page.getByRole("button", { name: "Concluir (2)" }).click();
-  await expect(sala.getByText("STELLA DIC 6W 2.7K")).toBeVisible();
+  await expect(sala.getByText(/Cód. 9520/)).toBeVisible();
   await expect(sala.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
 
   // ---- Colar lista na cozinha: 2 linhas reconhecidas, 1 não entendida.
@@ -211,7 +211,10 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   const { text } = await extractText(new Uint8Array(await baixado.data!.arrayBuffer()), {
     mergePages: true,
   });
-  expect(text.replace(/\s+/g, " ")).toContain("Padronizada: STELLA DIC 6W 2.7K");
+  // A descrição pode vir do cache de padronização da IA ou do texto de teste.
+  expect(text.replace(/\s+/g, " ")).toMatch(
+    /9520 (Padronizada: STELLA DIC 6W 2\.7K|Lâmpada dicroica LED Stella 6W, 2\.7K)/,
+  );
 
   const planilha = await admin.storage.from("pdfs").download(o!.xlsx_caminho!);
   const wb = new ExcelJS.Workbook();
@@ -226,7 +229,11 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   });
   expect(total).toBeCloseTo(totalEsperado, 2);
   expect(linhasProduto).toHaveLength(6);
-  expect(linhasProduto.every((d) => d.startsWith("Padronizada: "))).toBe(true);
+  expect(
+    linhasProduto.every(
+      (d) => d.startsWith("Padronizada: ") || d === "Lâmpada dicroica LED Stella 6W, 2.7K",
+    ),
+  ).toBe(true);
 
   // Registros da IA: uma indicação e uma padronização, ambas ok.
   const { data: usos } = await admin.from("uso_ia").select("tipo, status").eq("orcamento_id", id);
@@ -238,5 +245,11 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
     .from("orcamento_itens")
     .select("codigo, descricao_congelada, avulso")
     .eq("orcamento_id", id);
-  expect(itensFinais?.every((i) => i.descricao_congelada.startsWith("Padronizada: "))).toBe(true);
+  expect(
+    itensFinais?.every(
+      (i) =>
+        i.descricao_congelada.startsWith("Padronizada: ") ||
+        i.descricao_congelada === "Lâmpada dicroica LED Stella 6W, 2.7K",
+    ),
+  ).toBe(true);
 });

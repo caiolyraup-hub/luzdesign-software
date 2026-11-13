@@ -62,6 +62,7 @@ export async function carregarFonteExportacao(
         cliente_whatsapp: txt(l.cliente_whatsapp),
         cliente_tipo: txt(l.cliente_tipo),
         arquiteto_indicador: txt(l.arquiteto_indicador),
+        endereco: txt(l.endereco),
         status: String(l.status),
         valor_total: Number(l.valor_total),
         valor_fechado: num(l.valor_fechado),

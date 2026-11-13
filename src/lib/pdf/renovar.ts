@@ -56,6 +56,7 @@ interface LinhaOrcamento {
   vendedora_id: string;
   status: string;
   pdf_versao: number;
+  endereco: string | null;
   respostas: Respostas | null;
   montagem: { ambientes_extras?: string[] } | null;
   clientes:
@@ -83,7 +84,7 @@ export async function renovarOrcamento(
   const { data: orc } = await sessao
     .from("orcamentos")
     .select(
-      "id, numero, vendedora_id, status, pdf_versao, respostas, montagem, clientes(nome, whatsapp, arquiteto_indicador), usuarios(nome)",
+      "id, numero, vendedora_id, status, pdf_versao, respostas, montagem, endereco, clientes(nome, whatsapp, arquiteto_indicador), usuarios(nome)",
     )
     .eq("id", orcamentoId)
     .maybeSingle();
@@ -150,6 +151,7 @@ export async function renovarOrcamento(
       nome: cliente?.nome ?? "Cliente",
       whatsapp: cliente?.whatsapp ?? null,
       arquiteto: cliente?.arquiteto_indicador ?? null,
+      endereco: o.endereco ?? null,
     },
     vendedora: dona?.nome ?? "Luz Design",
     itens,

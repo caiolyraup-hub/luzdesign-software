@@ -56,6 +56,18 @@ interface Props {
   historico: HistoricoIndicacao[];
 }
 
+const SUGESTOES_AMBIENTE = [
+  "Sala",
+  "Cozinha",
+  "Quarto",
+  "Banheiro",
+  "Varanda",
+  "Área externa",
+  "Fachada",
+  "Escritório",
+  "Loja",
+];
+
 type ModoBusca = { tipo: "trocar"; itemId: string } | { tipo: "adicionar"; ambiente: string };
 type Resposta = RespostaRevisao | RespostaRemocao | RespostaAdicao;
 
@@ -507,6 +519,18 @@ export function Revisao(p: Props) {
         </button>
       ) : (
         <div className="space-y-3 rounded-lg border border-zinc-300 p-4">
+          <div className="flex flex-wrap gap-2" aria-label="Sugestões de ambiente">
+            {SUGESTOES_AMBIENTE.map((nome) => (
+              <button
+                key={nome}
+                type="button"
+                onClick={() => setNovoAmbiente(nome)}
+                className="min-h-11 rounded-full border border-zinc-300 px-4 text-base"
+              >
+                {nome}
+              </button>
+            ))}
+          </div>
           <input
             type="text"
             autoFocus

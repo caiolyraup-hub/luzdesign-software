@@ -113,6 +113,7 @@ export async function gerarPlanilhaOrcamento(
     ["WHATSAPP", comoTexto(dados.cliente.whatsapp)],
   ];
   if (dados.cliente.arquiteto) pares.push(["ARQUITETO", dados.cliente.arquiteto]);
+  if (dados.cliente.endereco) pares.push(["ENDEREÇO DA OBRA", dados.cliente.endereco]);
   pares.push(["VENDEDORA", dados.vendedora]);
   for (const [rotulo, valor] of pares) {
     ws.mergeCells(`A${linha}:B${linha}`);

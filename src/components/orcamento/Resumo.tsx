@@ -6,6 +6,7 @@ import {
   PERGUNTAS,
   perguntaCompleta,
   resumirResposta,
+  respostasLegadas,
   type Respostas,
 } from "@/lib/orcamento/perguntas";
 import { PassoAnexos } from "./PassoAnexos";
@@ -67,6 +68,20 @@ export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar }: P
           );
         })}
       </dl>
+
+      {respostasLegadas(respostas).length > 0 ? (
+        <section className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+          <h2 className="text-lg font-medium">Respostas antigas (só leitura)</h2>
+          <dl className="space-y-1">
+            {respostasLegadas(respostas).map((l) => (
+              <div key={l.rotulo}>
+                <dt className="text-base text-zinc-600">{l.rotulo}</dt>
+                <dd className="text-lg">{l.valor}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
 
       <PassoAnexos orcamentoId={orcamentoId} anexos={anexos} onMudar={onAnexos} />
 

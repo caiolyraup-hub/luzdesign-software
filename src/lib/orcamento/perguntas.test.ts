@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PERGUNTAS,
+  respostasLegadas,
   VERSAO_RESPOSTAS,
   formatarWhatsapp,
   normalizarWhatsapp,
@@ -18,36 +19,32 @@ const completas: Respostas = {
   cliente_nome: "Ana Bastos",
   cliente_whatsapp: "+5582999991234",
   tipo_cliente: "final",
-  tipo_obra: { uso: "residencial", estado: "reforma" },
-  ambientes: ["sala", "cozinha"],
   pedido_cliente: "Quero spots na sala e fita na cozinha.",
-  linha: "tecnica",
   prazo: "encomenda",
 };
 
-describe("as 10 perguntas como dados", () => {
+describe("as 8 perguntas como dados", () => {
   it("seguem a ordem e os ids de docs/perguntas.md", () => {
     expect(PERGUNTAS.map((x) => x.id)).toEqual([
       "cliente_nome",
       "cliente_whatsapp",
       "tipo_cliente",
-      "tipo_obra",
-      "ambientes",
+      "endereco",
       "pedido_cliente",
-      "linha",
       "faixa_investimento",
       "prazo",
       "observacoes",
     ]);
-    expect(PERGUNTAS.map((x) => x.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(PERGUNTAS.map((x) => x.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
-  it("obrigatórias são 1 a 5, 7 e 9; 6, 8 e 10 são opcionais", () => {
-    expect(PERGUNTAS.filter((x) => x.obrigatoria).map((x) => x.numero)).toEqual([
-      1, 2, 3, 4, 5, 7, 9,
-    ]);
-    expect(perguntaDoPasso(6)?.obrigatoria).toBe(false);
-    expect(perguntaDoPasso(8)?.obrigatoria).toBe(false);
+  it("obrigatórias são 1, 2, 3 e 7; 4, 5, 6 e 8 são opcionais", () => {
+    expect(PERGUNTAS.filter((x) => x.obrigatoria).map((x) => x.numero)).toEqual([1, 2, 3, 7]);
+    for (const n of [4, 5, 6, 8]) expect(perguntaDoPasso(n)?.obrigatoria).toBe(false);
+  });
+
+  it("versão das respostas é 2", () => {
+    expect(VERSAO_RESPOSTAS).toBe(2);
   });
 });
 
@@ -108,37 +105,9 @@ describe("validação por tipo de pergunta", () => {
   });
 
   it("cards: só aceita valores das opções", () => {
-    expect(validarPergunta(p("linha"), { linha: "ambas" }).ok).toBe(true);
-    expect(validarPergunta(p("linha"), { linha: "qualquer" }).ok).toBe(false);
+    expect(validarPergunta(p("prazo"), { prazo: "qualquer" }).ok).toBe(false);
     expect(validarPergunta(p("prazo"), { prazo: "pronta_entrega" }).ok).toBe(true);
     expect(validarPergunta(p("prazo"), {}).ok).toBe(false);
-  });
-
-  it("obra: precisa de uso e de estado", () => {
-    expect(
-      validarPergunta(p("tipo_obra"), { tipo_obra: { uso: "comercial", estado: "nova" } }).ok,
-    ).toBe(true);
-    expect(validarPergunta(p("tipo_obra"), { tipo_obra: { uso: "comercial" } }).ok).toBe(false);
-    expect(validarPergunta(p("tipo_obra"), {}).ok).toBe(false);
-  });
-
-  it("múltipla escolha: ao menos um, sem repetir; 'outro' pede o texto", () => {
-    expect(validarPergunta(p("ambientes"), { ambientes: [] }).ok).toBe(false);
-    expect(validarPergunta(p("ambientes"), { ambientes: ["sala", "sala", "varanda"] })).toEqual({
-      ok: true,
-      valores: { ambientes: ["sala", "varanda"], ambiente_outro: undefined },
-    });
-    expect(validarPergunta(p("ambientes"), { ambientes: ["outro"] })).toMatchObject({
-      ok: false,
-      erros: { ambiente_outro: "Diga qual é o outro ambiente." },
-    });
-    expect(
-      validarPergunta(p("ambientes"), { ambientes: ["outro"], ambiente_outro: "Escritório" }),
-    ).toEqual({
-      ok: true,
-      valores: { ambientes: ["outro"], ambiente_outro: "Escritório" },
-    });
-    expect(validarPergunta(p("ambientes"), { ambientes: ["garagem"] }).ok).toBe(false);
   });
 
   it("texto longo: opcional na 6 e na 10", () => {
@@ -150,6 +119,15 @@ describe("validação por tipo de pergunta", () => {
     });
     expect(validarPergunta(p("observacoes"), { observacoes: "10% à vista" }).ok).toBe(true);
     expect(validarPergunta(p("observacoes"), { observacoes: "x".repeat(2001) }).ok).toBe(false);
+  });
+
+  it("endereço da obra é opcional e limitado a 200 caracteres", () => {
+    expect(validarPergunta(p("endereco"), {}).ok).toBe(true);
+    expect(validarPergunta(p("endereco"), { endereco: "  Rua A, 10, Ponta Verde " })).toEqual({
+      ok: true,
+      valores: { endereco: "Rua A, 10, Ponta Verde" },
+    });
+    expect(validarPergunta(p("endereco"), { endereco: "x".repeat(201) }).ok).toBe(false);
   });
 
   it("faixa de investimento é opcional", () => {
@@ -209,8 +187,7 @@ describe("conjunto de respostas", () => {
     expect(primeiroPassoPendente({})).toBe(1);
     expect(primeiroPassoPendente({ cliente_nome: "Ana" })).toBe(2);
     expect(primeiroPassoPendente({ ...completas, cliente_whatsapp: undefined })).toBe(2);
-    expect(primeiroPassoPendente({ ...completas, linha: undefined })).toBe(7);
-    expect(primeiroPassoPendente({ ...completas, prazo: undefined })).toBe(9);
+    expect(primeiroPassoPendente({ ...completas, prazo: undefined })).toBe(7);
   });
 
   it("ignora o seed antigo { teste: true }", () => {
@@ -230,7 +207,7 @@ describe("conjunto de respostas", () => {
     }
     expect(validarRespostas({ cliente_nome: "Ana" })).toEqual({
       ok: false,
-      pendentes: [2, 3, 4, 5, 7, 9],
+      pendentes: [2, 3, 7],
     });
   });
 
@@ -239,14 +216,42 @@ describe("conjunto de respostas", () => {
       ...completas,
       tipo_cliente: "arquiteto",
       arquiteto_indicador: "Lula",
-      ambientes: ["sala", "outro"],
-      ambiente_outro: "Escritório",
+      endereco: "Rua A, 10",
     };
     expect(resumirResposta(p("cliente_whatsapp"), r)).toBe("(82) 99999-1234");
     expect(resumirResposta(p("tipo_cliente"), r)).toBe("Arquiteto(a) · Arquiteto(a): Lula");
-    expect(resumirResposta(p("tipo_obra"), r)).toBe("Residencial · Reforma");
-    expect(resumirResposta(p("ambientes"), r)).toBe("Sala, Outro: Escritório");
+    expect(resumirResposta(p("endereco"), r)).toBe("Rua A, 10");
     expect(resumirResposta(p("prazo"), r)).toBe("Aceita encomenda (30 a 45 dias úteis)");
     expect(resumirResposta(p("faixa_investimento"), r)).toBe("");
+  });
+});
+
+describe("orçamento antigo (versao 1)", () => {
+  const antigo: Respostas = {
+    ...completas,
+    versao: 1,
+    tipo_obra: { uso: "residencial", estado: "reforma" },
+    ambientes: ["sala", "outro"],
+    ambiente_outro: "Escritório",
+    linha: "tecnica",
+  };
+
+  it("continua válido: as perguntas removidas não pedem nada", () => {
+    expect(primeiroPassoPendente(antigo)).toBeNull();
+    const r = validarRespostas(antigo);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.respostas.versao).toBe(2);
+      expect(r.respostas.endereco).toBeUndefined();
+    }
+  });
+
+  it("mostra as respostas antigas só para leitura", () => {
+    expect(respostasLegadas(antigo)).toEqual([
+      { rotulo: "Obra", valor: "Residencial · Reforma" },
+      { rotulo: "Ambientes", valor: "Sala, Outro: Escritório" },
+      { rotulo: "Linha", valor: "Técnica" },
+    ]);
+    expect(respostasLegadas(completas)).toEqual([]);
   });
 });

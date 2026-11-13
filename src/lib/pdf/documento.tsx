@@ -200,6 +200,12 @@ export function DocumentoOrcamento({ dados, logo }: { dados: DadosPdf; logo: Log
               <Text style={estilos.valorCampo}>{cliente.arquiteto}</Text>
             </View>
           ) : null}
+          {cliente.endereco ? (
+            <View style={estilos.clienteCampo}>
+              <Text style={estilos.rotulo}>Endereço da obra</Text>
+              <Text style={estilos.valorCampo}>{cliente.endereco}</Text>
+            </View>
+          ) : null}
           <View style={estilos.clienteCampo}>
             <Text style={estilos.rotulo}>Vendedora</Text>
             <Text style={estilos.valorCampo}>{dados.vendedora}</Text>

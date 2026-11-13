@@ -1,11 +1,4 @@
-import {
-  OPCOES_ESTADO_OBRA,
-  OPCOES_LINHA,
-  OPCOES_PRAZO,
-  OPCOES_TIPO_CLIENTE,
-  OPCOES_USO_OBRA,
-  type Respostas,
-} from "../orcamento/perguntas";
+import { OPCOES_PRAZO, OPCOES_TIPO_CLIENTE, type Respostas } from "../orcamento/perguntas";
 import { anonimizarTexto, rotulo } from "./instrucoes";
 
 /** Prompt de sistema da Indicação da IA: sugerir produtos do catálogo para UM ambiente. */
@@ -25,8 +18,8 @@ export const INSTRUCOES_INDICACAO = `Você é a assistente da Luz Design, loja d
 6. Itens que JÁ ESTÃO no ambiente são informados: não repita o que já está lá. Sugira o que falta e os complementos.
 7. Se faltar algo para o conjunto funcionar (fonte, perfil, driver, lâmpada para um embutido de lâmpada, conector), sugira o complemento e diga por quê em observacoes (por exemplo, "a fita pedida precisa de fonte; sugeri uma de 60 W").
 
-## Linha, investimento e prazo
-- Linha técnica: embutidos, spots, fitas, perfis, fontes, trilhos. Linha decorativa: pendentes, arandelas, plafons, abajures. "As duas": combine, com a técnica na iluminação geral e a decorativa nos pontos de destaque.
+## Investimento e prazo
+- Iluminação técnica (embutidos, spots, fitas, perfis, fontes, trilhos) e decorativa (pendentes, arandelas, plafons, abajures): escolha pelo que o pedido descreve; na dúvida, técnica na iluminação geral e decorativa nos pontos de destaque.
 - Faixa de investimento (quando informada): use como guia entre opções mais simples ou mais sofisticadas. Se o pedido não cabe na faixa, diga em observacoes.
 - Prazo "pronta-entrega": prefira produtos com estoque_disponivel maior que 0 (nulo = estoque desconhecido) e avise em observacoes o que só existe sob encomenda. Prazo "encomenda" (30 a 45 dias úteis): estoque não é critério.
 
@@ -72,7 +65,6 @@ export function montarTextoIndicacao(e: EntradaIndicacao): string {
     const t = anonimizarTexto(v.trim(), nomes);
     return t || null;
   };
-  const obra = (r.tipo_obra ?? {}) as { uso?: string; estado?: string };
   const faixa = typeof r.faixa_investimento === "string" ? limpo(r.faixa_investimento) : null;
   const existentes = e.itensExistentes.length
     ? e.itensExistentes
@@ -89,8 +81,6 @@ export function montarTextoIndicacao(e: EntradaIndicacao): string {
     `- Tipo de cliente: ${rotulo(OPCOES_TIPO_CLIENTE, r.tipo_cliente)}${
       r.arquiteto_indicador ? " (veio por indicação de arquiteto)" : ""
     }`,
-    `- Obra: ${rotulo(OPCOES_USO_OBRA, obra.uso)}, ${rotulo(OPCOES_ESTADO_OBRA, obra.estado)}`,
-    `- Linha: ${rotulo(OPCOES_LINHA, r.linha)}`,
     `- Faixa de investimento: ${faixa ?? "não informada"}`,
     `- Prazo: ${rotulo(OPCOES_PRAZO, r.prazo)}${
       r.prazo === "encomenda" ? " (30 a 45 dias úteis)" : ""

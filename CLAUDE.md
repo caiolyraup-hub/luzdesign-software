@@ -5,7 +5,7 @@ Sistema web em que as vendedoras de uma loja de iluminação em Maceió criam or
 ## Produto
 
 - Usuários: **Aline** e **Kely** (perfil `vendedora`) e **Gerência** (perfil `gerente`). Cada vendedora só vê os próprios orçamentos e números. A gerente vê todas.
-- Criação do orçamento: a vendedora responde **10 perguntas** (`docs/perguntas.md`) e envia **até 4 anexos** (foto, PDF, planta, print). A **vendedora seleciona os produtos à mão**, por ambiente (busca por código, descrição ou marca; colar lista do arquiteto). A IA (**OpenAI `gpt-5.6-sol`**, via `OPENAI_MODEL`) só sugere (Indicação da IA) e padroniza texto. Ao gerar, o sistema cria o PDF para o cliente e a planilha XLSX editável.
+- Criação do orçamento: a vendedora responde **8 perguntas** (`docs/perguntas.md`) e envia **até 4 anexos** (foto, PDF, planta, print). A **vendedora seleciona os produtos à mão**, por ambiente (busca por código, descrição ou marca; colar lista do arquiteto). A IA (**OpenAI `gpt-5.6-sol`**, via `OPENAI_MODEL`) só sugere (Indicação da IA) e padroniza texto. Ao gerar, o sistema cria o PDF para o cliente e a planilha XLSX editável.
 - Status: Rascunho → Gerado → Enviado → Follow-up D+5 → Follow-up D+10 → Fechado | Perdido. Ao marcar Perdido, o motivo é obrigatório: preço, prazo/pronta-entrega, comprou em outra loja, desistiu ou sem resposta.
 - Métricas por vendedora: criados, enviados, conversão em quantidade e em valor, valor vendido, valor que deixou de vender (soma dos perdidos, por motivo), valor em aberto, ticket médio e tempo até fechar.
 - Catálogo: vem do controle de estoque da loja (sistema ainda não identificado). A versão 1 importa planilha XLSX/CSV com mapeamento de colunas salvo.

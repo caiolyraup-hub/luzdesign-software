@@ -145,21 +145,39 @@ export async function salvarResposta(
   });
   if (error || !respostas) return falha(ERRO_GENERICO);
 
-  let clienteVinculado: { id: string; nome: string } | undefined;
+  // O endereço da obra fica também na coluna do orçamento (PDF, XLSX e exportação leem dela).
+  if ("endereco" in patch) {
+    const endereco = typeof patch.endereco === "string" ? patch.endereco : null;
+    await supabase.from("orcamentos").update({ endereco }).eq("id", orcamentoId);
+  }
+
+  let clienteVinculado: { id: string; nome: string; endereco?: string | null } | undefined;
   try {
     clienteVinculado = await sincronizarCliente(supabase, usuario.id, orcamento, patch);
   } catch {
     return falha("Respostas salvas, mas não foi possível atualizar o cadastro do cliente.");
   }
 
-  const final = clienteVinculado
-    ? ((
+  // Cliente já cadastrado: nome e, se a vendedora ainda não informou, o último endereço dele.
+  let final = respostas;
+  if (clienteVinculado) {
+    const jaTemEndereco = Boolean((respostas as Respostas).endereco);
+    const patchCliente: Record<string, unknown> = { cliente_nome: clienteVinculado.nome };
+    if (!jaTemEndereco && clienteVinculado.endereco) {
+      patchCliente.endereco = clienteVinculado.endereco;
+      await supabase
+        .from("orcamentos")
+        .update({ endereco: clienteVinculado.endereco })
+        .eq("id", orcamentoId);
+    }
+    final =
+      (
         await supabase.rpc("mesclar_respostas", {
           p_orcamento: orcamentoId,
-          p_patch: { cliente_nome: clienteVinculado.nome },
+          p_patch: patchCliente,
         })
-      ).data ?? respostas)
-    : respostas;
+      ).data ?? respostas;
+  }
 
   return { ok: true, respostas: final as Respostas, clienteVinculado };
 }
@@ -170,7 +188,7 @@ async function sincronizarCliente(
   usuarioId: string,
   orcamento: OrcamentoBasico,
   patch: Record<string, unknown>,
-): Promise<{ id: string; nome: string } | undefined> {
+): Promise<{ id: string; nome: string; endereco?: string | null } | undefined> {
   const atual = orcamento.cliente_id;
   const whatsapp = typeof patch.cliente_whatsapp === "string" ? patch.cliente_whatsapp : null;
 
@@ -178,7 +196,7 @@ async function sincronizarCliente(
   if (whatsapp) {
     const { data: existente } = await supabase
       .from("clientes")
-      .select("id, nome")
+      .select("id, nome, endereco")
       .eq("vendedora_id", usuarioId)
       .eq("whatsapp", whatsapp)
       .maybeSingle();
@@ -197,7 +215,7 @@ async function sincronizarCliente(
       if ((count ?? 0) === 0) {
         await supabase.from("clientes").delete().eq("id", atual).is("whatsapp", null);
       }
-      return { id: existente.id, nome: existente.nome };
+      return { id: existente.id, nome: existente.nome, endereco: existente.endereco };
     }
   }
 
@@ -207,6 +225,14 @@ async function sincronizarCliente(
   if (typeof patch.tipo_cliente === "string") {
     campos.tipo = patch.tipo_cliente;
     campos.arquiteto_indicador = (patch.arquiteto_indicador as string | null | undefined) ?? null;
+  }
+  // O cliente guarda sempre o último endereço informado, mesmo quando é compartilhado.
+  if (typeof patch.endereco === "string" && patch.endereco) {
+    const { error } = await supabase
+      .from("clientes")
+      .update({ endereco: patch.endereco })
+      .eq("id", atual);
+    if (error) throw error;
   }
   if (Object.keys(campos).length === 0) return undefined;
 

@@ -2,17 +2,13 @@
 
 import Link from "next/link";
 import {
-  OPCOES_AMBIENTES,
-  OPCOES_ESTADO_OBRA,
-  OPCOES_LINHA,
   OPCOES_PRAZO,
   OPCOES_TIPO_CLIENTE,
-  OPCOES_USO_OBRA,
   type ErrosCampos,
   type Pergunta,
   type Respostas,
 } from "@/lib/orcamento/perguntas";
-import { CardsMultiplo, CardsUnico } from "./Cards";
+import { CardsUnico } from "./Cards";
 
 const campoTexto = "min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg";
 const campoLongo = "min-h-48 w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-lg";
@@ -175,61 +171,25 @@ export function PassoPergunta({
       break;
     }
 
-    case "tipo_obra": {
-      const obra = (respostas.tipo_obra ?? {}) as { uso?: string; estado?: string };
+    case "endereco":
       controles = (
         <>
-          <p className="text-lg font-medium">Uso</p>
-          <CardsUnico
-            nome="Uso da obra"
-            colunas={2}
-            opcoes={OPCOES_USO_OBRA}
-            valor={obra.uso}
-            onChange={(v) => onMudar({ tipo_obra: { ...obra, uso: v } })}
+          <input
+            id={idPergunta}
+            aria-labelledby={`${idPergunta}-titulo`}
+            name="endereco"
+            type="text"
+            autoComplete="off"
+            autoCapitalize="words"
+            value={str(respostas.endereco)}
+            onChange={(e) => onMudar({ endereco: e.target.value }, ["endereco"])}
+            aria-describedby={`${idPergunta}-ajuda`}
+            className={campoTexto}
           />
-          <p className="pt-2 text-lg font-medium">Situação</p>
-          <CardsUnico
-            nome="Situação da obra"
-            colunas={2}
-            opcoes={OPCOES_ESTADO_OBRA}
-            valor={obra.estado}
-            onChange={(v) => onMudar({ tipo_obra: { ...obra, estado: v } })}
-          />
-          <Erro texto={erroDe("tipo_obra")} />
+          <Erro texto={erroDe("endereco")} />
         </>
       );
       break;
-    }
-
-    case "ambientes": {
-      const ambientes = Array.isArray(respostas.ambientes) ? (respostas.ambientes as string[]) : [];
-      controles = (
-        <>
-          <CardsMultiplo
-            nome="Ambientes"
-            opcoes={OPCOES_AMBIENTES}
-            valores={ambientes}
-            onChange={(v) => onMudar({ ambientes: v })}
-          />
-          <Erro texto={erroDe("ambientes")} />
-          {ambientes.includes("outro") ? (
-            <label className="block space-y-1 pt-2">
-              <span className="text-lg font-medium">Qual outro ambiente?</span>
-              <input
-                name="ambiente_outro"
-                type="text"
-                autoComplete="off"
-                value={str(respostas.ambiente_outro)}
-                onChange={(e) => onMudar({ ambiente_outro: e.target.value }, ["ambiente_outro"])}
-                className={campoTexto}
-              />
-              <Erro texto={erroDe("ambiente_outro")} />
-            </label>
-          ) : null}
-        </>
-      );
-      break;
-    }
 
     case "pedido_cliente":
       controles = (
@@ -244,20 +204,6 @@ export function PassoPergunta({
             className={campoLongo}
           />
           <Erro texto={erroDe("pedido_cliente")} />
-        </>
-      );
-      break;
-
-    case "linha":
-      controles = (
-        <>
-          <CardsUnico
-            nome="Linha"
-            opcoes={OPCOES_LINHA}
-            valor={str(respostas.linha)}
-            onChange={(v) => onMudar({ linha: v })}
-          />
-          <Erro texto={erroDe("linha")} />
         </>
       );
       break;

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TIPOS_CLIENTE, type TipoCliente } from "../dominio";
 
 /** Versão do formato de orcamentos.respostas. Mude ao alterar as perguntas. */
-export const VERSAO_RESPOSTAS = 1;
+export const VERSAO_RESPOSTAS = 2;
 
 // ---------------------------------------------------------------- opções (docs/perguntas.md)
 
@@ -20,6 +20,7 @@ export const OPCOES_TIPO_CLIENTE: Opcao<TipoCliente>[] = [
   { valor: "empresa", rotulo: "Empresa" },
 ];
 
+/** Opções das perguntas removidas em 13/11 (versão 1). Só para ler orçamentos antigos. */
 export const OPCOES_USO_OBRA: Opcao[] = [
   { valor: "residencial", rotulo: "Residencial" },
   { valor: "comercial", rotulo: "Comercial" },
@@ -169,46 +170,12 @@ export const schemaTipoCliente = z
     };
   });
 
-export const schemaTipoObra = z.object({
-  tipo_obra: z.object(
-    {
-      uso: enumDe(OPCOES_USO_OBRA, "Escolha residencial ou comercial."),
-      estado: enumDe(OPCOES_ESTADO_OBRA, "Escolha obra nova ou reforma."),
-    },
-    { error: "Informe o tipo de obra." },
-  ),
+export const schemaEndereco = z.object({
+  endereco: textoOpcional(200),
 });
-
-export const schemaAmbientes = z
-  .object({
-    ambientes: z
-      .array(enumDe(OPCOES_AMBIENTES, "Ambiente inválido."), {
-        error: "Escolha ao menos um ambiente.",
-      })
-      .min(1, "Escolha ao menos um ambiente.")
-      .transform((a) => [...new Set(a)]),
-    ambiente_outro: textoOpcional(120),
-  })
-  .superRefine((v, ctx) => {
-    if (v.ambientes.includes("outro") && !v.ambiente_outro) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["ambiente_outro"],
-        message: "Diga qual é o outro ambiente.",
-      });
-    }
-  })
-  .transform((v) => ({
-    ambientes: v.ambientes,
-    ambiente_outro: v.ambientes.includes("outro") ? v.ambiente_outro : undefined,
-  }));
 
 export const schemaPedido = z.object({
   pedido_cliente: textoOpcional(8000),
-});
-
-export const schemaLinha = z.object({
-  linha: enumDe(OPCOES_LINHA, "Escolha a linha."),
 });
 
 export const schemaFaixa = z.object({
@@ -225,10 +192,10 @@ export const schemaObservacoes = z.object({
 
 // ---------------------------------------------------------------- as 10 perguntas como dados
 
-export type TipoPergunta = "texto" | "telefone" | "cards" | "obra" | "multipla" | "textoLongo";
+export type TipoPergunta = "texto" | "telefone" | "cards" | "textoLongo";
 
 export interface Pergunta {
-  /** Posição (1 a 10), igual a docs/perguntas.md e ao parâmetro ?passo=. */
+  /** Posição (1 a 8), igual a docs/perguntas.md e ao parâmetro ?passo=. */
   numero: number;
   /** Id estável; chave principal em orcamentos.respostas. */
   id: string;
@@ -277,27 +244,17 @@ export const PERGUNTAS: Pergunta[] = [
   },
   {
     numero: 4,
-    id: "tipo_obra",
-    rotulo: "Que tipo de obra é?",
-    tipo: "obra",
-    obrigatoria: true,
-    campos: ["tipo_obra"],
-    schema: schemaTipoObra,
-    resumo: "Obra",
+    id: "endereco",
+    rotulo: "Qual é o endereço da obra?",
+    dica: "Opcional. Rua, número, bairro.",
+    tipo: "texto",
+    obrigatoria: false,
+    campos: ["endereco"],
+    schema: schemaEndereco,
+    resumo: "Endereço da obra",
   },
   {
     numero: 5,
-    id: "ambientes",
-    rotulo: "Quais ambientes?",
-    dica: "Pode marcar mais de um.",
-    tipo: "multipla",
-    obrigatoria: true,
-    campos: ["ambientes", "ambiente_outro"],
-    schema: schemaAmbientes,
-    resumo: "Ambientes",
-  },
-  {
-    numero: 6,
     id: "pedido_cliente",
     rotulo: "O que o cliente pediu?",
     dica: "Opcional. Pode colar a mensagem do WhatsApp do cliente. Serve de ponto de partida para a Indicação da IA.",
@@ -308,17 +265,7 @@ export const PERGUNTAS: Pergunta[] = [
     resumo: "Pedido do cliente",
   },
   {
-    numero: 7,
-    id: "linha",
-    rotulo: "Qual linha de produtos?",
-    tipo: "cards",
-    obrigatoria: true,
-    campos: ["linha"],
-    schema: schemaLinha,
-    resumo: "Linha",
-  },
-  {
-    numero: 8,
+    numero: 6,
     id: "faixa_investimento",
     rotulo: "Quanto o cliente quer investir?",
     dica: 'Opcional. Escreva do jeito que o cliente falou, por exemplo "até 5 mil".',
@@ -329,7 +276,7 @@ export const PERGUNTAS: Pergunta[] = [
     resumo: "Investimento",
   },
   {
-    numero: 9,
+    numero: 7,
     id: "prazo",
     rotulo: "Qual é o prazo?",
     tipo: "cards",
@@ -339,7 +286,7 @@ export const PERGUNTAS: Pergunta[] = [
     resumo: "Prazo",
   },
   {
-    numero: 10,
+    numero: 8,
     id: "observacoes",
     rotulo: "Observações e condições especiais",
     dica: "Opcional. Desconto combinado, forma de pagamento, detalhes da obra.",
@@ -421,7 +368,7 @@ export function validarRespostas(
 export const CAMPOS_TEXTO_LIVRE: Record<string, number> = {
   cliente_nome: 120,
   arquiteto_indicador: 120,
-  ambiente_outro: 120,
+  endereco: 200,
   pedido_cliente: 8000,
   faixa_investimento: 120,
   observacoes: 2000,
@@ -446,26 +393,10 @@ export function resumirResposta(pergunta: Pergunta, r: Respostas): string {
         ? `${base} · Arquiteto(a): ${String(r.arquiteto_indicador)}`
         : base;
     }
-    case "tipo_obra": {
-      const o = r.tipo_obra as { uso?: string; estado?: string } | undefined;
-      return o?.uso && o?.estado
-        ? `${rotuloDe(OPCOES_USO_OBRA, o.uso)} · ${rotuloDe(OPCOES_ESTADO_OBRA, o.estado)}`
-        : "";
-    }
-    case "ambientes": {
-      const lista = Array.isArray(r.ambientes) ? (r.ambientes as string[]) : [];
-      return lista
-        .map((a) =>
-          a === "outro" && r.ambiente_outro
-            ? `Outro: ${String(r.ambiente_outro)}`
-            : rotuloDe(OPCOES_AMBIENTES, a),
-        )
-        .join(", ");
-    }
+    case "endereco":
+      return String(r.endereco ?? "");
     case "pedido_cliente":
       return String(r.pedido_cliente ?? "");
-    case "linha":
-      return r.linha ? rotuloDe(OPCOES_LINHA, r.linha) : "";
     case "faixa_investimento":
       return String(r.faixa_investimento ?? "");
     case "prazo":
@@ -477,4 +408,33 @@ export function resumirResposta(pergunta: Pergunta, r: Respostas): string {
     default:
       return "";
   }
+}
+
+/**
+ * Respostas das perguntas removidas em 13/11 (obra, ambientes, linha), presentes só em orçamentos
+ * com `versao: 1`. Aparecem no resumo somente para leitura.
+ */
+export function respostasLegadas(r: Respostas): { rotulo: string; valor: string }[] {
+  const linhas: { rotulo: string; valor: string }[] = [];
+  const o = r.tipo_obra as { uso?: string; estado?: string } | undefined;
+  if (o?.uso && o?.estado) {
+    linhas.push({
+      rotulo: "Obra",
+      valor: `${rotuloDe(OPCOES_USO_OBRA, o.uso)} · ${rotuloDe(OPCOES_ESTADO_OBRA, o.estado)}`,
+    });
+  }
+  if (Array.isArray(r.ambientes) && r.ambientes.length > 0) {
+    linhas.push({
+      rotulo: "Ambientes",
+      valor: (r.ambientes as string[])
+        .map((a) =>
+          a === "outro" && r.ambiente_outro
+            ? `Outro: ${String(r.ambiente_outro)}`
+            : rotuloDe(OPCOES_AMBIENTES, a),
+        )
+        .join(", "),
+    });
+  }
+  if (r.linha) linhas.push({ rotulo: "Linha", valor: rotuloDe(OPCOES_LINHA, r.linha) });
+  return linhas;
 }

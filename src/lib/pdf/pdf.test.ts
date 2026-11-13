@@ -58,6 +58,33 @@ async function ler(buffer: Buffer) {
   return { texto: text.replace(/\s+/g, " "), paginas: totalPages };
 }
 
+describe("endereço da obra no PDF", () => {
+  it("sai no cabeçalho do cliente quando preenchido e some quando não", async () => {
+    const comEndereco = await renderizarPdf(
+      montarDadosPdf(
+        entrada([item(1, { ambiente: "Sala" })], {
+          cliente: {
+            nome: "TESTE Cliente",
+            whatsapp: null,
+            arquiteto: null,
+            endereco: "Rua das Flores, 10",
+          },
+        }),
+      ),
+      null,
+    );
+    const a = await ler(comEndereco);
+    const semEspaco = (t: string) => t.toLowerCase().replace(/\s+/g, "");
+    expect(semEspaco(a.texto)).toContain("endereçodaobra");
+    expect(a.texto).toContain("Rua das Flores, 10");
+    const semEndereco = await renderizarPdf(
+      montarDadosPdf(entrada([item(1, { ambiente: "Sala" })])),
+      null,
+    );
+    expect(semEspaco((await ler(semEndereco)).texto)).not.toContain("endereçodaobra");
+  });
+});
+
 describe("dados do PDF", () => {
   it("agrupa por ambiente, calcula subtotais, total e à vista", () => {
     const d = montarDadosPdf(

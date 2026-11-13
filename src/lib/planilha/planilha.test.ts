@@ -85,6 +85,29 @@ function linhaCom(ws: ExcelJS.Worksheet, coluna: number, texto: string) {
 
 const formula = (c: ExcelJS.Cell) => c.value as { formula: string; result: number };
 
+describe("endereço da obra na planilha", () => {
+  it("aparece só quando preenchido", async () => {
+    const com = await abrir(
+      await gerarPlanilhaOrcamento(
+        montarDadosPdf(
+          entrada({
+            cliente: {
+              nome: "TESTE Cliente",
+              whatsapp: null,
+              arquiteto: null,
+              endereco: "Rua A, 10",
+            },
+          }),
+        ),
+        null,
+      ),
+    );
+    expect(com.getCell(linhaCom(com, 1, "ENDEREÇO DA OBRA"), 3).value).toBe("Rua A, 10");
+    const sem = await abrir(await gerarPlanilhaOrcamento(montarDadosPdf(entrada()), null));
+    expect(linhaCom(sem, 1, "ENDEREÇO DA OBRA")).toBe(0);
+  });
+});
+
 describe("planilha XLSX do orçamento", () => {
   it("tem cabeçalho, identificação e a tabela QT | PRODUTO | DESCRIÇÃO | AMBIENTE | UNIT | TOTAL", async () => {
     const dados = montarDadosPdf(entrada());

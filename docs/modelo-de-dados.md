@@ -52,7 +52,7 @@ Somente documentação; o SQL entra no dia 2 (05/11). Nomes em português sem ac
 - `anexos`: novas colunas `nome_original` e `mime_type`; `tipo` obrigatório e restrito a `foto`, `pdf`, `planta` ou `print`.
 - Gatilho `anexos_limite` (antes de inserir): barra o 5º anexo do mesmo orçamento (`Limite de 4 anexos por orçamento.`), com lock para envios simultâneos.
 - Função `mesclar_respostas(p_orcamento, p_patch)` (security invoker): mescla respostas parciais em `orcamentos.respostas` de forma atômica, só em orçamento `rascunho` da própria vendedora.
-- `orcamentos.respostas` ganha a chave `versao` (hoje `1`). Formato completo em `docs/perguntas.md`.
+- `orcamentos.respostas` ganha a chave `versao` (hoje `2`; `1` = formulário antigo, ainda legível). Formato completo em `docs/perguntas.md`.
 - Bucket `anexos`: limite de 10 MB por arquivo e só `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif` e `application/pdf`. Caminho `{vendedora_id}/{orcamento_id}/{uuid}.{ext}`.
 
 ## Cores dos status (proposta do dia 4)
@@ -152,3 +152,8 @@ Sem migration: os atalhos (kit de fita, mais usados e duplicar ambiente) usam as
 - `listar_clientes(p jsonb)` (`security invoker`): lista paginada por cursor (nome + id), com busca por nome, arquiteto ou WhatsApp (só dígitos) e, para a gerência, filtro por vendedora; devolve por cliente a quantidade de orçamentos, fechados, valor vendido e a data do último.
 - `possiveis_duplicados()` (só a gerência, `SEM_PERMISSAO` para a vendedora): pares de clientes da **mesma vendedora** com o mesmo WhatsApp (só dígitos) ou nome muito parecido (similaridade de trigramas ≥ 0,6).
 - `juntar_clientes(p_manter, p_remover)` (`security definer`, só a gerência): move os orçamentos do removido para o mantido, junta as observações, completa WhatsApp e arquiteto se faltarem, grava o registro em `clientes_fusoes` (o cadastro removido inteiro, quantos orçamentos moveu e quem juntou; só a gerência lê, ninguém grava pelo cliente) e apaga o removido. Recusa clientes de vendedoras diferentes.
+
+## Dia 11A: endereço da obra
+
+- `orcamentos.endereco` e `clientes.endereco` (texto, nulo, até 200 caracteres). O do cliente é o último informado e pré-preenche o formulário quando o WhatsApp já existe. Migration `20261113000100_endereco.sql` (também devolve `endereco` em `listar_orcamentos`).
+- Aparece na tela do orçamento, na ficha do cliente, no PDF e no XLSX do orçamento (só se preenchido) e na exportação da base (aba Orçamentos: "Endereço da obra"; aba Clientes: "Último endereço informado"). Não vai à OpenAI.
