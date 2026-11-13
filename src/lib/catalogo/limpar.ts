@@ -79,7 +79,7 @@ function regexNomes(nomes: readonly string[], absorverPonto = true): RegExp {
   // Fronteira de "palavra" que aceita S&L e A-GREDA. Nas descrições, o ponto colado (NIT., ASTRA.)
   // sai junto; em texto corrido (frases da IA) o ponto final fica.
   return new RegExp(
-    `(?<![A-Za-z0-9])(?:${ordenados.join("|")})(?![A-Za-z0-9])${absorverPonto ? "\.?" : ""}`,
+    `(?<![A-Za-z0-9])(?:${ordenados.join("|")})(?![A-Za-z0-9])${absorverPonto ? "\\.?" : ""}`,
     "gi",
   );
 }
