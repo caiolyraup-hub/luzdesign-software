@@ -12,14 +12,14 @@ export const DEFINICOES_FERRAMENTAS = [
     type: "function",
     name: "buscar_produtos",
     description:
-      "Busca produtos ativos do catálogo da loja por código, descrição, marca, categoria ou apelido. " +
-      "Devolve código, categoria, marca, descrição, unidade (un ou m), preço (só para comparar), " +
+      "Busca produtos ativos do catálogo da loja por código, descrição, categoria ou apelido. " +
+      "Devolve código, categoria, descrição, unidade (un ou m), preço (só para comparar), " +
       "estoque_disponivel (null = desconhecido) e atributos (w, k, comprimento).",
     strict: true,
     parameters: {
       type: "object",
       additionalProperties: false,
-      required: ["texto", "categoria", "marca", "limite"],
+      required: ["texto", "categoria", "limite"],
       properties: {
         texto: {
           type: "string",
@@ -29,10 +29,6 @@ export const DEFINICOES_FERRAMENTAS = [
           type: ["string", "null"],
           description:
             "Filtro exato de categoria (EMBUTIDO, FITA LED, PERFIL, FONTE, SPOT, PLAFON, ARANDELA, ...) ou null.",
-        },
-        marca: {
-          type: ["string", "null"],
-          description: "Filtro exato de marca (MB, NIT, STELLA, ...) ou null.",
         },
         limite: {
           type: ["integer", "null"],
@@ -59,7 +55,6 @@ export const DEFINICOES_FERRAMENTAS = [
 const argsBuscar = z.object({
   texto: z.string().max(200).default(""),
   categoria: z.string().max(60).nullish(),
-  marca: z.string().max(60).nullish(),
   limite: z.number().int().nullish(),
 });
 const argsDetalhar = z.object({
@@ -93,7 +88,6 @@ export function criarExecutorFerramentas(supabase: SupabaseClient): ExecutorFerr
         const produtos = await buscarProdutos(supabase, {
           texto: a.data.texto,
           categoria: a.data.categoria ?? null,
-          marca: a.data.marca ?? null,
           limite,
         });
         return {
@@ -101,7 +95,6 @@ export function criarExecutorFerramentas(supabase: SupabaseClient): ExecutorFerr
           produtos: produtos.map((p) => ({
             codigo: p.codigo,
             categoria: p.categoria,
-            marca: p.marca,
             descricao: p.descricao,
             unidade: p.unidade,
             preco_unitario: p.preco_unitario,
@@ -117,7 +110,7 @@ export function criarExecutorFerramentas(supabase: SupabaseClient): ExecutorFerr
         const { data: produto, error } = await supabase
           .from("produtos")
           .select(
-            "codigo, categoria, marca, descricao, unidade, preco_unitario, estoque_disponivel, atributos, ativo",
+            "codigo, categoria, descricao, unidade, preco_unitario, estoque_disponivel, atributos, ativo",
           )
           .eq("codigo", a.data.codigo)
           .maybeSingle();

@@ -24,7 +24,6 @@ export interface ItemPdf {
   unidade: "un" | "m";
   codigo: string | null;
   descricao: string;
-  marca: string | null;
   categoria: string | null;
   precoCentavos: number;
   totalCentavos: number;
@@ -103,7 +102,6 @@ export function montarDadosPdf(e: EntradaDadosPdf): DadosPdf {
       unidade: i.unidade,
       codigo: i.avulso ? null : i.codigo,
       descricao: i.descricao,
-      marca: i.marca,
       categoria: i.avulso ? null : (i.categoria ?? null),
       precoCentavos: Math.round(i.preco * 100),
       totalCentavos: subtotalCentavos(i.preco, i.quantidade),

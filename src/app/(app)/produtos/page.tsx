@@ -63,7 +63,7 @@ export default function Page({ searchParams }: PageProps<"/produtos">) {
         <input
           name="q"
           type="search"
-          placeholder="Código, descrição, marca..."
+          placeholder="Código ou descrição..."
           aria-label="Buscar produto"
           className="min-h-14 min-w-0 flex-1 rounded-lg border border-zinc-300 px-4 text-lg"
         />

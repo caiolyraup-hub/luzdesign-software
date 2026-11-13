@@ -1,3 +1,4 @@
+import { limparDescricao } from "../catalogo/limpar";
 import type { UnidadeProduto } from "../dominio";
 import type { ErroLinha, PreviaImportacao, ProdutoImportacao, ResumoImportacao } from "./tipos";
 
@@ -5,10 +6,18 @@ export interface ProdutoExistente {
   descricao: string;
   preco_unitario: number;
   categoria: string | null;
-  marca: string | null;
   unidade: UnidadeProduto;
   estoque_disponivel: number | null;
   ativo: boolean;
+}
+
+export interface LinhaFornecedor {
+  codigo: string;
+  fabricante: string | null;
+  referencia_fabricante: string | null;
+  modelo: string | null;
+  descricao_fornecedor: string;
+  atributos_fornecedor: Record<string, unknown>;
 }
 
 export type LinhaProduto = Record<string, unknown> & { codigo: string };
@@ -17,6 +26,8 @@ export type LinhaProduto = Record<string, unknown> & { codigo: string };
 export interface RepositorioEstoque {
   listarExistentes(): Promise<Map<string, ProdutoExistente>>;
   gravarProdutos(linhas: LinhaProduto[]): Promise<void>;
+  /** Fabricante, referência e modelo: tabela que só a gerência lê. */
+  gravarFornecedor(linhas: LinhaFornecedor[]): Promise<void>;
   gravarApelidos(linhas: { codigo: string; texto: string }[]): Promise<void>;
   desativar(codigos: string[]): Promise<void>;
   iniciarSync(origem: string): Promise<string>;
@@ -46,6 +57,40 @@ function lotes<T>(itens: T[]): T[][] {
   return r;
 }
 
+/**
+ * Separa o que a vendedora e o cliente veem do que é do fornecedor: a descrição comercial sai limpa
+ * (sem fabricante, modelo nem referência) e o original vai para `produtos_dados_fornecedor`.
+ */
+export function separarFornecedor(produtos: ProdutoImportacao[]): {
+  produtos: ProdutoImportacao[];
+  fornecedores: LinhaFornecedor[];
+} {
+  const fabricantes = produtos.map((p) => p.marca);
+  const fornecedores: LinhaFornecedor[] = [];
+  const limpos = produtos.map((p) => {
+    const r = limparDescricao(p.descricao, p.categoria, { fabricantes });
+    const apelidos = [
+      ...new Set(
+        (p.apelidos ?? [])
+          .map((a) => limparDescricao(a, p.categoria, { fabricantes }).comercial)
+          .filter((a) => a && a !== r.comercial),
+      ),
+    ];
+    const junta = (a: string | null | undefined, b: string[]) =>
+      [...new Set([...(a ? [a] : []), ...b])].join(" / ") || null;
+    fornecedores.push({
+      codigo: p.codigo,
+      fabricante: p.marca?.trim() || r.fabricantes[0] || null,
+      referencia_fabricante: junta(p.referencia_fabricante, r.referencias),
+      modelo: junta(p.modelo, r.modelos),
+      descricao_fornecedor: p.descricao,
+      atributos_fornecedor: p.apelidos?.length ? { apelidos_originais: p.apelidos } : {},
+    });
+    return { ...p, descricao: r.comercial, marca: undefined, apelidos };
+  });
+  return { produtos: limpos, fornecedores };
+}
+
 /** Última ocorrência de cada código vence; as anteriores viram erro de linha. */
 function deduplicar(produtos: ProdutoImportacao[]) {
   const ultimo = new Map<string, number>();
@@ -64,7 +109,6 @@ function mudou(novo: ProdutoImportacao, antigo: ProdutoExistente): boolean {
   if (novo.descricao !== antigo.descricao) return true;
   if (Number(novo.preco_unitario) !== Number(antigo.preco_unitario)) return true;
   if (novo.categoria !== undefined && novo.categoria !== antigo.categoria) return true;
-  if (novo.marca !== undefined && novo.marca !== antigo.marca) return true;
   if (novo.unidade !== undefined && novo.unidade !== antigo.unidade) return true;
   if (
     novo.estoque_disponivel !== undefined &&
@@ -96,7 +140,7 @@ export async function previa(
   produtos: ProdutoImportacao[],
   codigosVistos?: string[],
 ): Promise<PreviaImportacao> {
-  const { unicos } = deduplicar(produtos);
+  const { unicos } = deduplicar(separarFornecedor(produtos).produtos);
   const existentes = await repo.listarExistentes();
   const c = classificar(unicos, existentes);
   const vistos = new Set(codigosVistos ?? unicos.map((p) => p.codigo));
@@ -115,7 +159,6 @@ function montarLinhas(produtos: ProdutoImportacao[]): LinhaProduto[] {
   const tem = (campo: keyof ProdutoImportacao) => produtos.some((p) => p[campo] !== undefined);
   const incluir = {
     categoria: tem("categoria"),
-    marca: tem("marca"),
     unidade: tem("unidade"),
     estoque_disponivel: tem("estoque_disponivel"),
     atributos: tem("atributos"),
@@ -128,7 +171,6 @@ function montarLinhas(produtos: ProdutoImportacao[]): LinhaProduto[] {
       ativo: true,
     };
     if (incluir.categoria) linha.categoria = p.categoria ?? null;
-    if (incluir.marca) linha.marca = p.marca ?? null;
     if (incluir.unidade && p.unidade) linha.unidade = p.unidade;
     if (incluir.estoque_disponivel) linha.estoque_disponivel = p.estoque_disponivel ?? null;
     if (incluir.atributos) linha.atributos = p.atributos ?? {};
@@ -142,7 +184,10 @@ export async function importar(
   opcoes: OpcoesImportacao,
 ): Promise<ResumoImportacao> {
   const erros: ErroLinha[] = [...(opcoes.erros ?? [])];
-  const { unicos, repetidos } = deduplicar(produtos);
+  const separado = separarFornecedor(produtos);
+  const { unicos, repetidos } = deduplicar(separado.produtos);
+  const vistosFornecedor = new Set(unicos.map((p) => p.codigo));
+  const fornecedores = separado.fornecedores.filter((f) => vistosFornecedor.has(f.codigo));
   if (repetidos > 0)
     erros.push({
       linha: 0,
@@ -169,6 +214,8 @@ export async function importar(
       await repo.gravarProdutos(lote);
       gravadas += lote.length;
     }
+
+    for (const lote of lotes(fornecedores)) await repo.gravarFornecedor(lote);
 
     const apelidos = unicos.flatMap((p) =>
       [...new Set(p.apelidos ?? [])]

@@ -589,6 +589,9 @@ describe("validação da formatação", () => {
     expect(descricaoFormatadaValida("MB 48W", "Fonte 60 W")).toBe(false);
     expect(descricaoFormatadaValida("MB 48W", "x")).toBe(false);
     expect(descricaoFormatadaValida("MB 48W", `Fonte 48 W ${"a".repeat(200)}`)).toBe(false);
+    // Nunca devolve marca, modelo ou referência.
+    expect(descricaoFormatadaValida("FONTE 48W", "Fonte MB 48 W")).toBe(false);
+    expect(descricaoFormatadaValida("DL 10W", "Embutido DL-7324 10 W")).toBe(false);
   });
 
   it("nome de ambiente só pode mudar maiúsculas e acentos", () => {
@@ -613,7 +616,7 @@ describe("formatarTextos", () => {
     {
       codigo: "10340",
       categoria: "FONTE",
-      descricao: "MB 48W",
+      descricao: "FONTE 48W",
       atualizado_em: "2026-11-01T00:00:00Z",
     },
   ];
@@ -621,7 +624,7 @@ describe("formatarTextos", () => {
     mensagemFinal({
       produtos: [
         { codigo: "9520", descricao_formatada: "Lâmpada dicroica LED 6 W, 2.7 K" },
-        { codigo: "10340", descricao_formatada: "Fonte de alimentação MB 48 W" },
+        { codigo: "10340", descricao_formatada: "Fonte de alimentação 48 W" },
       ],
       ambientes: [{ original: "sala", formatado: "Sala" }],
       ...extra,
@@ -638,7 +641,7 @@ describe("formatarTextos", () => {
     expect(ia.chamadas[0].tools).toBeUndefined();
     expect(res.chamouIA).toBe(true);
     expect(res.descricoes.get("9520")).toBe("Lâmpada dicroica LED 6 W, 2.7 K");
-    expect(res.descricoes.get("10340")).toBe("Fonte de alimentação MB 48 W");
+    expect(res.descricoes.get("10340")).toBe("Fonte de alimentação 48 W");
     expect(res.ambientes.get("sala")).toBe("Sala");
     expect(res.ambientes.has("Cozinha")).toBe(false);
     expect(r.gravadas.map((g) => g.codigo).sort()).toEqual(["10340", "9520"]);
@@ -662,22 +665,22 @@ describe("formatarTextos", () => {
     });
     expect(segunda.create).not.toHaveBeenCalled();
     expect(res.chamouIA).toBe(false);
-    expect(res.descricoes.get("10340")).toBe("Fonte de alimentação MB 48 W");
+    expect(res.descricoes.get("10340")).toBe("Fonte de alimentação 48 W");
 
     const mudou = iaFalsa([
       mensagemFinal({
-        produtos: [{ codigo: "10340", descricao_formatada: "Fonte MB 60 W" }],
+        produtos: [{ codigo: "10340", descricao_formatada: "Fonte 60 W" }],
         ambientes: [],
       }),
     ]);
     const res2 = await formatarTextos(deps(r.repo, mudou.cliente), "u1", "o3", {
-      produtos: [produtos[0], { ...produtos[1], descricao: "MB 60W" }],
+      produtos: [produtos[0], { ...produtos[1], descricao: "FONTE 60W" }],
       ambientes: ["Sala"],
     });
     expect(mudou.create).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(mudou.chamadas[0].input)).toContain("MB 60W");
+    expect(JSON.stringify(mudou.chamadas[0].input)).toContain("FONTE 60W");
     expect(JSON.stringify(mudou.chamadas[0].input)).not.toContain("STELLA");
-    expect(res2.descricoes.get("10340")).toBe("Fonte MB 60 W");
+    expect(res2.descricoes.get("10340")).toBe("Fonte 60 W");
   });
 
   it("número perdido cai na descrição do catálogo (e não vai para o cache)", async () => {
@@ -686,7 +689,7 @@ describe("formatarTextos", () => {
       mensagemFinal({
         produtos: [
           { codigo: "9520", descricao_formatada: "Lâmpada dicroica LED, luz quente" },
-          { codigo: "10340", descricao_formatada: "Fonte de alimentação MB 48 W" },
+          { codigo: "10340", descricao_formatada: "Fonte de alimentação 48 W" },
         ],
         ambientes: [],
       }),
@@ -696,7 +699,7 @@ describe("formatarTextos", () => {
       ambientes: ["Sala"],
     });
     expect(res.descricoes.get("9520")).toBe("STELLA DIC 6W 2.7K");
-    expect(res.descricoes.get("10340")).toBe("Fonte de alimentação MB 48 W");
+    expect(res.descricoes.get("10340")).toBe("Fonte de alimentação 48 W");
     expect(r.gravadas.map((g) => g.codigo)).toEqual(["10340"]);
     expect(res.avisos.join(" ")).toMatch(/9520.*perdeu números/);
   });
@@ -713,7 +716,7 @@ describe("formatarTextos", () => {
         ambientes: ["sala"],
       });
       expect(res.descricoes.get("9520")).toBe("STELLA DIC 6W 2.7K");
-      expect(res.descricoes.get("10340")).toBe("MB 48W");
+      expect(res.descricoes.get("10340")).toBe("FONTE 48W");
       expect(res.ambientes.size).toBe(0);
       expect(r.gravadas).toHaveLength(0);
     }

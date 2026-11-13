@@ -19,6 +19,7 @@ import {
 import { codigosMaisUsados, DIAS_MAIS_USADOS } from "@/lib/orcamento/atalhos";
 import { calcularKit, lerMetros, type ProdutoKit } from "@/lib/orcamento/kit-fita";
 import { interpretarLista } from "@/lib/orcamento/lista-colada";
+import { candidatoReferencia } from "@/lib/orcamento/referencia-lista";
 import { subtotalCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -114,7 +115,7 @@ interface ProdutoCatalogo {
 }
 
 const SELECT_PRODUTO =
-  "codigo, descricao, unidade, preco_unitario, ativo, categoria, marca, produtos_descricao_formatada(descricao_formatada, descricao_origem)";
+  "codigo, descricao, unidade, preco_unitario, ativo, categoria, produtos_descricao_formatada(descricao_formatada, descricao_origem)";
 
 function paraProduto(linha: Record<string, unknown>): ProdutoCatalogo {
   const l = linha as unknown as Parameters<typeof descricaoIdeal>[0] & {
@@ -123,7 +124,6 @@ function paraProduto(linha: Record<string, unknown>): ProdutoCatalogo {
     preco_unitario: number | string;
     ativo: boolean;
     categoria: string | null;
-    marca: string | null;
   };
   return {
     codigo: l.codigo,
@@ -132,7 +132,8 @@ function paraProduto(linha: Record<string, unknown>): ProdutoCatalogo {
     preco_unitario: Number(l.preco_unitario),
     ativo: l.ativo,
     categoria: l.categoria,
-    marca: l.marca,
+    // Fabricante e referência não chegam à vendedora (ficam em produtos_dados_fornecedor).
+    marca: null,
   };
 }
 
@@ -191,14 +192,22 @@ export async function buscarProdutosRevisao(
   await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
   try {
-    return {
-      ok: true,
-      produtos: await buscarProdutos(supabase, {
-        texto: texto.slice(0, 120),
-        categoria: categoria ? categoria.slice(0, 40) : null,
-        limite: 20,
-      }),
-    };
+    const produtos = await buscarProdutos(supabase, {
+      texto: texto.slice(0, 120),
+      categoria: categoria ? categoria.slice(0, 40) : null,
+      limite: 20,
+    });
+    // Nada achado e o texto parece a referência inteira que o arquiteto mandou: traduz para o código
+    // interno (igualdade exata; devolve só código e descrição comercial; 30 consultas por minuto).
+    if (produtos.length === 0 && candidatoReferencia(texto)) {
+      const { data } = await supabase.rpc("buscar_por_referencia", { p_texto: texto.slice(0, 60) });
+      const codigos = ((data ?? []) as { codigo: string }[]).map((x) => x.codigo).slice(0, 5);
+      const achados: ProdutoBusca[] = [];
+      for (const codigo of codigos)
+        achados.push(...(await buscarProdutos(supabase, { texto: codigo, limite: 1 })).slice(0, 1));
+      return { ok: true, produtos: achados };
+    }
+    return { ok: true, produtos };
   } catch {
     return falha("Não foi possível buscar agora.");
   }
@@ -550,12 +559,63 @@ export interface PreviaLista {
 
 export type RespostaPrevia = Falha | { ok: true; previa: PreviaLista };
 
+/**
+ * Lê a lista e troca linhas com a REFERÊNCIA do fabricante pelo código interno. A busca é exata e
+ * feita no banco (`buscar_por_referencia`): devolve só código e descrição comercial, e tem limite de
+ * 30 consultas por minuto. Nada do que é do fornecedor chega ao navegador.
+ */
+async function lerListaComReferencias(supabase: SupabaseClient, texto: string) {
+  const lida = interpretarLista(texto);
+  const reconhecidas = [
+    ...new Set(lida.linhas.flatMap((l) => (l.tipo === "reconhecida" ? [l.codigo] : []))),
+  ];
+  const existentes = reconhecidas.length ? await lerProdutos(supabase, reconhecidas) : new Map();
+  const trocadas = new Set<number>();
+  let consultas = 0;
+  const linhas = [];
+  for (const l of lida.linhas) {
+    const semCodigo = l.tipo === "nao_entendida" && l.motivo.startsWith("Não achei um código");
+    const codigoDesconhecido = l.tipo === "reconhecida" && !existentes.get(l.codigo);
+    if ((!semCodigo && !codigoDesconhecido) || consultas >= 25) {
+      linhas.push(l);
+      continue;
+    }
+    const cand =
+      l.tipo === "reconhecida"
+        ? { referencia: l.codigo, quantidade: l.quantidade, unidade: l.unidade }
+        : candidatoReferencia(l.texto);
+    if (!cand) {
+      linhas.push(l);
+      continue;
+    }
+    consultas++;
+    const { data, error } = await supabase.rpc("buscar_por_referencia", {
+      p_texto: cand.referencia,
+    });
+    const achados = (data ?? []) as { codigo: string }[];
+    if (error || achados.length !== 1) {
+      linhas.push(l);
+      continue;
+    }
+    trocadas.add(l.linha);
+    linhas.push({
+      tipo: "reconhecida" as const,
+      linha: l.linha,
+      texto: l.texto,
+      codigo: achados[0].codigo,
+      quantidade: cand.quantidade,
+      unidade: cand.unidade,
+    });
+  }
+  return { linhas, excedeu: lida.excedeu, trocadas };
+}
+
 /** Confere a lista colada com o catálogo, sem gravar nada (determinístico, sem IA). */
 export async function previaListaColada(texto: string): Promise<RespostaPrevia> {
   await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
   if (texto.length > 20_000) return falha("Lista grande demais.");
-  const { linhas, excedeu } = interpretarLista(texto);
+  const { linhas, excedeu, trocadas } = await lerListaComReferencias(supabase, texto);
   if (linhas.length === 0) return falha("Cole ao menos uma linha com o código do produto.");
 
   const codigos = [...new Set(linhas.flatMap((l) => (l.tipo === "reconhecida" ? [l.codigo] : [])))];
@@ -587,7 +647,9 @@ export async function previaListaColada(texto: string): Promise<RespostaPrevia> 
       previa.naoEntendidas.push({ linha: l.linha, texto: l.texto, motivo: q.erro });
       continue;
     }
-    let aviso: string | null = null;
+    let aviso: string | null = trocadas.has(l.linha)
+      ? `Referência reconhecida: trocada pelo código interno ${p.codigo}.`
+      : null;
     if (q.ajustada && p.unidade === "un") aviso = `Quantidade arredondada para ${q.valor}.`;
     else if (l.unidade && l.unidade !== p.unidade)
       aviso = `Este produto é vendido por ${p.unidade === "m" ? "metro" : "unidade"}.`;
@@ -618,7 +680,7 @@ export async function adicionarListaColada(
   const c = await abrirContexto(orcamentoId);
   if (eFalha(c)) return c;
   if (texto.length > 20_000) return falha("Lista grande demais.");
-  const { linhas } = interpretarLista(texto);
+  const { linhas } = await lerListaComReferencias(c.supabase, texto);
   const validas = linhas.flatMap((l) =>
     l.tipo === "reconhecida" ? [{ codigo: l.codigo, quantidade: l.quantidade }] : [],
   );
@@ -737,9 +799,7 @@ export async function produtosMaisUsados(categoria: string | null = null): Promi
 
   let consulta = supabase
     .from("produtos")
-    .select(
-      "codigo, categoria, marca, descricao, unidade, preco_unitario, estoque_disponivel, atributos",
-    )
+    .select("codigo, categoria, descricao, unidade, preco_unitario, estoque_disponivel, atributos")
     .eq("ativo", true)
     .in("codigo", codigos);
   if (categoria) consulta = consulta.ilike("categoria", categoria);
@@ -752,7 +812,7 @@ export async function produtosMaisUsados(categoria: string | null = null): Promi
     .map((p) => ({
       codigo: p.codigo as string,
       categoria: p.categoria as string | null,
-      marca: p.marca as string | null,
+      marca: null,
       descricao: p.descricao as string,
       unidade: p.unidade as "un" | "m",
       preco_unitario: Number(p.preco_unitario),
@@ -789,7 +849,7 @@ export interface PreviaKit {
 export type RespostaKit = Falha | { ok: true; previa: PreviaKit };
 
 const SELECT_KIT =
-  "codigo, categoria, unidade, preco_unitario, atributos, ativo, descricao, marca, produtos_descricao_formatada(descricao_formatada, descricao_origem)";
+  "codigo, categoria, unidade, preco_unitario, atributos, ativo, descricao, produtos_descricao_formatada(descricao_formatada, descricao_origem)";
 
 function paraProdutoKit(l: Record<string, unknown>): ProdutoKit {
   const p = paraProduto(l);

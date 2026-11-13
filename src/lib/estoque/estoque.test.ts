@@ -4,6 +4,7 @@ import {
   previa,
   type LinhaProduto,
   type ProdutoExistente,
+  type LinhaFornecedor,
   type RepositorioEstoque,
 } from "./importar";
 import { lerPlanilha } from "./lerPlanilha";
@@ -127,7 +128,6 @@ function repositorioEmMemoria(
     produtos.set(codigo, {
       preco_unitario: 10,
       categoria: null,
-      marca: null,
       unidade: "un",
       estoque_disponivel: null,
       ativo: true,
@@ -140,10 +140,14 @@ function repositorioEmMemoria(
   }[] = [];
   const gravadosEmLote: string[] = [];
   const apelidos: { codigo: string; texto: string }[] = [];
+  const fornecedor = new Map<string, LinhaFornecedor>();
 
   const repo: RepositorioEstoque = {
     async listarExistentes() {
       return new Map(produtos);
+    },
+    async gravarFornecedor(linhas) {
+      for (const l of linhas) fornecedor.set(l.codigo, l);
     },
     async gravarProdutos(linhas: LinhaProduto[]) {
       for (const l of linhas) {
@@ -152,7 +156,6 @@ function repositorioEmMemoria(
         produtos.set(l.codigo, {
           preco_unitario: 0,
           categoria: null,
-          marca: null,
           unidade: "un",
           estoque_disponivel: null,
           ...antigo,
@@ -176,7 +179,7 @@ function repositorioEmMemoria(
       sync[Number(id) - 1].fim = dados;
     },
   };
-  return { repo, produtos, sync, gravadosEmLote, apelidos };
+  return { repo, produtos, sync, gravadosEmLote, apelidos, fornecedor };
 }
 
 const prod = (
@@ -189,6 +192,32 @@ const prod = (
   descricao,
   preco_unitario: preco,
   ...extra,
+});
+
+describe("importar: separa o que é do fornecedor", () => {
+  it("a descrição comercial sai limpa e o original vai para a tabela da gerência", async () => {
+    const { repo, produtos, fornecedor } = repositorioEmMemoria();
+    await importar(
+      repo,
+      [
+        prod("11343", "MB BLET 6338 EMBUT PT 5W 3.0K", 52, {
+          categoria: "SPOT",
+          marca: "MB",
+          apelidos: ["6338 BLET PT 5W MB"],
+        }),
+      ],
+      { origem: "teste", linhasLidas: 1 },
+    );
+    const p = produtos.get("11343") as unknown as Record<string, unknown>;
+    expect(p.descricao).toBe("SPOT EMBUT PT 5W 3.0K");
+    expect(p).not.toHaveProperty("marca");
+    expect(fornecedor.get("11343")).toMatchObject({
+      fabricante: "MB",
+      referencia_fabricante: "6338",
+      modelo: "BLET",
+      descricao_fornecedor: "MB BLET 6338 EMBUT PT 5W 3.0K",
+    });
+  });
 });
 
 describe("importar", () => {

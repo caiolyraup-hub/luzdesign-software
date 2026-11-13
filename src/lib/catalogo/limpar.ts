@@ -50,6 +50,7 @@ export const MODELOS_CONHECIDOS = [
   "BABY",
   "A-GREDA",
   "LED3",
+  "SQUARE",
 ] as const;
 
 /** Tokens técnicos que parecem referência mas descrevem o produto (lâmpada, soquete, proteção, tensão). */
@@ -97,7 +98,7 @@ export interface ResultadoLimpeza {
 
 export interface OpcoesLimpeza {
   /** Fabricantes extras (por exemplo, as marcas da carga). */
-  fabricantes?: readonly string[];
+  fabricantes?: readonly (string | null | undefined)[];
 }
 
 function unicos(lista: string[]): string[] {

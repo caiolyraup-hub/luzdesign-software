@@ -107,9 +107,28 @@ export async function carregarFonteExportacao(
         .order("id")
         .range(de, ate),
     );
+    // Fabricante e referência: a RLS de produtos_dados_fornecedor só devolve linhas à gerência.
+    const codigos = [...new Set(linhas.map((l) => l.codigo).filter((c): c is string => !!c))];
+    const fornecedor = new Map<
+      string,
+      { fabricante: string | null; referencia_fabricante: string | null }
+    >();
+    if (codigos.length) {
+      const { data } = await supabase
+        .from("produtos_dados_fornecedor")
+        .select("codigo, fabricante, referencia_fabricante")
+        .in("codigo", codigos);
+      for (const f of data ?? [])
+        fornecedor.set(f.codigo as string, {
+          fabricante: f.fabricante as string | null,
+          referencia_fabricante: f.referencia_fabricante as string | null,
+        });
+    }
     return linhas.map((l) => {
       const p = Array.isArray(l.produtos) ? l.produtos[0] : l.produtos;
+      const forn = l.avulso || !l.codigo ? undefined : fornecedor.get(l.codigo);
       return {
+        ...(forn ?? {}),
         orcamento_id: l.orcamento_id,
         ambiente: l.ambiente,
         codigo: l.avulso ? null : l.codigo,

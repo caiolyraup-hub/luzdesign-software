@@ -231,7 +231,7 @@ export function DocumentoOrcamento({ dados, logo }: { dados: DadosPdf; logo: Log
                 <Text style={estilos.colCodigo}>{item.codigo ?? "—"}</Text>
                 <View style={estilos.colDescricao}>
                   <Text>{item.descricao}</Text>
-                  {item.marca ? <Text style={estilos.marcaItem}>{item.marca}</Text> : null}
+                  {item.categoria ? <Text style={estilos.marcaItem}>{item.categoria}</Text> : null}
                 </View>
                 <Text style={estilos.colUnit}>{moedaCentavos(item.precoCentavos)}</Text>
                 <Text style={estilos.colTotal}>{moedaCentavos(item.totalCentavos)}</Text>

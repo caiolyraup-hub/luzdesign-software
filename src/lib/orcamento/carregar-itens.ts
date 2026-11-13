@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemRevisao, OrigemItem } from "./itens";
 
 export const SELECT_ITENS =
-  "id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, justificativa, origem, descricao_manual, ordem, produtos(marca, categoria, unidade, ativo, preco_unitario, descricao, produtos_descricao_formatada(descricao_formatada, descricao_origem))";
+  "id, codigo, descricao_congelada, preco_unitario_congelado, quantidade, ambiente, avulso, justificativa, origem, descricao_manual, ordem, produtos(categoria, unidade, ativo, preco_unitario, descricao, produtos_descricao_formatada(descricao_formatada, descricao_origem))";
 
 interface FormatadaJunta {
   descricao_formatada: string;
@@ -56,7 +56,7 @@ export function paraItemRevisao(l: LinhaItem): ItemRevisao {
     origem: l.origem ?? "manual",
     descricaoManual: l.descricao_manual ?? false,
     ordem: l.ordem,
-    marca: produto?.marca ?? null,
+    marca: null,
     categoria: l.avulso ? null : (produto?.categoria ?? null),
     unidade: l.avulso ? "un" : (produto?.unidade ?? "un"),
     produtoAtivo: l.avulso || !produto ? null : produto.ativo,

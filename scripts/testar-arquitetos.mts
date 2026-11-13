@@ -40,7 +40,10 @@ async function caso(nome: string, fn: () => Promise<void>) {
 async function limpar() {
   await admin.from("orcamentos").delete().eq("respostas->>arq_rls", "true");
   await admin.from("clientes").delete().like("nome", "ARQ RLS%");
-  const { data: arqs } = await admin.from("arquitetos").select("id, foto_path").like("nome", "ARQ RLS%");
+  const { data: arqs } = await admin
+    .from("arquitetos")
+    .select("id, foto_path")
+    .like("nome", "ARQ RLS%");
   const fotos = (arqs ?? []).map((a) => a.foto_path).filter((f): f is string => Boolean(f));
   if (fotos.length) await admin.storage.from("arquitetos").remove(fotos);
   const ids = (arqs ?? []).map((a) => a.id);
@@ -48,7 +51,10 @@ async function limpar() {
     await admin.from("eventos_arquiteto").delete().in("arquiteto_id", ids);
     await admin.from("arquitetos").delete().in("id", ids);
   }
-  const { data: numeros } = await admin.from("orcamentos").select("numero").like("numero", "2026-%");
+  const { data: numeros } = await admin
+    .from("orcamentos")
+    .select("numero")
+    .like("numero", "2026-%");
   const maior = Math.max(0, ...(numeros ?? []).map((n) => Number(String(n.numero).slice(5))));
   await admin.from("orcamento_contador").update({ ultimo: maior }).eq("ano", 2026);
 }
@@ -69,7 +75,12 @@ try {
     .single();
   const a2 = await kely.cliente
     .from("arquitetos")
-    .insert({ nome: "ARQ RLS Lula  Santana ", criado_por: kely.id, aniversario_dia: 29, aniversario_mes: 2 })
+    .insert({
+      nome: "ARQ RLS Lula  Santana ",
+      criado_por: kely.id,
+      aniversario_dia: 29,
+      aniversario_mes: 2,
+    })
     .select("id")
     .single();
 
@@ -159,15 +170,18 @@ try {
     assert.equal(Number(k.vendido), 2222);
   });
 
-  await caso("a lista de orçamentos da Aline filtrada pelo arquiteto nunca traz o da Kely", async () => {
-    const r = await aline.cliente.rpc("listar_orcamentos", {
-      p: { arquiteto_id: a1.data!.id, incluir_teste: true, limite: 50, status: [] },
-    });
-    assert.equal(r.error, null, r.error?.message);
-    const ids = (r.data as { itens: { id: string }[] }).itens.map((i) => i.id);
-    assert.ok(ids.includes(oAline));
-    assert.ok(!ids.includes(oKely));
-  });
+  await caso(
+    "a lista de orçamentos da Aline filtrada pelo arquiteto nunca traz o da Kely",
+    async () => {
+      const r = await aline.cliente.rpc("listar_orcamentos", {
+        p: { arquiteto_id: a1.data!.id, incluir_teste: true, limite: 50, status: [] },
+      });
+      assert.equal(r.error, null, r.error?.message);
+      const ids = (r.data as { itens: { id: string }[] }).itens.map((i) => i.id);
+      assert.ok(ids.includes(oAline));
+      assert.ok(!ids.includes(oKely));
+    },
+  );
 
   await caso("a gerência soma os números dos dois", async () => {
     const n = await numeros(gerente);
@@ -185,46 +199,55 @@ try {
     assert.equal(ev.data?.length ?? 0, 0);
   });
 
-  await caso("foto: o bucket é privado, a vendedora não baixa nem lista sem URL assinada", async () => {
-    const caminho = `${a1.data!.id}/teste-rls.jpg`;
-    const up = await admin.storage
-      .from("arquitetos")
-      .upload(caminho, new Blob(["x"], { type: "image/jpeg" }), { contentType: "image/jpeg" });
-    assert.equal(up.error, null, up.error?.message);
-    await admin.from("arquitetos").update({ foto_path: caminho }).eq("id", a1.data!.id);
-    const baixar = await aline.cliente.storage.from("arquitetos").download(caminho);
-    assert.notEqual(baixar.error, null);
-    const listar = await aline.cliente.storage.from("arquitetos").list(a1.data!.id);
-    assert.equal(listar.data?.length ?? 0, 0);
-    const assinar = await aline.cliente.storage.from("arquitetos").createSignedUrl(caminho, 60);
-    assert.notEqual(assinar.error, null);
-    const publico = await fetch(`${url}/storage/v1/object/public/arquitetos/${caminho}`);
-    assert.notEqual(publico.status, 200);
-  });
+  await caso(
+    "foto: o bucket é privado, a vendedora não baixa nem lista sem URL assinada",
+    async () => {
+      const caminho = `${a1.data!.id}/teste-rls.jpg`;
+      const up = await admin.storage
+        .from("arquitetos")
+        .upload(caminho, new Blob(["x"], { type: "image/jpeg" }), { contentType: "image/jpeg" });
+      assert.equal(up.error, null, up.error?.message);
+      await admin.from("arquitetos").update({ foto_path: caminho }).eq("id", a1.data!.id);
+      const baixar = await aline.cliente.storage.from("arquitetos").download(caminho);
+      assert.notEqual(baixar.error, null);
+      const listar = await aline.cliente.storage.from("arquitetos").list(a1.data!.id);
+      assert.equal(listar.data?.length ?? 0, 0);
+      const assinar = await aline.cliente.storage.from("arquitetos").createSignedUrl(caminho, 60);
+      assert.notEqual(assinar.error, null);
+      const publico = await fetch(`${url}/storage/v1/object/public/arquitetos/${caminho}`);
+      assert.notEqual(publico.status, 200);
+    },
+  );
 
-  await caso("a gerência edita, desativa e junta; a fusão move os orçamentos e fica registrada", async () => {
-    const e = await gerente.cliente
-      .from("arquitetos")
-      .update({ escritorio: "Estúdio RLS" })
-      .eq("id", a1.data!.id)
-      .select("id");
-    assert.equal(e.data?.length, 1);
-    const j = await gerente.cliente.rpc("juntar_arquitetos", {
-      p_manter: a1.data!.id,
-      p_remover: a2.data!.id,
-    });
-    assert.equal(j.error, null, j.error?.message);
-    const sumiu = await admin.from("arquitetos").select("id").eq("id", a2.data!.id);
-    assert.equal(sumiu.data?.length, 0);
-    const mantido = await admin
-      .from("arquitetos")
-      .select("aniversario_dia, aniversario_mes")
-      .eq("id", a1.data!.id)
-      .single();
-    assert.deepEqual(mantido.data, { aniversario_dia: 29, aniversario_mes: 2 }); // veio do removido
-    const ev = await gerente.cliente.from("eventos_arquiteto").select("tipo").eq("arquiteto_id", a1.data!.id);
-    assert.equal(ev.data?.[0]?.tipo, "juntou");
-  });
+  await caso(
+    "a gerência edita, desativa e junta; a fusão move os orçamentos e fica registrada",
+    async () => {
+      const e = await gerente.cliente
+        .from("arquitetos")
+        .update({ escritorio: "Estúdio RLS" })
+        .eq("id", a1.data!.id)
+        .select("id");
+      assert.equal(e.data?.length, 1);
+      const j = await gerente.cliente.rpc("juntar_arquitetos", {
+        p_manter: a1.data!.id,
+        p_remover: a2.data!.id,
+      });
+      assert.equal(j.error, null, j.error?.message);
+      const sumiu = await admin.from("arquitetos").select("id").eq("id", a2.data!.id);
+      assert.equal(sumiu.data?.length, 0);
+      const mantido = await admin
+        .from("arquitetos")
+        .select("aniversario_dia, aniversario_mes")
+        .eq("id", a1.data!.id)
+        .single();
+      assert.deepEqual(mantido.data, { aniversario_dia: 29, aniversario_mes: 2 }); // veio do removido
+      const ev = await gerente.cliente
+        .from("eventos_arquiteto")
+        .select("tipo")
+        .eq("arquiteto_id", a1.data!.id);
+      assert.equal(ev.data?.[0]?.tipo, "juntou");
+    },
+  );
 } finally {
   await limpar();
 }

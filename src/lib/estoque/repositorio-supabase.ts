@@ -19,7 +19,7 @@ export function criarRepositorioSupabase(supabase: SupabaseClient): RepositorioE
         const { data, error } = await supabase
           .from("produtos")
           .select(
-            "codigo, descricao, preco_unitario, categoria, marca, unidade, estoque_disponivel, ativo",
+            "codigo, descricao, preco_unitario, categoria, unidade, estoque_disponivel, ativo",
           )
           .order("codigo")
           .range(de, de + PAGINA - 1);
@@ -29,7 +29,6 @@ export function criarRepositorioSupabase(supabase: SupabaseClient): RepositorioE
             descricao: p.descricao,
             preco_unitario: Number(p.preco_unitario),
             categoria: p.categoria,
-            marca: p.marca,
             unidade: p.unidade,
             estoque_disponivel: p.estoque_disponivel === null ? null : Number(p.estoque_disponivel),
             ativo: p.ativo,
@@ -43,6 +42,13 @@ export function criarRepositorioSupabase(supabase: SupabaseClient): RepositorioE
     async gravarProdutos(linhas: LinhaProduto[]) {
       const { error } = await supabase.from("produtos").upsert(linhas, { onConflict: "codigo" });
       falhar("Gravar produtos", error);
+    },
+
+    async gravarFornecedor(linhas) {
+      const { error } = await supabase
+        .from("produtos_dados_fornecedor")
+        .upsert(linhas, { onConflict: "codigo" });
+      falhar("Gravar dados do fornecedor", error);
     },
 
     async gravarApelidos(linhas) {

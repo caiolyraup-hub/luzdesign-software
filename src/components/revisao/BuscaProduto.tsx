@@ -168,7 +168,7 @@ export function BuscaProduto({ titulo, onEscolher, onFechar, continuo = false, c
           }}
           inputMode="search"
           enterKeyHint="go"
-          placeholder="Código de 5 dígitos, descrição, marca..."
+          placeholder="Código de 5 dígitos, descrição ou referência do arquiteto..."
           aria-label="Buscar produto"
           className="min-h-14 w-full rounded-lg border border-zinc-300 px-4 text-lg"
         />

@@ -7,6 +7,8 @@ export const CAMPOS_MAPEAVEIS = [
   "preco_unitario",
   "categoria",
   "marca",
+  "referencia_fabricante",
+  "modelo",
   "unidade",
   "estoque_disponivel",
   "w",
@@ -26,7 +28,9 @@ export const ROTULOS_CAMPOS: Record<CampoMapeavel, string> = {
   descricao: "Descrição",
   preco_unitario: "Preço unitário",
   categoria: "Categoria",
-  marca: "Marca",
+  marca: "Fabricante (só a gerência vê)",
+  referencia_fabricante: "Referência do fabricante (só a gerência vê)",
+  modelo: "Modelo (só a gerência vê)",
   unidade: "Unidade (un ou m)",
   estoque_disponivel: "Estoque disponível",
   w: "Potência (W)",
@@ -48,7 +52,10 @@ export interface ProdutoImportacao {
   descricao: string;
   preco_unitario: number;
   categoria?: string | null;
+  /** Fabricante: vai para produtos_dados_fornecedor, nunca para `produtos`. */
   marca?: string | null;
+  referencia_fabricante?: string | null;
+  modelo?: string | null;
   unidade?: UnidadeProduto;
   estoque_disponivel?: number | null;
   atributos?: Record<string, unknown>;

@@ -52,6 +52,8 @@ export function aplicarMapeamento(
     const unidade = ler(l, "unidade");
     const categoria = ler(l, "categoria");
     const marca = ler(l, "marca");
+    const referencia = ler(l, "referencia_fabricante");
+    const modelo = ler(l, "modelo");
 
     const atributos: Record<string, unknown> = {};
     for (const campo of ["w", "k", "comprimento"] as const) {
@@ -68,6 +70,8 @@ export function aplicarMapeamento(
     if (preco !== undefined) produto.preco_unitario = parsePreco(preco) ?? Number.NaN;
     if (categoria !== undefined) produto.categoria = categoria || null;
     if (marca !== undefined) produto.marca = marca || null;
+    if (referencia !== undefined) produto.referencia_fabricante = referencia || null;
+    if (modelo !== undefined) produto.modelo = modelo || null;
     if (unidade !== undefined) produto.unidade = parseUnidade(unidade);
     if (estoque !== undefined)
       produto.estoque_disponivel = estoque === "" ? null : parsePreco(estoque);
@@ -151,6 +155,8 @@ const SINONIMOS_COLUNA: Record<CampoMapeavel, string[]> = {
   ],
   categoria: ["categoria", "grupo", "familia", "linha", "tipo"],
   marca: ["marca", "fabricante"],
+  referencia_fabricante: ["referencia fabricante", "ref fabricante", "referencia do fabricante"],
+  modelo: ["modelo"],
   unidade: ["unidade", "un", "und", "unid"],
   estoque_disponivel: ["estoque", "saldo", "qtd", "quantidade", "disponivel"],
   w: ["w", "watts", "potencia"],

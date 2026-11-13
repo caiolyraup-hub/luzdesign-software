@@ -1,4 +1,5 @@
 import "server-only";
+import { censurarFornecedor } from "../catalogo/limpar";
 import { nomeAmbienteValido, normalizarQuantidade } from "../orcamento/itens";
 import { subtotalCentavos } from "../orcamento/totais";
 import {
@@ -134,7 +135,7 @@ export function validarSugestoes(
       categoria: produto.categoria ?? null,
       unidade: produto.unidade,
       quantidade: q.valor,
-      motivo: s.motivo.replace(/\s+/g, " ").trim().slice(0, 300),
+      motivo: censurarFornecedor(s.motivo).slice(0, 300),
       precoUnitario: produto.preco_unitario,
       subtotalCentavos: subtotalCentavos(produto.preco_unitario, q.valor),
       jaNoAmbiente: jaNoAmbiente.has(produto.codigo),
@@ -260,9 +261,9 @@ export async function pedirIndicacao(
     const catalogo = await repo.buscarProdutosPorCodigo(codigosSugeridos(saida));
     const { sugestoes, avisos } = validarSugestoes(saida, catalogo, itensExistentes);
     const resultado: IndicacaoGuardada = {
-      resumo: saida.resumo.replace(/\s+/g, " ").trim().slice(0, 1200),
+      resumo: censurarFornecedor(saida.resumo).slice(0, 1200),
       sugestoes,
-      observacoes: saida.observacoes.map((o) => o.replace(/\s+/g, " ").trim()).filter(Boolean),
+      observacoes: saida.observacoes.map((o) => censurarFornecedor(o)).filter(Boolean),
       avisos,
     };
 

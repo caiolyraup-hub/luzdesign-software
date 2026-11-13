@@ -51,6 +51,9 @@ export interface ItemExport {
   preco_unitario: number;
   avulso: boolean;
   origem: string | null;
+  /** Só a gerência recebe (a RLS não devolve nada à vendedora). */
+  fabricante?: string | null;
+  referencia_fabricante?: string | null;
 }
 
 export interface EventoExport {
@@ -232,6 +235,12 @@ const COL_ITENS: ColunaSpec[] = [
   { chave: "total", titulo: "Total do item", largura: 15, formato: FORMATO_REAIS },
   { chave: "avulso", titulo: "Avulso", largura: 9 },
   { chave: "origem", titulo: "Origem", largura: 17 },
+];
+
+/** Colunas extras da aba Itens, só para a gerência (fabricante e referência nunca saem para a vendedora). */
+const COL_ITENS_GERENCIA: ColunaSpec[] = [
+  { chave: "fabricante", titulo: "Fabricante", largura: 16 },
+  { chave: "referencia", titulo: "Referência do fabricante", largura: 24, formato: "@" },
 ];
 
 const COL_CLIENTES: ColunaSpec[] = [
@@ -501,13 +510,14 @@ export async function escreverExportacao(
   let totalItens = 0;
   {
     const numeroDe = new Map(orcs.map((o) => [o.id, o.numero]));
-    const ws = novaAba(wb, "Itens", COL_ITENS);
+    const colunasItens = meta.gerencia ? [...COL_ITENS, ...COL_ITENS_GERENCIA] : COL_ITENS;
+    const ws = novaAba(wb, "Itens", colunasItens);
     for (let i = 0; i < orcs.length; i += TAMANHO_LOTE) {
       const ids = orcs.slice(i, i + TAMANHO_LOTE).map((o) => o.id);
       for (const it of await fonte.itens(ids)) {
         const qtd = Number(it.quantidade);
         const preco = Number(it.preco_unitario);
-        linha(ws, COL_ITENS, [
+        linha(ws, colunasItens, [
           numeroDe.get(it.orcamento_id) ?? "",
           it.ambiente ?? "",
           it.codigo ?? "",
@@ -518,6 +528,7 @@ export async function escreverExportacao(
           arred(qtd * preco),
           simNao(it.avulso),
           ROTULOS_ORIGEM[it.origem ?? "manual"] ?? it.origem ?? "",
+          ...(meta.gerencia ? [it.fabricante ?? "", it.referencia_fabricante ?? ""] : []),
         ]);
         totalItens++;
       }

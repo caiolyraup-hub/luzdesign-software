@@ -1,4 +1,5 @@
 import "server-only";
+import { contemDadoDeFornecedor } from "../catalogo/limpar";
 import {
   inicioDoDiaMaceio,
   mensagemAmigavelErro,
@@ -17,9 +18,9 @@ import { executarMotor, type ResultadoMotor } from "./motor";
 export const INSTRUCOES_FORMATACAO = `Você padroniza textos de orçamentos da Luz Design, loja de iluminação em Maceió (AL). Você NÃO escolhe produtos, NÃO muda quantidades e NÃO fala de preço: só reescreve texto.
 
 Tarefa 1, descrição comercial dos produtos: para cada produto (código, categoria e descrição do catálogo), escreva uma descrição comercial curta em português do Brasil, com as abreviações abertas e a grafia correta. Exemplo: "EMB DICR MR16 GU10 BR" vira "Embutido para dicroica MR16 GU10, branco".
-- Mantenha TODOS os números e medidas da descrição original (potência, temperatura de cor, mm, V, metros, códigos de modelo) exatamente como estão, sem converter nem arredondar. Não acrescente números novos.
+- Mantenha TODOS os números e medidas da descrição original (potência, temperatura de cor, mm, V, metros) exatamente como estão, sem converter nem arredondar. Não acrescente números novos.
 - USE A CATEGORIA para saber o que o produto é e nunca troque o tipo do produto: LED = lâmpada (por exemplo, "Lâmpada dicroica LED 6 W", "Lâmpada P20 7 W", "Lâmpada mini 3,5 W"); EMBUTIDO = luminária de embutir; SPOT = spot; FITA LED = fita LED vendida por metro; PERFIL = perfil de alumínio; FONTE = fonte de alimentação; PLAFON, ARANDELA, PENDENTE, TRILHO = o próprio nome. P20 e AR70/AR111 são tipos de lâmpada refletora: escreva como aparecem ("P20"), sem trocar por outro nome.
-- Mantenha a marca e o modelo como aparecem. Não invente características que a descrição original não diz.
+- NUNCA inclua marca, fabricante, linha/modelo ou referência de fabricante (por exemplo, nomes de marca e códigos como "DL-7324"): a descrição vai para o cliente, que não pode levar a referência para outra loja. Não invente características que a descrição original não diz.
 - Uma linha só, no máximo cerca de 120 caracteres.
 
 Tarefa 2, nomes de ambiente: devolva o mesmo nome com maiúsculas e acentos corretos (por exemplo "quarto casal" vira "Quarto casal", "SUITE" vira "Suíte"). Não troque palavras nem acrescente nada.
@@ -44,6 +45,8 @@ export function mesmosNumeros(original: string, formatado: string): boolean {
 export function descricaoFormatadaValida(original: string, formatada: string): boolean {
   const f = formatada.replace(/\s+/g, " ").trim();
   if (f.length < 3 || f.length > 200) return false;
+  // Nunca devolve marca, modelo ou referência (a descrição vai para o cliente).
+  if (contemDadoDeFornecedor(f)) return false;
   return mesmosNumeros(original, f);
 }
 

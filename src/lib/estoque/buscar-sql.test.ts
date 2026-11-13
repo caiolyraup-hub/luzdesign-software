@@ -19,13 +19,19 @@ async function buscar(
 beforeAll(async () => {
   db = await criarBancoLocal();
   await db.exec(`
-    insert into produtos (codigo, categoria, marca, descricao, unidade, preco_unitario, ativo) values
-      ('9520',  'LED',      'STELLA', 'STELLA DIC 6W 2.7K',        'un', 37, true),
-      ('9521',  'LED',      'STELLA', 'STELLA DIC 9W 3.0K',        'un', 45, true),
-      ('11500', 'EMBUTIDO', 'NIT',    'NIT. 12W 3.0K',             'un', 29, true),
-      ('12222', 'FITA LED', 'NIT',    'MTS FITA 22W/M NT NIT',     'm',  20, true),
-      ('9999',  'LED',      'STELLA', 'STELLA DIC 6W DESATIVADO',  'un', 37, false);
-    insert into produto_apelidos (codigo, texto) values ('11500', '12W AM NIT'), ('9999', 'dic 6w antigo');
+    insert into produtos (codigo, categoria, descricao, unidade, preco_unitario, ativo) values
+      ('9520',  'LED',      'LED DIC 6W 2.7K',        'un', 37, true),
+      ('9521',  'LED',      'LED DIC 9W 3.0K',        'un', 45, true),
+      ('11500', 'EMBUTIDO', 'EMBUTIDO 12W 3.0K',      'un', 29, true),
+      ('12222', 'FITA LED', 'MTS FITA 22W/M NT',      'm',  20, true),
+      ('9999',  'LED',      'LED DIC 6W DESATIVADO',  'un', 37, false);
+    insert into produtos_dados_fornecedor (codigo, fabricante, referencia_fabricante, descricao_fornecedor) values
+      ('9520',  'STELLA', null, 'STELLA DIC 6W 2.7K'),
+      ('9521',  'STELLA', null, 'STELLA DIC 9W 3.0K'),
+      ('11500', 'NIT',    null, 'NIT. 12W 3.0K'),
+      ('12222', 'NIT',    null, 'MTS FITA 22W/M NT NIT'),
+      ('9999',  'STELLA', null, 'STELLA DIC 6W DESATIVADO');
+    insert into produto_apelidos (codigo, texto) values ('11500', '12W AM'), ('9999', 'dic 6w antigo');
   `);
 }, 60_000);
 
@@ -41,7 +47,7 @@ describe("buscar_produtos", () => {
   });
 
   it("encontra pelo apelido", async () => {
-    expect(await buscar("12w am nit")).toContain("11500");
+    expect(await buscar("12w am")).toContain("11500");
   });
 
   it("encontra pelo código, com o código exato primeiro", async () => {
@@ -55,12 +61,13 @@ describe("buscar_produtos", () => {
 
   it("filtra por categoria e marca, e respeita o limite", async () => {
     expect(await buscar("", { categoria: "FITA LED" })).toEqual(["12222"]);
-    expect(await buscar("", { marca: "NIT" })).toEqual(["11500", "12222"]);
+    // Sem sessão de gerência, o filtro por fabricante é ignorado (a vendedora não enxerga o cadastro).
+    expect(await buscar("", { marca: "NIT" })).toHaveLength(4);
     expect(await buscar("", { limite: 2 })).toHaveLength(2);
   });
 
   it("tolera erro de digitação", async () => {
-    expect(await buscar("stela dic 6w")).toContain("9520");
+    expect(await buscar("ledd dic 6w")).toContain("9520");
   });
 
   it("texto vazio lista só os ativos", async () => {
