@@ -1,4 +1,4 @@
-// Cria (ou atualiza) as 3 contas no Supabase Auth e as linhas em public.usuarios.
+// Cria (ou atualiza) as 4 contas no Supabase Auth e as linhas em public.usuarios.
 // Uso: pnpm usuarios   (lê .env.local)
 import { createClient } from "@supabase/supabase-js";
 
@@ -19,6 +19,8 @@ const contas = [
   { nome: "Aline", email: exigir("SEED_EMAIL_ALINE"), perfil: "vendedora" },
   { nome: "Kely", email: exigir("SEED_EMAIL_KELY"), perfil: "vendedora" },
   { nome: "Gerência", email: exigir("SEED_EMAIL_GERENCIA"), perfil: "gerente" },
+  // Conta de teste do dono (Seu Filipe). A conta real é criada antes do go-live.
+  { nome: "Dono", email: exigir("SEED_EMAIL_DONO"), perfil: "dono" },
 ] as const;
 
 async function acharPorEmail(email: string) {

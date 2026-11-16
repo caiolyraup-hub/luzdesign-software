@@ -61,3 +61,11 @@ A tabela `produtos` não muda. Só muda a **origem**:
 - `src/lib/estoque/`: `lerPlanilha`, `mapeamento` (aplicar, validar, sugerir), `importar`, `repositorio-supabase`, `buscar`, `provisorio`.
 - `src/app/(app)/gerencia/estoque/`: tela e ações do servidor (conferem que quem chama é gerente).
 - `supabase/migrations/20261106000100_estoque.sql`.
+
+## Dia 11C: fabricante e referência separados
+
+A importação (`src/lib/estoque/importar.ts`, função `separarFornecedor`) grava `produtos` com a **descrição comercial limpa** e `produtos_dados_fornecedor` com fabricante, referência, modelo e o texto original. No mapeamento de colunas, **Marca** virou "Fabricante (só a gerência vê)" e há dois campos novos, **Referência do fabricante** e **Modelo**. O que a planilha não trouxer é extraído do texto da descrição pelo limpador. A tabela `produtos` não tem mais a coluna `marca`.
+
+- `pnpm catalogo:proteger` limpa o catálogo já gravado (idempotente: parte de `descricao_fornecedor`), limpa os apelidos e apaga o cache de descrições da IA. Rodado em 13/11/2026: 158 produtos, 157 descrições alteradas.
+- `pnpm itens:limpar-descricoes [--gravar]` corrige a descrição congelada de itens de orçamentos ainda não enviados, **sem mexer no preço**, e lista os que já foram enviados.
+- Efeito colateral inevitável: perfis e alguns embutidos que só se distinguiam pela referência ficam com a mesma descrição comercial (10 grupos). A vendedora os distingue pelo **código interno** e, quando o arquiteto manda a referência, pela busca por referência.

@@ -73,3 +73,18 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 - Leitura aberta a todo usuário logado (as duas vendedoras atendem os mesmos arquitetos); criação só em nome próprio; edição, desativação e fusão só da gerência (RLS e função com `eh_gerente()`). Testado em `pnpm test:rls` (`scripts/testar-arquitetos.mts`) e no PGlite.
 - A foto e a data de aniversário são dados pessoais (LGPD): bucket privado sem política para o cliente, URL assinada de 5 minutos gerada no servidor, aviso "use a foto só com autorização do arquiteto" no cadastro. Nenhum dado de arquiteto (nome, foto, aniversário, WhatsApp) vai para a OpenAI.
 - Os números do arquiteto para a vendedora vêm de `listar_arquitetos` em `security invoker`: a RLS de `orcamentos` limita ao que é dela, mesmo com o mesmo arquiteto e o mesmo nome de cliente na outra vendedora.
+
+## Catálogo protegido (dia 11C): fabricante, referência e modelo
+
+**O pedido do Seu Filipe:** o cliente não pode levar a referência para comprar o mesmo produto em outra loja ou na internet.
+
+**Por que não é criptografia:** criptografar as colunas não resolve. O servidor precisa da chave para mostrar o dado a quem pode, então ela está sempre à mão; quem tem acesso à tela continuaria vendo; e a busca deixaria de funcionar. A proteção é **separar o dado e controlar quem lê, no banco**, e **nunca imprimi-lo nos documentos do cliente**:
+
+1. `produtos_dados_fornecedor` (codigo, fabricante, referencia_fabricante, modelo, descricao_fornecedor, atributos_fornecedor) é lida e escrita **só pela gerência** (RLS com `eh_gerente()`). A vendedora não tem política de leitura: nem pela tabela, nem por embed (`produtos(...)`), nem por função, nem pela exportação. A coluna `produtos.marca` foi **apagada**.
+2. `produtos.descricao` (que todos leem) é a **descrição comercial limpa**, sem fabricante, linha/modelo nem referência (`src/lib/catalogo/limpar.ts`, determinístico). O texto original fica em `descricao_fornecedor`. O cache `produtos_descricao_formatada` foi apagado e a IA recebeu a instrução de nunca incluir marca, fabricante, modelo ou referência; o servidor ainda rejeita a descrição formatada que tenha qualquer um deles.
+3. **Busca da vendedora:** por código interno, descrição comercial e apelidos (também limpos). Para traduzir o pedido do arquiteto, `buscar_por_referencia(texto)` (`security definer`): igualdade **exata** após normalizar (maiúsculas, sem espaço, hífen, barra ou ponto), nunca parcial, devolve **só código e descrição comercial** e aceita 30 consultas por minuto por usuário (`consultas_referencia`). Vale na busca de produto e no **Colar lista** (linha com referência vira o código interno).
+4. **Documentos do cliente:** PDF e XLSX mostram o código interno, a categoria e o texto comercial congelado; `orcamento_itens` nunca congela fabricante nem referência. Testado por busca de texto no PDF e no XLSX (`src/lib/catalogo/documentos.test.ts`).
+5. **IA:** não recebe a marca; o que ela escreve em resumo, motivo e observações passa por `censurarFornecedor` (troca fabricantes, modelos e referências por "…").
+6. **Gerência:** vê fabricante e referência em `/produtos`, busca por eles e recebe as colunas Fabricante e Referência na aba Itens da exportação. A exportação da vendedora não tem essas colunas.
+
+Testes: `src/lib/catalogo/*` (limpador com 26 descrições reais, RLS e busca em PGlite, documentos) e `pnpm test:rls` (`scripts/testar-catalogo.mts`, banco real).

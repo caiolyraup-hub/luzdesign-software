@@ -106,14 +106,14 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   const busca = page.getByRole("searchbox", { name: "Buscar produto" });
   await busca.fill("9520");
   await busca.press("Enter");
-  await expect(page.getByText("Adicionado: STELLA DIC 6W 2.7K")).toBeVisible();
-  await busca.fill("MTS FITA 22W/M NT NIT");
+  await expect(page.getByText("Adicionado: LED DIC 6W 2.7K")).toBeVisible();
+  await busca.fill("MTS FITA 22W/M NT");
   await page.getByRole("button", { name: /Cód\. 12222/ }).click();
   await expect(page.getByRole("button", { name: "Concluir (2)" })).toBeVisible();
   await page.screenshot({ path: "test-results/telas/dia8-1-busca.png" });
   await page.getByRole("button", { name: "Concluir (2)" }).click();
   await expect(sala.getByText(/Cód. 9520/)).toBeVisible();
-  await expect(sala.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
+  await expect(sala.getByText("MTS FITA 22W/M NT")).toBeVisible();
 
   // ---- Colar lista na cozinha: 2 linhas reconhecidas, 1 não entendida.
   await cozinha.getByRole("button", { name: "Colar lista" }).click();
@@ -126,7 +126,7 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   await expect(page.getByText("Linhas que não entendi:")).toBeVisible();
   await expect(page.getByText("Não achei um código de 4 ou 5 dígitos.")).toBeVisible();
   await page.getByRole("button", { name: "Adicionar 2 itens" }).click();
-  await expect(cozinha.getByText("MB 48W")).toBeVisible();
+  await expect(cozinha.getByText("FONTE 48W")).toBeVisible();
   await expect(cozinha.getByRole("textbox", { name: /Quantidade de MTS FITA/ })).toHaveValue("3,5");
 
   // ---- Indicação da IA (simulada) num ambiente novo: nada entra sozinho; a vendedora adiciona.
@@ -146,8 +146,8 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
 
   await page.getByRole("button", { name: "Adicionar todas (2)" }).click();
   const varanda = page.getByRole("region", { name: "Varanda" });
-  await expect(varanda.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
-  await expect(varanda.getByText("MB 48W")).toBeVisible();
+  await expect(varanda.getByText("MTS FITA 22W/M NT")).toBeVisible();
+  await expect(varanda.getByText("FONTE 48W")).toBeVisible();
 
   // ---- Banco: origem de cada item e registros da IA.
   const { data: itens } = await admin
@@ -213,7 +213,7 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   });
   // A descrição pode vir do cache de padronização da IA ou do texto de teste.
   expect(text.replace(/\s+/g, " ")).toMatch(
-    /9520 (Padronizada: STELLA DIC 6W 2\.7K|Lâmpada dicroica LED Stella 6W, 2\.7K)/,
+    /9520 (Padronizada: LED DIC 6W 2.7K|Lâmpada dicroica LED 6W, 2.7K)/,
   );
 
   const planilha = await admin.storage.from("pdfs").download(o!.xlsx_caminho!);
@@ -231,7 +231,7 @@ test("Aline seleciona produtos (busca, código, lista colada), pede a Indicaçã
   expect(linhasProduto).toHaveLength(6);
   expect(
     linhasProduto.every(
-      (d) => d.startsWith("Padronizada: ") || d === "Lâmpada dicroica LED Stella 6W, 2.7K",
+      (d) => d.startsWith("Padronizada: ") || d === "Lâmpada dicroica LED 6W, 2.7K",
     ),
   ).toBe(true);
 

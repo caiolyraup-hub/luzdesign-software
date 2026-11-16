@@ -113,15 +113,13 @@ test("kit de fita de 5 m, duplicar ambiente com preço de hoje e seus mais usado
   // ---- Seus mais usados: com a busca vazia aparecem os produtos que ela mais usou.
   await sala1.getByRole("button", { name: "Adicionar produto" }).click();
   const usados = page.getByRole("region", { name: "Seus mais usados" });
-  await expect(usados.getByText("STELLA DIC 6W 2.7K")).toBeVisible();
+  await expect(usados.getByText("LED DIC 6W 2.7K")).toBeVisible();
   await page.screenshot({ path: "test-results/telas/dia9-4-mais-usados.png" });
   // Um toque adiciona (quantidade 1) e a folha continua aberta.
   await usados.getByRole("button", { name: /Cód\. 9520/ }).click();
-  await expect(page.getByText("Adicionado: STELLA DIC 6W 2.7K")).toBeVisible();
+  await expect(page.getByText("Adicionado: LED DIC 6W 2.7K")).toBeVisible();
   await page.getByRole("button", { name: "Concluir (1)" }).click();
-  await expect(
-    sala1.getByText(/STELLA DIC 6W 2\.7K|Lâmpada dicroica LED Stella 6W, 2\.7K/),
-  ).toBeVisible();
+  await expect(sala1.getByText(/LED DIC 6W 2.7K|Lâmpada dicroica LED 6W, 2.7K/)).toBeVisible();
 
   // ---- Kit de fita de 5 m: fita + perfil + fonte.
   await sala1.getByRole("button", { name: "Adicionar kit de fita" }).click();
@@ -131,7 +129,7 @@ test("kit de fita de 5 m, duplicar ambiente com preço de hoje e seus mais usado
   let busca = page.getByRole("searchbox", { name: "Buscar produto" });
   await busca.fill("12222");
   await busca.press("Enter"); // código de 4 ou 5 dígitos acha o produto direto
-  await expect(kit.getByText("MTS FITA 22W/M NT NIT")).toBeVisible();
+  await expect(kit.getByText("MTS FITA 22W/M NT")).toBeVisible();
   await kit.getByRole("button", { name: "Escolher o perfil" }).click();
   busca = page.getByRole("searchbox", { name: "Buscar produto" });
   await busca.fill("12086");
@@ -142,7 +140,7 @@ test("kit de fita de 5 m, duplicar ambiente com preço de hoje e seus mais usado
   await expect(kit.getByText("5 m de fita")).toBeVisible();
   await expect(kit.getByText("5 m ÷ 3 m = 2 barras")).toBeVisible();
   await expect(kit.getByText(/5 m × 22 W\/m = 110 W/)).toBeVisible();
-  await expect(kit.getByText("MB 150W")).toBeVisible();
+  await expect(kit.getByText("FONTE 150W")).toBeVisible();
   await expect(kit.getByText(/Confirmar a tensão/)).toBeVisible(); // o catálogo não informa a tensão
   await expect(kit.getByText(reais(totalKit)).last()).toBeVisible();
   await page.screenshot({ path: "test-results/telas/dia9-5-kit-previa.png", fullPage: true });

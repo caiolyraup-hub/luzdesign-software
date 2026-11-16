@@ -574,7 +574,8 @@ async function lerListaComReferencias(supabase: SupabaseClient, texto: string) {
   let consultas = 0;
   const linhas = [];
   for (const l of lida.linhas) {
-    const semCodigo = l.tipo === "nao_entendida" && l.motivo.startsWith("Não achei um código");
+    // Referência com dígitos no meio ("XQZ-77123/AB") costuma cair em "não entendi": tenta a referência.
+    const semCodigo = l.tipo === "nao_entendida";
     const codigoDesconhecido = l.tipo === "reconhecida" && !existentes.get(l.codigo);
     if ((!semCodigo && !codigoDesconhecido) || consultas >= 25) {
       linhas.push(l);
