@@ -24,6 +24,9 @@ export async function proxy(request: NextRequest) {
     },
   );
 
+  // Rota pública de saúde (versão no ar, sem dado sensível).
+  if (request.nextUrl.pathname === "/api/saude") return resposta;
+
   const { data } = await supabase.auth.getClaims();
   const logada = Boolean(data?.claims);
   const emLogin = request.nextUrl.pathname === "/login";

@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Data do build, para a rota pública /api/saude (qual versão está no ar).
+  env: { BUILD_DATA: new Date().toISOString() },
   /* config options here */
   cacheComponents: true,
   experimental: {
