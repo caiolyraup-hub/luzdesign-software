@@ -26,9 +26,7 @@ const PROIBIDOS = [
   "PD1334BZ",
   "CASUAL",
   "STL25367",
-  "SQUARE",
   "STH8904",
-  "DEEP",
 ];
 
 const itens: ItemRevisao[] = ORIGINAIS.map(([codigo, categoria, original], i) => ({

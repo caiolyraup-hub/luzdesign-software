@@ -9,6 +9,8 @@ export interface ProdutoExistente {
   unidade: UnidadeProduto;
   estoque_disponivel: number | null;
   ativo: boolean;
+  /** Descrição editada à mão pela gerência: a importação não a sobrescreve. */
+  descricao_editada_em?: string | null;
 }
 
 export interface LinhaFornecedor {
@@ -91,6 +93,17 @@ export function separarFornecedor(produtos: ProdutoImportacao[]): {
   return { produtos: limpos, fornecedores };
 }
 
+/** Produto com descrição editada à mão mantém a edição (o resto da carga entra normalmente). */
+export function preservarEdicoes(
+  produtos: ProdutoImportacao[],
+  existentes: Map<string, ProdutoExistente>,
+): ProdutoImportacao[] {
+  return produtos.map((p) => {
+    const antigo = existentes.get(p.codigo);
+    return antigo?.descricao_editada_em ? { ...p, descricao: antigo.descricao } : p;
+  });
+}
+
 /** Última ocorrência de cada código vence; as anteriores viram erro de linha. */
 function deduplicar(produtos: ProdutoImportacao[]) {
   const ultimo = new Map<string, number>();
@@ -140,8 +153,8 @@ export async function previa(
   produtos: ProdutoImportacao[],
   codigosVistos?: string[],
 ): Promise<PreviaImportacao> {
-  const { unicos } = deduplicar(separarFornecedor(produtos).produtos);
   const existentes = await repo.listarExistentes();
+  const { unicos } = deduplicar(preservarEdicoes(separarFornecedor(produtos).produtos, existentes));
   const c = classificar(unicos, existentes);
   const vistos = new Set(codigosVistos ?? unicos.map((p) => p.codigo));
   const ausentes = [...existentes].filter(([codigo, e]) => e.ativo && !vistos.has(codigo)).length;
@@ -184,8 +197,9 @@ export async function importar(
   opcoes: OpcoesImportacao,
 ): Promise<ResumoImportacao> {
   const erros: ErroLinha[] = [...(opcoes.erros ?? [])];
+  const existentesIniciais = await repo.listarExistentes();
   const separado = separarFornecedor(produtos);
-  const { unicos, repetidos } = deduplicar(separado.produtos);
+  const { unicos, repetidos } = deduplicar(preservarEdicoes(separado.produtos, existentesIniciais));
   const vistosFornecedor = new Set(unicos.map((p) => p.codigo));
   const fornecedores = separado.fornecedores.filter((f) => vistosFornecedor.has(f.codigo));
   if (repetidos > 0)

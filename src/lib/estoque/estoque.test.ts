@@ -194,6 +194,32 @@ const prod = (
   ...extra,
 });
 
+describe("importar: descrição editada à mão", () => {
+  it("não sobrescreve a descrição que a gerência editou; o preço e o resto entram", async () => {
+    const { repo, produtos } = repositorioEmMemoria({
+      "9520": {
+        descricao: "LED DIC 6W 2.7K (texto da gerência)",
+        preco_unitario: 37,
+        descricao_editada_em: "2026-11-16T12:00:00Z",
+      },
+      "9521": { descricao: "LED DIC 9W 3.0K", preco_unitario: 45 },
+    });
+    const resumo = await importar(
+      repo,
+      [
+        prod("9520", "STELLA DIC 6W 2.7K", 40, { categoria: "LED", marca: "STELLA" }),
+        prod("9521", "STELLA DIC 9W 3.0K", 48, { categoria: "LED", marca: "STELLA" }),
+      ],
+      { origem: "teste", linhasLidas: 2 },
+    );
+    expect(resumo.linhasGravadas).toBe(2);
+    expect(produtos.get("9520")?.descricao).toBe("LED DIC 6W 2.7K (texto da gerência)");
+    expect(Number(produtos.get("9520")?.preco_unitario)).toBe(40);
+    // sem edição, a descrição segue a da carga (já limpa)
+    expect(produtos.get("9521")?.descricao).toBe("LED DIC 9W 3.0K");
+  });
+});
+
 describe("importar: separa o que é do fornecedor", () => {
   it("a descrição comercial sai limpa e o original vai para a tabela da gerência", async () => {
     const { repo, produtos, fornecedor } = repositorioEmMemoria();

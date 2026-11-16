@@ -4,6 +4,7 @@ import {
   contemDadoDeFornecedor,
   limparDescricao,
   listaFabricantes,
+  TERMOS_DESCRITIVOS_MANTIDOS,
   normalizarReferencia,
 } from "./limpar";
 
@@ -12,9 +13,12 @@ const REAIS: [descricao: string, categoria: string, esperado: string][] = [
   ["MB 24W", "FONTE", "FONTE 24W"],
   ["60W MB", "FONTE", "FONTE 60W"],
   ["STELLA DIC 6W 2.7K", "LED", "LED DIC 6W 2.7K"],
-  ["STELLA DEEP 22W 3.0K PT", "EMBUTIDO", "EMBUTIDO 22W 3.0K PT"],
+  ["STELLA DEEP 22W 3.0K PT", "EMBUTIDO", "EMBUTIDO DEEP 22W 3.0K PT"],
   ["NIT. 12W 3.0K", "EMBUTIDO", "EMBUTIDO 12W 3.0K"],
   ["MT FITA MB 7,2W 4.0K", "FITA LED", "MT FITA 7,2W 4.0K"],
+  ["STL25367BR/27 SQUARE MICRO", "EMBUTIDO", "EMBUTIDO SQUARE MICRO BR"],
+  ["30660/300 BT FENDA", "PERFIL", "PERFIL 300 BT FENDA"],
+  ["NIT. PE009PT 3M", "PERFIL", "PERFIL 3M PT"],
   ["MTS FITA 22W/M NT NIT", "FITA LED", "MTS FITA 22W/M NT"],
   ["MB BLET 6338 EMBUT PT 5W 3.0K", "SPOT", "SPOT EMBUT PT 5W 3.0K"],
   ["6144 BLET S. PT MB", "SPOT", "SPOT S. PT"],
@@ -23,7 +27,7 @@ const REAIS: [descricao: string, categoria: string, esperado: string][] = [
   ["ASTRALED SP-7160 BR 2W 3.0K", "EMBUTIDO", "EMBUTIDO BR 2W 3.0K"],
   ["PF-1908 3MTS E. BR ASTRA", "PERFIL", "PERFIL 3MTS E. BR"],
   ["USINA 30015RED. BR DIC", "SPOT", "SPOT BR DIC"],
-  ["STH8903BR/30 DEEP 17W BR 3K", "EMBUTIDO", "EMBUTIDO 17W BR 3K"],
+  ["STH8903BR/30 DEEP 17W BR 3K", "EMBUTIDO", "EMBUTIDO DEEP 17W BR 3K"],
   ["30045/200BR", "PERFIL", "PERFIL 200 BR"],
   ["30850/300 BT KEN S.", "PERFIL", "PERFIL 300 BT S."],
   ["1.90337BT 4XDIC", "EMBUTIDO", "EMBUTIDO 4XDIC"],
@@ -57,7 +61,8 @@ describe("limparDescricao (descrições reais do catálogo)", () => {
     expect(r.modelos).toEqual(["BLET"]);
     const p = limparDescricao("STH8903PTO/30 DEEP 17W", "EMBUTIDO");
     expect(p.referencias).toEqual(["STH8903PTO/30"]);
-    expect(p.modelos).toEqual(["DEEP"]);
+    expect(p.modelos).toEqual([]); // DEEP descreve o produto: fica (ver TERMOS_DESCRITIVOS_MANTIDOS)
+    expect(p.comercial).toBe("EMBUTIDO DEEP 17W PT");
   });
 
   it("não confunde tipo de lâmpada, potência, cor e proteção com referência", () => {
@@ -87,6 +92,31 @@ describe("limparDescricao (descrições reais do catálogo)", () => {
   it("não repete a categoria quando o texto já a diz", () => {
     expect(limparDescricao("MT FITA MB 5W", "FITA LED").comercial).toBe("MT FITA 5W");
     expect(limparDescricao("LED DIC.4,8W 3K MB", "LED").comercial).toBe("LED DIC.4,8W 3K");
+  });
+});
+
+describe("termos descritivos mantidos e cor da referência (revisão do dia 12)", () => {
+  it.each(TERMOS_DESCRITIVOS_MANTIDOS)(
+    "%s não é removido nem acusado como dado de fornecedor",
+    (termo) => {
+      expect(limparDescricao(`MB ${termo} 6820 12W`, "EMBUTIDO").comercial).toContain(termo);
+      expect(contemDadoDeFornecedor(`EMBUTIDO ${termo} 12W`)).toBe(false);
+    },
+  );
+
+  it("a cor que estava dentro da referência volta, sem duplicar", () => {
+    expect(limparDescricao("NIT. PE009PT 3M", "PERFIL").comercial).toBe("PERFIL 3M PT");
+    expect(limparDescricao("NIT. PS201B 3M", "PERFIL").comercial).toBe("PERFIL 3M"); // B não é cor
+    expect(limparDescricao("STH8903BR/30 DEEP 17W BR 3K", "EMBUTIDO").comercial).toBe(
+      "EMBUTIDO DEEP 17W BR 3K",
+    );
+    expect(limparDescricao("PE009PT 3M PT", "PERFIL").comercial).toBe("PERFIL 3M PT");
+  });
+
+  it("diferencia dois produtos que só diferiam pela cor da referência", () => {
+    const a = limparDescricao("NIT. PS201B 3M", "PERFIL").comercial;
+    const b = limparDescricao("NIT. PE009PT 3M", "PERFIL").comercial;
+    expect(a).not.toBe(b);
   });
 });
 

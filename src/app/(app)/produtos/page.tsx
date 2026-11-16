@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { LinkClientes } from "@/components/orcamento/LinkClientes";
 import { connection } from "next/server";
+import { EditarDescricao } from "@/components/produtos/EditarDescricao";
+import { ehGerencia } from "@/lib/dominio";
 import { buscarProdutos } from "@/lib/estoque/buscar";
+import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -12,6 +15,8 @@ async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParam
   const texto = (Array.isArray(q) ? q[0] : q) ?? "";
 
   const supabase = await criarClienteServidor();
+  const usuario = await obterUsuarioAtual();
+  const gerencia = ehGerencia(usuario.perfil);
   let produtos;
   try {
     produtos = await buscarProdutos(supabase, { texto, limite: 50 });
@@ -32,7 +37,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParam
       </p>
       <ul className="divide-y divide-zinc-200">
         {produtos.map((p) => (
-          <li key={p.codigo} className="flex items-start justify-between gap-3 py-3">
+          <li key={p.codigo} className="flex flex-wrap items-start justify-between gap-3 py-3">
             <div className="min-w-0">
               <p className="text-lg font-medium">{p.descricao}</p>
               <p className="text-base text-zinc-600">
@@ -40,6 +45,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParam
                 {p.categoria ? ` · ${p.categoria}` : ""}
                 {p.marca ? ` · ${p.marca}` : ""}
               </p>
+              {gerencia ? <EditarDescricao codigo={p.codigo} descricao={p.descricao} /> : null}
             </div>
             <p className="shrink-0 text-lg font-semibold">
               {moeda.format(p.preco_unitario)}
@@ -52,6 +58,40 @@ async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParam
   );
 }
 
+const dataBR = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "America/Maceio",
+});
+
+/** De onde veio o catálogo (só a gerência vê): "Catálogo provisório, 158 produtos, importado em 06/11". */
+async function Procedencia() {
+  await connection();
+  const usuario = await obterUsuarioAtual();
+  if (!ehGerencia(usuario.perfil)) return null;
+  const supabase = await criarClienteServidor();
+  const [{ data: carga }, { count }] = await Promise.all([
+    supabase
+      .from("sync_estoque")
+      .select("origem, iniciado_em, terminado_em")
+      .not("terminado_em", "is", null)
+      .order("terminado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("produtos").select("codigo", { count: "exact", head: true }).eq("ativo", true),
+  ]);
+  const provisorio = !carga || String(carga.origem).startsWith("provisorio");
+  const quando = carga ? dataBR.format(new Date(carga.terminado_em ?? carga.iniciado_em)) : null;
+  return (
+    <p role="note" className="rounded-lg bg-amber-50 p-3 text-base text-zinc-800">
+      {provisorio ? "Catálogo provisório" : `Catálogo importado (${carga?.origem})`}, {count ?? 0}{" "}
+      produtos
+      {quando ? `, importado em ${quando}` : ""}.
+      {provisorio ? " A planilha real do estoque ainda vai substituir estes dados." : ""}
+    </p>
+  );
+}
+
 export default function Page({ searchParams }: PageProps<"/produtos">) {
   return (
     <section className="space-y-4">
@@ -59,6 +99,9 @@ export default function Page({ searchParams }: PageProps<"/produtos">) {
         <h1 className="text-2xl font-semibold">Produtos</h1>
         <LinkClientes />
       </div>
+      <Suspense fallback={null}>
+        <Procedencia />
+      </Suspense>
       <form action="/produtos" method="get" className="flex gap-2">
         <input
           name="q"

@@ -43,15 +43,19 @@ export const MODELOS_CONHECIDOS = [
   "ARI",
   "ARBOR",
   "POINT",
-  "DEEP",
-  "FENDA",
   "ECLIPSE",
   "LITE",
   "BABY",
   "A-GREDA",
   "LED3",
-  "SQUARE",
 ] as const;
+
+/**
+ * Termos que parecem nome de linha, mas DESCREVEM o produto (revisão do dia 12): "deep" (embutido
+ * profundo), "square" (quadrado) e "fenda" (perfil de fenda). Ficam na descrição comercial. Não
+ * identificam o produto sozinhos (sem fabricante nem referência). Cada um tem teste.
+ */
+export const TERMOS_DESCRITIVOS_MANTIDOS = ["DEEP", "SQUARE", "FENDA"] as const;
 
 /** Tokens técnicos que parecem referência mas descrevem o produto (lâmpada, soquete, proteção, tensão). */
 const PROTEGIDO =
@@ -71,6 +75,10 @@ const REGRAS_REFERENCIA: RegExp[] = [
 ];
 
 /** 30045/200BR: a variante depois da barra (tamanho e cor) continua, a referência sai. */
+/** Referência que termina com o código da cor (PE009PT = perfil preto): a cor é característica e fica. */
+const COR_NO_FIM = /^[A-Z]{1,5}-?\d{3,}(PTO|PT|BR|BT)(?:\/\d+)?$/i;
+const COR_NORMAL: Record<string, string> = { PTO: "PT" };
+
 const REFERENCIA_COM_VARIANTE = /^\d{4,5}\/(\d{2,3})([A-Z]{0,3})$/i;
 
 const escapar = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -136,6 +144,7 @@ export function limparDescricao(
   });
 
   const mantidos: string[] = [];
+  const cores: string[] = [];
   for (const token of texto.split(/\s+/).filter(Boolean)) {
     const limpo = token.replace(/^[(]+|[),;]+$/g, "");
     if (PROTEGIDO.test(limpo)) {
@@ -150,10 +159,16 @@ export function limparDescricao(
     }
     if (REGRAS_REFERENCIA.some((r) => r.test(limpo))) {
       referencias.push(limpo.toUpperCase());
+      const cor = COR_NO_FIM.exec(limpo)?.[1]?.toUpperCase();
+      if (cor) cores.push(COR_NORMAL[cor] ?? cor);
       continue;
     }
     mantidos.push(token);
   }
+  // A cor que só aparecia dentro da referência volta, se o texto ainda não a diz.
+  for (const cor of cores)
+    if (!mantidos.some((m) => m.replace(/[^A-Za-z]/g, "").toUpperCase() === cor))
+      mantidos.push(cor);
 
   // Sobras de pontuação soltas ("-", "/", ".", "( )").
   let resto = mantidos

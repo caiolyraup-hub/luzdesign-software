@@ -15,7 +15,7 @@ const admin = createClient(
 const { data: produtos, error } = await admin
   .from("produtos")
   .select(
-    "codigo, categoria, descricao, produtos_dados_fornecedor(fabricante, descricao_fornecedor, atributos_fornecedor)",
+    "codigo, categoria, descricao, descricao_editada_em, produtos_dados_fornecedor(fabricante, descricao_fornecedor, atributos_fornecedor)",
   )
   .order("codigo");
 if (error) throw error;
@@ -65,8 +65,14 @@ for (const p of produtos ?? []) {
     { onConflict: "codigo" },
   );
   if (up.error) throw up.error;
-  const d = await admin.from("produtos").update({ descricao: r.comercial }).eq("codigo", p.codigo);
-  if (d.error) throw d.error;
+  // Descrição editada à mão pela gerência é prioritária: não é sobrescrita.
+  if (!(p as { descricao_editada_em?: string | null }).descricao_editada_em) {
+    const d = await admin
+      .from("produtos")
+      .update({ descricao: r.comercial })
+      .eq("codigo", p.codigo);
+    if (d.error) throw d.error;
+  }
   await admin.from("produto_apelidos").delete().eq("codigo", p.codigo);
   if (apelidos.length) {
     const a = await admin

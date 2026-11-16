@@ -19,7 +19,7 @@ export function criarRepositorioSupabase(supabase: SupabaseClient): RepositorioE
         const { data, error } = await supabase
           .from("produtos")
           .select(
-            "codigo, descricao, preco_unitario, categoria, unidade, estoque_disponivel, ativo",
+            "codigo, descricao, preco_unitario, categoria, unidade, estoque_disponivel, ativo, descricao_editada_em",
           )
           .order("codigo")
           .range(de, de + PAGINA - 1);
@@ -32,6 +32,7 @@ export function criarRepositorioSupabase(supabase: SupabaseClient): RepositorioE
             unidade: p.unidade,
             estoque_disponivel: p.estoque_disponivel === null ? null : Number(p.estoque_disponivel),
             ativo: p.ativo,
+            descricao_editada_em: p.descricao_editada_em ?? null,
           });
         }
         if (!data || data.length < PAGINA) break;
