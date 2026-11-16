@@ -1,3 +1,4 @@
+import { ehGerencia } from "@/lib/dominio";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { Duplicados, type ParDuplicado } from "@/components/clientes/Duplicados";
@@ -10,7 +11,7 @@ async function Clientes({ searchParams }: Pick<PageProps<"/clientes">, "searchPa
   await connection();
   const params = await searchParams;
   const usuario = await obterUsuarioAtual();
-  const gerente = usuario.perfil === "gerente";
+  const gerente = ehGerencia(usuario.perfil);
   const filtros = lerFiltrosClientes(params, { gerente });
   const supabase = await criarClienteServidor();
 

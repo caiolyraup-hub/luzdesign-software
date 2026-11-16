@@ -50,11 +50,23 @@ export async function proxy(request: NextRequest) {
       .select("perfil")
       .eq("id", data!.claims.sub)
       .maybeSingle();
-    if (perfil?.perfil !== "gerente") {
+    if (perfil?.perfil !== "gerente" && perfil?.perfil !== "dono") {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       url.search = "";
       return NextResponse.redirect(url);
+    }
+  }
+
+  // /comissoes/*: só o dono. Para os outros perfis a rota não existe: 404 de verdade (não "acesso negado").
+  if (logada && request.nextUrl.pathname.startsWith("/comissoes")) {
+    const { data: perfil } = await supabase
+      .from("usuarios")
+      .select("perfil")
+      .eq("id", data!.claims.sub)
+      .maybeSingle();
+    if (perfil?.perfil !== "dono") {
+      return new NextResponse("Not Found", { status: 404 });
     }
   }
 

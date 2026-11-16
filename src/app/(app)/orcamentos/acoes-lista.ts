@@ -1,4 +1,5 @@
 "use server";
+import { ehGerencia } from "@/lib/dominio";
 
 import type { DadosCartao } from "@/components/orcamento/CartaoOrcamento";
 import { lerFiltrosLista, TAMANHO_PAGINA } from "@/lib/orcamento/filtros-lista";
@@ -20,11 +21,11 @@ export async function carregarMaisOrcamentos(
 ): Promise<RespostaMais> {
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
-  const filtros = lerFiltrosLista(params, { gerente: usuario.perfil === "gerente" });
+  const filtros = lerFiltrosLista(params, { gerente: ehGerencia(usuario.perfil) });
   const pagina = await listarOrcamentos(supabase, filtros, {
     cursor: /^[^|]{1,64}\|[0-9a-f-]{36}$/i.test(cursor) ? cursor : null,
     limite: TAMANHO_PAGINA,
-    mostrarVendedora: usuario.perfil === "gerente",
+    mostrarVendedora: ehGerencia(usuario.perfil),
   });
   if (!pagina) return { ok: false, erro: "Não foi possível carregar mais orçamentos." };
   return { ok: true, cartoes: pagina.cartoes, proximo: pagina.proximo };

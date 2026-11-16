@@ -88,3 +88,7 @@ Bucket privado `anexos`, caminho `{vendedora_id}/{orcamento_id}/{arquivo}`. A ve
 6. **Gerência:** vê fabricante e referência em `/produtos`, busca por eles e recebe as colunas Fabricante e Referência na aba Itens da exportação. A exportação da vendedora não tem essas colunas.
 
 Testes: `src/lib/catalogo/*` (limpador com 26 descrições reais, RLS e busca em PGlite, documentos) e `pnpm test:rls` (`scripts/testar-catalogo.mts`, banco real).
+
+## Comissões (dia 11D)
+
+Perfil `dono`: `eh_gerente()` passou a valer para gerente ou dono (todas as políticas antigas aceitam o dono) e `eh_dono()` é exclusivo. As tabelas `configuracoes_comissao`, `comissoes_arquiteto_percentual`, `comissoes_vendedora_percentual` e `comissoes` só têm política para o dono: nem a gerente lê. Quem grava ao fechar o orçamento é o gatilho `orcamentos_comissao` (security definer), então a vendedora gera a comissão sem poder lê-la; as funções `comissao_linhas`, `recalcular_comissao` e `calcular_fechamentos_anteriores` não executam para os outros perfis. `/comissoes` responde 404 (proxy) fora do dono. Testado em `pnpm test:rls` (`scripts/testar-comissoes.mts`), no PGlite e no e2e.

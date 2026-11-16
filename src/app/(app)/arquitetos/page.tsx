@@ -1,3 +1,4 @@
+import { ehGerencia } from "@/lib/dominio";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -14,7 +15,7 @@ async function Arquitetos({ searchParams }: Pick<PageProps<"/arquitetos">, "sear
   const params = await searchParams;
   const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 80);
   const usuario = await obterUsuarioAtual();
-  const gerente = usuario.perfil === "gerente";
+  const gerente = ehGerencia(usuario.perfil);
   const inativos = gerente && params.inativos === "1";
   const supabase = await criarClienteServidor();
   const lista = await listarArquitetos(supabase, { q, inativos });

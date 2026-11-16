@@ -1,3 +1,4 @@
+import { ehGerencia } from "@/lib/dominio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -138,12 +139,12 @@ async function Detalhe({
     (orc.validade ? ` Válido até ${isoParaBR(orc.validade)}.` : "") +
     ` Qualquer dúvida, é só me chamar!`;
   const zap = cliente?.whatsapp ? cliente.whatsapp.replace(/\D/g, "") : null;
-  const podeAcompanhar = (minha || usuario.perfil === "gerente") && orc.status !== "rascunho";
+  const podeAcompanhar = (minha || ehGerencia(usuario.perfil)) && orc.status !== "rascunho";
   const editavel = minha && (orc.status === "rascunho" || orc.status === "gerado");
   // Vencido não é um status: é a validade passada (regra única em lib/orcamento/validade.ts).
   const aviso = avisoValidade(orc.status, orc.validade);
   const podeRenovar =
-    (minha || usuario.perfil === "gerente") &&
+    (minha || ehGerencia(usuario.perfil)) &&
     temPdf &&
     (STATUS_QUE_VENCEM as readonly string[]).includes(orc.status);
 

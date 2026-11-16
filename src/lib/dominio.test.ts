@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { MOTIVOS_PERDA, PERFIS, STATUS_ORCAMENTO, TIPOS_CLIENTE } from "./dominio";
+import {
+  MOTIVOS_PERDA,
+  PERFIS,
+  STATUS_ORCAMENTO,
+  TIPOS_CLIENTE,
+  ehDono,
+  ehGerencia,
+} from "./dominio";
 
 describe("domínio", () => {
   it("mantém os status do orçamento na ordem do funil", () => {
@@ -25,7 +32,10 @@ describe("domínio", () => {
   });
 
   it("define os perfis e tipos de cliente", () => {
-    expect(PERFIS).toEqual(["vendedora", "gerente"]);
+    expect(PERFIS).toEqual(["vendedora", "gerente", "dono"]);
+    // Gerência = gerente ou dono; só o dono vê comissões.
+    expect(["vendedora", "gerente", "dono"].map((p) => ehGerencia(p))).toEqual([false, true, true]);
+    expect(["vendedora", "gerente", "dono"].map((p) => ehDono(p))).toEqual([false, false, true]);
     expect(TIPOS_CLIENTE).toEqual(["final", "arquiteto", "eletricista", "construtora", "empresa"]);
   });
 });

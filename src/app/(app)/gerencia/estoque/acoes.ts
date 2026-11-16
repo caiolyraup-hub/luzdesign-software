@@ -1,4 +1,5 @@
 "use server";
+import { ehGerencia } from "@/lib/dominio";
 
 import { importar, previa } from "@/lib/estoque/importar";
 import { lerPlanilha } from "@/lib/estoque/lerPlanilha";
@@ -21,7 +22,7 @@ type Falha = { ok: false; erro: string };
 /** A escrita usa a service role, então o perfil é conferido aqui, no servidor, a cada chamada. */
 async function exigirGerente() {
   const usuario = await obterUsuarioAtual();
-  if (usuario.perfil !== "gerente") throw new Error("Apenas a gerência pode importar o estoque.");
+  if (!ehGerencia(usuario.perfil)) throw new Error("Apenas a gerência pode importar o estoque.");
   return usuario;
 }
 

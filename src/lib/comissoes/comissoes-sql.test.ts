@@ -28,7 +28,10 @@ async function novoOrcamento(
   `);
 }
 const fechar = (n: number, valor?: number) =>
-  comoUsuario(db, ALINE, "select mudar_status_orcamento($1, 'fechado', $2)", [orc(n), valor ?? null]);
+  comoUsuario(db, ALINE, "select mudar_status_orcamento($1, 'fechado', $2)", [
+    orc(n),
+    valor ?? null,
+  ]);
 const linhas = (n: number) =>
   db
     .query<any>(
@@ -113,8 +116,22 @@ describe("cálculo no fechamento", () => {
     await novoOrcamento(2, { valor: 1000 });
     await fechar(2, 1200);
     expect(await linhas(2)).toEqual([
-      { tipo: "arquiteto", percentual: 5, valor: 60, base: 1200, status: "a_pagar", revisar: false },
-      { tipo: "vendedora", percentual: 3, valor: 36, base: 1200, status: "a_pagar", revisar: false },
+      {
+        tipo: "arquiteto",
+        percentual: 5,
+        valor: 60,
+        base: 1200,
+        status: "a_pagar",
+        revisar: false,
+      },
+      {
+        tipo: "vendedora",
+        percentual: 3,
+        valor: 36,
+        base: 1200,
+        status: "a_pagar",
+        revisar: false,
+      },
     ]);
     const aline = await comoUsuario(db, ALINE, "select * from comissoes");
     expect(aline.rows).toHaveLength(0);
@@ -141,7 +158,9 @@ describe("cálculo no fechamento", () => {
     ).rows[0].id;
     const r = await comoUsuario<{ r: any }>(db, DONO, "select recalcular_comissao($1) as r", [id]);
     expect(r.rows[0].r).toMatchObject({ percentual: 8, valor: 96 });
-    await db.exec(`update comissoes set status = 'paga', paga_em = current_date where id = '${id}'`);
+    await db.exec(
+      `update comissoes set status = 'paga', paga_em = current_date where id = '${id}'`,
+    );
     await expect(comoUsuario(db, DONO, "select recalcular_comissao($1)", [id])).rejects.toThrow(
       /SO_A_PAGAR/,
     );

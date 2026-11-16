@@ -20,6 +20,15 @@ const ITENS_GERENTE = [
   { href: "/gerencia/configuracoes", rotulo: "Ajustes" },
 ];
 
+// O dono tem o menu da gerência e Comissões no lugar de Produtos (que continua em /produtos).
+const ITENS_DONO = [
+  { href: "/", rotulo: "Início" },
+  { href: "/gerencia", rotulo: "Equipe" },
+  { href: "/gerencia/estoque", rotulo: "Estoque" },
+  { href: "/comissoes", rotulo: "Comissões" },
+  { href: "/gerencia/configuracoes", rotulo: "Ajustes" },
+];
+
 function ativo(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href === "/orcamentos")
@@ -44,7 +53,8 @@ export function BarraNavegacao({
   followupsVencidos?: number;
 }) {
   const pathname = usePathname();
-  const itens = perfil === "gerente" ? ITENS_GERENTE : ITENS_VENDEDORA;
+  const itens =
+    perfil === "dono" ? ITENS_DONO : perfil === "gerente" ? ITENS_GERENTE : ITENS_VENDEDORA;
   return (
     <nav
       aria-label="Navegação principal"

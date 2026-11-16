@@ -1,3 +1,4 @@
+import { ehGerencia } from "@/lib/dominio";
 import { PassThrough, Readable } from "node:stream";
 import { carregarFonteExportacao } from "@/lib/exportacao/fonte-supabase";
 import { escreverExportacao, type ContagemExportacao } from "@/lib/exportacao/planilha";
@@ -20,7 +21,7 @@ const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
  */
 export async function GET(req: Request) {
   const usuario = await obterUsuarioAtual();
-  const gerencia = usuario.perfil === "gerente";
+  const gerencia = ehGerencia(usuario.perfil);
   const params = Object.fromEntries(new URL(req.url).searchParams);
   const filtros = lerFiltrosLista(params, { gerente: gerencia });
   const incluirTeste = params.teste === "1";

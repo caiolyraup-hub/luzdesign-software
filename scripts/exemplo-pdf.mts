@@ -34,8 +34,8 @@ const item = (
 });
 
 const itens: ItemRevisao[] = [
-  item(1, "Sala", "9520", "LED", "Lâmpada dicroica LED 6 W, 2.7 K", "STELLA", 37, 6),
-  item(2, "Sala", "11500", "EMBUTIDO", "Embutido redondo para dicroica, branco", "NIT", 29, 4),
+  item(1, "Sala", "9520", "LED", "Lâmpada dicroica LED 6 W, 2.7 K", null, 37, 6),
+  item(2, "Sala", "11500", "EMBUTIDO", "Embutido redondo para dicroica, branco", null, 29, 4),
   item(3, "Sala", null, null, "Pendente 3 globos, vidro fumê, 30 cm", null, 890, 1),
   item(
     4,
@@ -43,15 +43,15 @@ const itens: ItemRevisao[] = [
     "12222",
     "FITA LED",
     "Fita LED 22 W por metro, luz neutra",
-    "NIT",
+    null,
     20,
     8.5,
     "m",
   ),
-  item(5, "Cozinha", "12615", "PERFIL", "Perfil de alumínio 2 m, branco", "MB", 311, 5),
-  item(6, "Cozinha", "10340", "FONTE", "Fonte de alimentação 48 W", "MB", 52, 4),
-  item(7, "Quarto de casal", "9520", "LED", "Lâmpada dicroica LED 6 W, 2.7 K", "STELLA", 37, 4),
-  item(8, "Quarto de casal", "10338", "FONTE", "Fonte de alimentação 24 W", "MB", 32, 1),
+  item(5, "Cozinha", "12615", "PERFIL", "Perfil de alumínio 2 m, branco", null, 311, 5),
+  item(6, "Cozinha", "10340", "FONTE", "Fonte de alimentação 48 W", null, 52, 4),
+  item(7, "Quarto de casal", "9520", "LED", "Lâmpada dicroica LED 6 W, 2.7 K", null, 37, 4),
+  item(8, "Quarto de casal", "10338", "FONTE", "Fonte de alimentação 24 W", null, 32, 1),
 ];
 
 const dados = montarDadosPdf({
@@ -77,6 +77,7 @@ const dados = montarDadosPdf({
     nome: "TESTE Cliente Exemplo",
     whatsapp: "(82) 99999-1234",
     arquiteto: "Arquiteta de Teste",
+    endereco: "Rua das Flores, 10, Ponta Verde",
   },
   vendedora: "Aline",
   itens,

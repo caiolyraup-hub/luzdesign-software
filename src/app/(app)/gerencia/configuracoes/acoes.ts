@@ -1,4 +1,5 @@
 "use server";
+import { ehGerencia } from "@/lib/dominio";
 
 import { z } from "zod";
 import { obterUsuarioAtual } from "@/lib/sessao";
@@ -69,7 +70,7 @@ export async function salvarConfiguracoes(
   formData: FormData,
 ): Promise<EstadoConfiguracoes> {
   const usuario = await obterUsuarioAtual();
-  if (usuario.perfil !== "gerente")
+  if (!ehGerencia(usuario.perfil))
     return { ok: false, erro: "Apenas a gerência pode alterar estes dados." };
 
   // O desconto aceita vírgula decimal ("12,5").

@@ -1,4 +1,5 @@
 "use server";
+import { ehGerencia } from "@/lib/dominio";
 
 import { revalidatePath } from "next/cache";
 import { BUCKET_FOTOS, listarArquitetos, type CartaoArquiteto } from "@/lib/arquitetos/servidor";
@@ -92,7 +93,7 @@ export async function buscarArquitetos(q: string): Promise<CartaoArquiteto[]> {
 
 async function exigirGerencia(): Promise<Falha | null> {
   const usuario = await obterUsuarioAtual();
-  return usuario.perfil === "gerente" ? null : falha("Só a gerência altera arquitetos.");
+  return ehGerencia(usuario.perfil) ? null : falha("Só a gerência altera arquitetos.");
 }
 
 export async function editarArquiteto(

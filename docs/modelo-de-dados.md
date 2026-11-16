@@ -170,3 +170,16 @@ Migrations `20261113000200_arquitetos.sql`, `..300_filtro_arquiteto.sql` e `..40
 - `listar_arquitetos(p)` (security invoker): números de indicados, fechados e vendido respeitam a RLS (a vendedora vê só os dela). `juntar_arquitetos(manter, remover)` (security definer, só gerência): move orçamentos e clientes, completa os dados que faltam, apaga o outro e registra em `eventos_arquiteto` (só a gerência lê; só o servidor grava).
 - `configuracoes_loja.mensagem_aniversario` (padrão cordial, com `{arquiteto}` e `{vendedora}`), editável em Ajustes.
 - `listar_orcamentos` aceita `arquiteto_id` e devolve `endereco` e `arquiteto_id`.
+
+## Dia 11C: catálogo protegido
+
+Migration `20261113000500_catalogo_protegido.sql`. `produtos.marca` foi **apagada**. `produtos_dados_fornecedor` (codigo PK/FK, fabricante, referencia_fabricante, `referencias_normalizadas` text[], modelo, descricao_fornecedor, atributos_fornecedor) só a gerência lê e escreve (RLS com `eh_gerente()`). `produtos.descricao` é a descrição comercial limpa. `consultas_referencia` (limite de 30 por minuto) e `buscar_por_referencia(texto)` (security definer: igualdade exata, devolve só código e descrição). `buscar_produtos` mantém a assinatura; para a vendedora a coluna `marca` volta nula e o filtro por fabricante é ignorado. Não existe coluna de custo no estoque.
+
+## Dia 11D: perfil dono e comissões
+
+Migrations `20261113000600_perfil_dono.sql` e `20261113000700_comissoes.sql`.
+
+- `perfil` ganha `dono`. `eh_gerente()` vale para gerente **ou dono** (todas as políticas antigas aceitam o dono); `eh_gerencia()` é o mesmo; `eh_dono()` é só o dono.
+- `configuracoes_comissao` (singleton; `base` só `valor_fechado`; `percentual_arquiteto_padrao`, `percentual_vendedora_padrao`, `percentual_vendedora_com_arquiteto`, todos **vazios** no início, 0 a 30), `comissoes_arquiteto_percentual` e `comissoes_vendedora_percentual` (percentual próprio, `vigente_desde`).
+- `comissoes` (orcamento_id, tipo `arquiteto`/`vendedora`, beneficiario_id, base, **percentual congelado**, valor, competencia = mês do fechamento em Maceió, status `a_pagar`/`paga`/`cancelada`, paga_em, observacao, `revisar`). Única por (orçamento, tipo). **RLS: só o dono lê e escreve** (a gerente também não vê).
+- Gatilho `orcamentos_comissao` (security definer) em `update of status`: ao fechar grava as linhas (`comissao_linhas`); ao reabrir cancela as a pagar e marca as pagas com `revisar`. Orçamento de teste não gera comissão. `recalcular_comissao(id)` e `calcular_fechamentos_anteriores(gravar)` são só do dono.

@@ -138,3 +138,15 @@ Cláusula 7.3 do contrato: o dado é da loja e precisa sair em planilha. O botã
 - **Formulário do orçamento**: no tipo de cliente, o arquiteto é escolhido num seletor com busca (`ArquitetoSeletor`) e **+ Cadastrar arquiteto** abre um cadastro curto (nome, WhatsApp, aniversário e foto, com o aviso de LGPD) sem sair do rascunho. Grava `orcamentos.arquiteto_id` e `clientes.arquiteto_id`; ao escolher um cliente já cadastrado, o arquiteto e o último endereço dele vêm preenchidos.
 - **Aniversários** em "Para hoje": arquitetos que fazem aniversário hoje e nos próximos 7 dias (fuso de Maceió; 29/02 cai em 28/02 em ano comum), cada um com Abrir WhatsApp e a mensagem padrão. Só aniversário **de hoje** soma no badge do Início. Código em `src/lib/arquitetos/aniversario.ts` (testado: virada de ano, 29/02, janela).
 - **Lista de orçamentos**: filtro "Arquiteto" (chip removível, `?arquiteto=<id>`). **Exportação**: a aba **Arquitetos** (só gerência, sem foto) traz o cadastro e os números do filtro exportado.
+
+## Dia 11D: perfis e comissões
+
+| Perfil | Vê e faz |
+| --- | --- |
+| `vendedora` (Aline, Kely) | Os próprios orçamentos, clientes e números; cria arquiteto; nunca vê fabricante, referência nem comissão |
+| `gerente` | Tudo da equipe (orçamentos, painéis, estoque, ajustes, arquitetos, fabricante e referência do catálogo); **não** vê comissões |
+| `dono` (Seu Filipe) | Tudo o que a gerente vê e faz, e é o **único** com **Comissões** (`/comissoes`, ajustes, exportação) |
+
+- **`/comissoes`** (menu do dono; 404 de verdade para os outros, no `proxy.ts`, e `notFound()` no layout): período por competência, cartões (A pagar, Pagas, Arquitetos, Vendedoras), abas Arquitetos e Vendedoras, marcar como paga (várias, com data), desfazer, observação, recalcular, **Calcular fechamentos anteriores** (prévia antes de gravar) e **Exportar planilha** (Resumo, Arquitetos, Vendedoras, Lançamentos). **`/comissoes/ajustes`**: percentuais padrão e por pessoa.
+- **Regras:** base = valor fechado; arquiteto (RT) só quando o orçamento tem `arquiteto_id`; vendedora com regra própria para venda com arquiteto (nula = padrão); percentual próprio vence o padrão; percentual vazio não calcula; 2 casas, 0 a 30%. **Depende do Seu Filipe definir** todos os percentuais (nenhum foi inventado) e se existe distinção de frete e serviços (hoje só a base `valor_fechado`).
+- Comissão nunca aparece em PDF, XLSX, painéis, exportação da base, Indicação da IA nem logs.

@@ -1,3 +1,4 @@
+import { ehGerencia } from "@/lib/dominio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -27,7 +28,7 @@ async function Ficha({ params }: Pick<PageProps<"/arquitetos/[id]">, "params">) 
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const usuario = await obterUsuarioAtual();
-  const gerente = usuario.perfil === "gerente";
+  const gerente = ehGerencia(usuario.perfil);
   const supabase = await criarClienteServidor();
 
   const { data: a } = await supabase

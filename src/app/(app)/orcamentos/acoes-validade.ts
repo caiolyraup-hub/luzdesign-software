@@ -1,4 +1,5 @@
 "use server";
+import { ehGerencia } from "@/lib/dominio";
 
 import { gerarPlanilhaOrcamento } from "@/lib/planilha/orcamento";
 import { carregarLogo, renderizarPdf } from "@/lib/pdf/renderizar";
@@ -33,7 +34,7 @@ export async function previaRenovacao(orcamentoId: string): Promise<RespostaPrev
     .select("id, status, vendedora_id")
     .eq("id", orcamentoId)
     .maybeSingle();
-  if (!orc || (orc.vendedora_id !== usuario.id && usuario.perfil !== "gerente"))
+  if (!orc || (orc.vendedora_id !== usuario.id && !ehGerencia(usuario.perfil)))
     return { ok: false, erro: "Orçamento não encontrado." };
   if (!(STATUS_QUE_VENCEM as readonly string[]).includes(orc.status))
     return { ok: false, erro: "Este orçamento não pode ser renovado no status atual." };

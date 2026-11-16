@@ -1,4 +1,5 @@
 import "server-only";
+import { ehGerencia } from "../dominio";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { adicionarDiasISO, hojeMaceioISO } from "../formatar";
 import { carregarItensRevisao } from "../orcamento/carregar-itens";
@@ -89,7 +90,7 @@ export async function renovarOrcamento(
     .eq("id", orcamentoId)
     .maybeSingle();
   const o = orc as unknown as LinhaOrcamento | null;
-  if (!o || (o.vendedora_id !== usuario.id && usuario.perfil !== "gerente"))
+  if (!o || (o.vendedora_id !== usuario.id && !ehGerencia(usuario.perfil)))
     return falha("Orçamento não encontrado.");
   if (!(STATUS_QUE_VENCEM as readonly string[]).includes(o.status))
     return falha("Este orçamento não pode ser renovado no status atual.");

@@ -1,4 +1,5 @@
 "use server";
+import { ehGerencia } from "@/lib/dominio";
 
 import { lerFiltrosClientes, listarClientes, type CartaoCliente } from "@/lib/clientes/listar";
 import { VERSAO_RESPOSTAS } from "@/lib/orcamento/perguntas";
@@ -17,7 +18,7 @@ export async function carregarMaisClientes(
 ): Promise<Falha | { ok: true; clientes: CartaoCliente[]; proximo: string | null }> {
   const usuario = await obterUsuarioAtual();
   const supabase = await criarClienteServidor();
-  const filtros = lerFiltrosClientes(params, { gerente: usuario.perfil === "gerente" });
+  const filtros = lerFiltrosClientes(params, { gerente: ehGerencia(usuario.perfil) });
   const pagina = await listarClientes(
     supabase,
     filtros,
@@ -101,7 +102,7 @@ export async function juntarClientes(
   removerId: string,
 ): Promise<Falha | { ok: true; movidos: number }> {
   const usuario = await obterUsuarioAtual();
-  if (usuario.perfil !== "gerente") return falha("Só a gerência junta clientes.");
+  if (!ehGerencia(usuario.perfil)) return falha("Só a gerência junta clientes.");
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase.rpc("juntar_clientes", {
     p_manter: manterId,

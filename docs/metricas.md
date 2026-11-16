@@ -48,3 +48,7 @@ Série semanal: últimas 13 semanas (segunda a domingo, Maceió) terminando na s
 ## Vencidos (dia 10B)
 
 Orçamento com validade vencida **não muda nenhuma métrica** acima (continua em "Em aberto" e na conversão pelo status). O único número novo é o contador **Vencidos sem renovação** por vendedora, na tela Equipe: orçamentos em `gerado`, `enviado` ou follow-up com `validade < hoje` (Maceió), sem os de teste (view `orcamentos_reais`). A regra é a de `docs/arquitetura.md` (Validade vencida).
+
+## Dia 11: nada mudou nos números
+
+Comissões não entram em nenhuma métrica da vendedora nem da gerência (só o dono as vê, em `/comissoes`). A pergunta de tipo de obra e a de linha saíram do formulário: nenhum painel, filtro ou exportação dos dias 9 e 10 usava esses campos.

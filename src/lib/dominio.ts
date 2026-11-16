@@ -1,5 +1,15 @@
-export const PERFIS = ["vendedora", "gerente"] as const;
+export const PERFIS = ["vendedora", "gerente", "dono"] as const;
 export type Perfil = (typeof PERFIS)[number];
+
+/** Gerência = gerente ou dono (o dono faz tudo o que a gerente faz). */
+export function ehGerencia(perfil: string | null | undefined): boolean {
+  return perfil === "gerente" || perfil === "dono";
+}
+
+/** Só o dono: comissões. */
+export function ehDono(perfil: string | null | undefined): boolean {
+  return perfil === "dono";
+}
 
 export const STATUS_ORCAMENTO = [
   "rascunho",
