@@ -8,6 +8,10 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 - **Frete e serviços na comissão**: a base é só o valor fechado; a loja não marca frete e serviços como itens à parte.
 - **Percentuais de comissão**: todos vazios até o Seu Filipe definir.
 
+## Ação sua no painel do Supabase
+
+- **Desligar o cadastro público**: Authentication > Providers > Email > "Allow new users to sign up" = desligado. O banco já bloqueia contas sem papel (migration do dia 12C), mas não há motivo para deixar o cadastro aberto.
+
 ## Melhorias (depois do piloto)
 
 - Cópia de segurança/aviso quando a mesma referência identifica dois produtos diferentes.

@@ -62,8 +62,14 @@ export function Editor({ orcamentoId, respostasIniciais, anexosIniciais, passoIn
     textoPendente.current = null;
     if (!p || !orcamentoId) return;
     setEstado("salvando");
-    const r = await salvarResposta(orcamentoId, p.passo, p.valores, "rascunho");
-    setEstado(r.ok ? "salvo" : "erro");
+    try {
+      const r = await salvarResposta(orcamentoId, p.passo, p.valores, "rascunho");
+      setEstado(r.ok ? "salvo" : "erro");
+    } catch {
+      // Sem internet: o texto continua na tela e volta a ser enviado no próximo salvamento.
+      textoPendente.current = textoPendente.current ?? p;
+      setEstado("erro");
+    }
   }
 
   function mudar(patch: Record<string, unknown>, texto?: string[]) {
@@ -92,8 +98,12 @@ export function Editor({ orcamentoId, respostasIniciais, anexosIniciais, passoIn
       const bruto = patch.cliente_whatsapp;
       if (normalizarWhatsapp(bruto)) {
         timerCliente.current = setTimeout(async () => {
-          const r = await procurarCliente(orcamentoId, bruto);
-          if (r.ok) setClienteEncontrado(r.encontrado);
+          try {
+            const r = await procurarCliente(orcamentoId, bruto);
+            if (r.ok) setClienteEncontrado(r.encontrado);
+          } catch {
+            // sem internet: a busca de cliente existente é só uma ajuda; segue sem ela
+          }
         }, ATRASO_BUSCA_CLIENTE_MS);
       }
     }
@@ -136,31 +146,39 @@ export function Editor({ orcamentoId, respostasIniciais, anexosIniciais, passoIn
     }
 
     iniciar(async () => {
-      if (timerSalvar.current) clearTimeout(timerSalvar.current);
-      textoPendente.current = null;
-      setEstado("salvando");
+      try {
+        if (timerSalvar.current) clearTimeout(timerSalvar.current);
+        textoPendente.current = null;
+        setEstado("salvando");
 
-      // /orcamentos/novo: a primeira resposta válida cria o rascunho.
-      if (!orcamentoId) {
-        const r = await criarRascunho(String(local.valores.cliente_nome));
+        // /orcamentos/novo: a primeira resposta válida cria o rascunho.
+        if (!orcamentoId) {
+          const r = await criarRascunho(String(local.valores.cliente_nome));
+          if (!r.ok) {
+            setEstado("erro");
+            setErros(r.erros ?? {});
+            return setErroGeral(r.erro);
+          }
+          router.push(`/orcamentos/${r.id}/editar?passo=2`);
+          return;
+        }
+
+        const r = await salvarResposta(orcamentoId, passo, entrada, "avancar");
         if (!r.ok) {
           setEstado("erro");
           setErros(r.erros ?? {});
           return setErroGeral(r.erro);
         }
-        router.push(`/orcamentos/${r.id}/editar?passo=2`);
-        return;
-      }
-
-      const r = await salvarResposta(orcamentoId, passo, entrada, "avancar");
-      if (!r.ok) {
+        setEstado("salvo");
+        setRespostas(r.respostas);
+        ir(vindoDoResumo ? PASSO_RESUMO : passo + 1);
+      } catch {
+        // Sem internet ao salvar: avisa e mantém o que foi digitado (nada é apagado da tela).
         setEstado("erro");
-        setErros(r.erros ?? {});
-        return setErroGeral(r.erro);
+        setErroGeral(
+          "Sem internet ou conexão instável. Confira a conexão e toque em Próxima de novo: o que você digitou continua aqui.",
+        );
       }
-      setEstado("salvo");
-      setRespostas(r.respostas);
-      ir(vindoDoResumo ? PASSO_RESUMO : passo + 1);
     });
   }
 

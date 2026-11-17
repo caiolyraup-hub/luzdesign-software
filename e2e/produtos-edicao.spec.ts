@@ -15,14 +15,12 @@ async function limpar() {
 }
 test.beforeAll(async () => {
   await limpar();
-  await admin
-    .from("produtos")
-    .insert({
-      codigo: CODIGO,
-      categoria: "PERFIL",
-      descricao: "PERFIL 200 BR",
-      preco_unitario: 100,
-    });
+  await admin.from("produtos").insert({
+    codigo: CODIGO,
+    categoria: "PERFIL",
+    descricao: "PERFIL 200 BR",
+    preco_unitario: 100,
+  });
 });
 test.afterAll(limpar);
 

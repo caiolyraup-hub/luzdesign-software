@@ -29,7 +29,21 @@ export default defineConfig({
     timezoneId: "America/Maceio",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "celular-390", use: {} }],
+  projects: [
+    // Todos os e2e, no celular de 390 px (Chromium).
+    { name: "celular-390", use: {}, testIgnore: /jornada/ },
+    // Jornadas completas por perfil, nos dois sistemas de celular (dia 12C).
+    {
+      name: "iphone",
+      testMatch: /jornada.*\.spec\.ts/,
+      use: { ...devices["iPhone 14"], locale: "pt-BR", timezoneId: "America/Maceio" },
+    },
+    {
+      name: "android",
+      testMatch: /jornada.*\.spec\.ts/,
+      use: { ...devices["Pixel 7"], locale: "pt-BR", timezoneId: "America/Maceio" },
+    },
+  ],
   webServer: BASE_EXTERNA
     ? undefined
     : {
