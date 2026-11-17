@@ -37,6 +37,12 @@ Perfis: **Aline/Kely** = vendedoras; **Gerente**; **Dono** (Seu Filipe: tudo da 
 | eventos_exportacao | ler auditoria de exportações (a da Aline) | pode | — | pode | pode | — |
 | custo_ia_orcamentos() | custo da IA no período | — | — | pode | pode | — |
 | erros_app | ler registro de erros | — | — | pode | pode | — |
+| relatos_piloto | ler relato da Aline | pode | — | pode | pode | — |
+| relatos_piloto | ler relato da Kely | — | pode | pode | pode | — |
+| relatos_piloto | enviar relato (em nome próprio) | pode | pode | pode | pode | — |
+| relatos_piloto | enviar relato em nome de outra pessoa | — | — | — | — | — |
+| relatos_piloto | marcar relato como resolvido | — | — | pode | pode | — |
+| Storage: relatos | baixar foto de relato da Aline (caminho exato) | pode | — | pode | pode | — |
 | mudar_status_orcamento() | mudar status do orçamento da Aline | pode | — | pode | pode | — |
 | marcar_enviado() | marcar enviado o orçamento da Kely | — | pode | pode | pode | — |
 | renovar_validade() | renovar validade do orçamento da Aline | pode | — | pode | pode | — |

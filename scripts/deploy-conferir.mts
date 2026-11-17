@@ -6,7 +6,17 @@ import { readdirSync } from "node:fs";
 const URL_SITE = process.env.SITE_URL ?? "https://luzdesign-software.vercel.app";
 const head = execSync("git rev-parse --short=7 HEAD", { encoding: "utf8" }).trim();
 const sujo = execSync("git status --porcelain", { encoding: "utf8" }).trim() !== "";
-const noRemoto = execSync("git rev-parse --short=7 @{u}", { encoding: "utf8" }).trim();
+// Branch sem upstream (por exemplo um branch local de trabalho): compara com origin/main.
+let noRemoto: string;
+try {
+  noRemoto = execSync("git rev-parse --short=7 @{u}", {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
+} catch {
+  noRemoto = execSync("git rev-parse --short=7 origin/main", { encoding: "utf8" }).trim();
+  console.log("(branch sem upstream: comparando com origin/main)");
+}
 const locais = readdirSync("supabase/migrations")
   .filter((f) => f.endsWith(".sql"))
   .map((f) => f.split("_")[0])

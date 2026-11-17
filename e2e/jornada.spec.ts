@@ -13,7 +13,6 @@ const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
 
 const SUFIXO = `${Date.now()}`.slice(-9);
 const NOME = `JORNADA E2E Cliente ${SUFIXO}`;
-const ZAP = `+55829${SUFIXO.slice(-8).padStart(8, "0")}`;
 const ZAP_DIGITADO = `(82) 9${SUFIXO.slice(-4)}-${SUFIXO.slice(-8, -4)}`;
 const ARQ_NOME = `JORNADA E2E Arquiteta ${SUFIXO}`;
 const ARQ_DUP = `JORNADA E2E Arquiteta Duplicada ${SUFIXO}`;

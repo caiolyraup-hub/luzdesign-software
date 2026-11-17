@@ -14,6 +14,12 @@ const NOME = `${PREFIXO} ${Date.now()}`;
 
 /** Remove o que o teste criou (cliente, orçamento, uso da IA, arquivos) e as descrições simuladas. */
 async function limpar() {
+  // As descrições dos produtos usados aqui vêm do catálogo: o cache de textos padronizados pela IA é compartilhado
+  // e pode guardar outra versão (por exemplo, "6 W" com espaço). Sem cache, o texto é o do catálogo.
+  await admin
+    .from("produtos_descricao_formatada")
+    .delete()
+    .in("codigo", ["9520", "12222", "10340", "10338", "12086", "12615"]);
   const { data: clientes } = await admin.from("clientes").select("id").like("nome", `${PREFIXO}%`);
   const ids = (clientes ?? []).map((c) => c.id);
   if (ids.length) {

@@ -63,6 +63,8 @@ async function limpar() {
   }
   await admin.from("eventos_exportacao").delete().eq("filtros->>matriz", "true");
   await admin.from("erros_app").delete().eq("mensagem", "matriz");
+  await admin.from("relatos_piloto").delete().like("mensagem", "MATRIZ relato%");
+  await admin.storage.from("relatos").remove([`${aline}/matriz.jpg`]);
   await admin
     .from("comissoes_arquiteto_percentual")
     .delete()
@@ -151,6 +153,23 @@ async function criarFixtures() {
     .single();
   ids.com = com!.id;
   await admin.from("erros_app").insert({ origem: "servidor", mensagem: "matriz" });
+  for (const [rotulo, dona] of [
+    ["A", aline],
+    ["K", kely],
+  ] as const) {
+    const rel = await admin
+      .from("relatos_piloto")
+      .insert({ usuario_id: dona, mensagem: `MATRIZ relato ${rotulo}`, tela: "/matriz" })
+      .select("id")
+      .single();
+    ids[`rel${rotulo}`] = rel.data!.id;
+  }
+  await admin.storage
+    .from("relatos")
+    .upload(`${aline}/matriz.jpg`, new Blob(["matriz"], { type: "image/jpeg" }), {
+      upsert: true,
+      contentType: "image/jpeg",
+    });
   await admin
     .from("comissoes_arquiteto_percentual")
     .insert({ arquiteto_id: ids.arq, percentual: 4 });
@@ -454,6 +473,65 @@ function montar(): Celula[] {
       esperado: SO_GERENCIA,
       rodar: async (p) =>
         ((await p.c.from("erros_app").select("id").eq("mensagem", "matriz")).data?.length ?? 0) > 0,
+    },
+    // --- relatos do piloto
+    {
+      recurso: "relatos_piloto",
+      acao: "ler relato da Aline",
+      esperado: E(true, false, true, true, false),
+      rodar: linhasVisiveis("relatos_piloto", "id", ids.relA),
+    },
+    {
+      recurso: "relatos_piloto",
+      acao: "ler relato da Kely",
+      esperado: E(false, true, true, true, false),
+      rodar: linhasVisiveis("relatos_piloto", "id", ids.relK),
+    },
+    {
+      recurso: "relatos_piloto",
+      acao: "enviar relato (em nome próprio)",
+      esperado: TODOS_COM_PAPEL,
+      rodar: async (p) => {
+        const r = await p.c
+          .from("relatos_piloto")
+          .insert({ usuario_id: p.id, mensagem: "MATRIZ relato novo" })
+          .select("id");
+        if (r.data?.[0]?.id) await admin.from("relatos_piloto").delete().eq("id", r.data[0].id);
+        return !r.error;
+      },
+    },
+    {
+      recurso: "relatos_piloto",
+      acao: "enviar relato em nome de outra pessoa",
+      esperado: NINGUEM,
+      rodar: async (p) => {
+        const outro = p.id === kely ? aline : kely;
+        const r = await p.c
+          .from("relatos_piloto")
+          .insert({ usuario_id: outro, mensagem: "MATRIZ relato falso" })
+          .select("id");
+        if (r.data?.[0]?.id) await admin.from("relatos_piloto").delete().eq("id", r.data[0].id);
+        return !r.error;
+      },
+    },
+    {
+      recurso: "relatos_piloto",
+      acao: "marcar relato como resolvido",
+      esperado: SO_GERENCIA,
+      rodar: async (p) =>
+        ((
+          await p.c
+            .from("relatos_piloto")
+            .update({ status: "aberto" })
+            .eq("id", ids.relA)
+            .select("id")
+        ).data?.length ?? 0) > 0,
+    },
+    {
+      recurso: "Storage: relatos",
+      acao: "baixar foto de relato da Aline (caminho exato)",
+      esperado: E(true, false, true, true, false),
+      rodar: baixa("relatos", `${aline}/matriz.jpg`),
     },
     // --- funções sobre o orçamento dos outros
     {
