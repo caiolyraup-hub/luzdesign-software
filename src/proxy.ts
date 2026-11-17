@@ -32,6 +32,26 @@ export async function proxy(request: NextRequest) {
   const emLogin = request.nextUrl.pathname === "/login";
   const comErro = request.nextUrl.searchParams.has("erro");
 
+  // Primeiro login: com a marca "trocar_senha", TODA rota leva para /trocar-senha até a senha ser trocada.
+  const precisaTrocar =
+    logada &&
+    (data!.claims.user_metadata as { trocar_senha?: boolean } | undefined)?.trocar_senha === true;
+  const emTroca = request.nextUrl.pathname === "/trocar-senha";
+  if (precisaTrocar && !emTroca) {
+    if (request.method !== "GET")
+      return new NextResponse("Troque a senha antes de continuar.", { status: 403 });
+    const url = request.nextUrl.clone();
+    url.pathname = "/trocar-senha";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (logada && emTroca && !precisaTrocar) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   if (!logada && !emLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -58,6 +78,18 @@ export async function proxy(request: NextRequest) {
       url.pathname = "/";
       url.search = "";
       return NextResponse.redirect(url);
+    }
+  }
+
+  // /relatos: só gerência e dono (404 para a vendedora).
+  if (logada && request.nextUrl.pathname.startsWith("/relatos")) {
+    const { data: perfil } = await supabase
+      .from("usuarios")
+      .select("perfil")
+      .eq("id", data!.claims.sub)
+      .maybeSingle();
+    if (perfil?.perfil !== "gerente" && perfil?.perfil !== "dono") {
+      return new NextResponse("Not Found", { status: 404 });
     }
   }
 

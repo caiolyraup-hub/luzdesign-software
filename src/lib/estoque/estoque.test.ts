@@ -419,3 +419,24 @@ describe("sugerirMapeamento", () => {
     });
   });
 });
+
+describe("sugerirMapeamento: cabeçalhos mais longos", () => {
+  it('"Descrição do produto" e "Preço de venda" são reconhecidos; "Ref. Fabricante" não vira código', () => {
+    const s = sugerirMapeamento([
+      "Cód.",
+      "Descrição do produto",
+      "Preço de venda",
+      "Fabricante",
+      "Ref. Fabricante",
+      "Modelo",
+    ]);
+    expect(s).toMatchObject({
+      codigo: "Cód.",
+      descricao: "Descrição do produto",
+      preco_unitario: "Preço de venda",
+      marca: "Fabricante",
+      referencia_fabricante: "Ref. Fabricante",
+      modelo: "Modelo",
+    });
+  });
+});

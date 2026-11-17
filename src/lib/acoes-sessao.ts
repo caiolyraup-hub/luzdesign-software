@@ -13,7 +13,7 @@ export async function entrar(_anterior: EstadoLogin, formData: FormData): Promis
   if (!email || !senha) return { erro: "Informe e-mail e senha." };
 
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
   if (error) {
     return {
       erro:
@@ -22,6 +22,9 @@ export async function entrar(_anterior: EstadoLogin, formData: FormData): Promis
           : "Não foi possível entrar agora. Tente novamente.",
     };
   }
+  // Conta nova (senha provisória): a primeira tela é a troca de senha.
+  if ((data.user?.user_metadata as { trocar_senha?: boolean } | undefined)?.trocar_senha === true)
+    redirect("/trocar-senha");
   redirect("/");
 }
 

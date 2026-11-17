@@ -19,6 +19,11 @@ export const obterUsuarioAtual = cache(async (): Promise<UsuarioAtual> => {
   const { data: claims } = await supabase.auth.getClaims();
   const id = claims?.claims.sub;
   if (!id) redirect("/login");
+  // Primeiro login: nada abre antes de trocar a senha provisória (segunda barreira, além do proxy).
+  if (
+    (claims?.claims.user_metadata as { trocar_senha?: boolean } | undefined)?.trocar_senha === true
+  )
+    redirect("/trocar-senha");
 
   const { data } = await supabase
     .from("usuarios")

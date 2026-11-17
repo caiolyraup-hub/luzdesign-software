@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { BarraNavegacao } from "@/components/BarraNavegacao";
+import { LinkRelatar } from "@/components/relatos/LinkRelatar";
+import { ehGerencia } from "@/lib/dominio";
+import Link from "next/link";
 import { sair } from "@/lib/acoes-sessao";
 import { aniversariosDeHoje } from "@/lib/arquitetos/aniversarios-hoje";
 import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
@@ -24,6 +27,17 @@ async function Moldura({ children }: { children: React.ReactNode }) {
       <header className="border-b border-zinc-200">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2">
           <span className="text-base font-medium">{usuario.nome}</span>
+          <div className="flex items-center">
+            <LinkRelatar />
+            {ehGerencia(usuario.perfil) ? (
+              <Link
+                href="/relatos"
+                className="min-h-11 px-3 py-2 text-base text-zinc-700 underline"
+              >
+                Relatos
+              </Link>
+            ) : null}
+          </div>
           <form action={sair}>
             <button type="submit" className="min-h-11 px-3 text-base text-amber-700 underline">
               Sair

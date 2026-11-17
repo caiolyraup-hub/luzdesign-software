@@ -4,7 +4,12 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 
 ## Para a gerência decidir
 
+> Códigos e descrições do catálogo provisório (158 produtos). As três decisões abaixo dependem da loja.
+
 - **Descrições repetidas (9 grupos)**: depois da limpeza (e da revisão do dia 12), 9 grupos de produtos ainda têm a mesma descrição comercial, porque só a referência do fabricante os diferenciava. Lista completa e sugestão por grupo em `dados/revisao-descricoes.xlsx` (`pnpm catalogo:revisar`). Dois grupos são códigos **duplicados** no catálogo (mesma descrição também no fornecedor): 10364 e 12943 (perfil 3 m) e 11200 e 11500 (embutido 12 W 3.0 K). A gerência pode editar o texto em **Produtos > Editar descrição**; a edição é prioritária (a importação e o limpador não a sobrescrevem).
+- **Os 9 grupos de descrições iguais** (lista em `dados/revisao-descricoes.xlsx`): PERFIL 3MTS E. BR (10364, 12943); PERFIL 200 BR (11077, 12199, 12327); EMBUTIDO 12W 3.0K (11200, 11500); PERFIL 200 PT (11685, 12245); PERFIL 300 BT S. (11687, 12542, 12545); PLAFON BR (11873, 12454); PERFIL 2MTS BR (12085, 12208); PERFIL 2MTS PT (12481, 12930); PERFIL S. 2MTS BR (12655, 4321).
+- **Códigos duplicados** (mesma descrição também no fornecedor): **10364 e 12943** (perfil 3 m) e **11200 e 11500** (embutido 12 W 3.0 K). Verificar se um de cada par pode ser desativado.
+- **Código 4321**: o código interno é igual à referência do fabricante do mesmo produto (4321 AXIS). O código é público (aparece no PDF), então não há como esconder essa coincidência.
 - **Frete e serviços na comissão**: a base é só o valor fechado; a loja não marca frete e serviços como itens à parte.
 - **Percentuais de comissão**: todos vazios até o Seu Filipe definir.
 
@@ -16,3 +21,7 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 
 - Cópia de segurança/aviso quando a mesma referência identifica dois produtos diferentes.
 - Código interno 4321 coincide com a referência do fabricante do mesmo produto: não dá para esconder (o código é público).
+
+## Aviso de segurança do Next.js
+
+`next build` e `next dev` avisam que o Next.js 16.4.4 tem uma vulnerabilidade conhecida (npm advisory). O aviso **interrompe o primeiro comando** e deixa passar na repetição. Recomenda-se `next upgrade --agent=security`, mas atualizar o framework a dois dias do piloto é uma decisão sua: não foi feito.

@@ -189,5 +189,27 @@ export function sugerirMapeamento(colunas: string[], salvo?: Mapeamento | null):
       usadas.add(achada);
     }
   }
+  // Segunda passada, só para o que ficou sem coluna: cabeçalho que COMEÇA pela palavra do sinônimo
+  // ("Descrição do produto", "Preço de venda à vista"). Depois da exata, para não roubar a coluna de outro campo.
+  for (const campo of Object.keys(SINONIMOS_COLUNA) as CampoMapeavel[]) {
+    if (resultado[campo]) continue;
+    const achada = colunas.find((c) => {
+      if (usadas.has(c)) return false;
+      const palavras = semAcento(c)
+        .replace(/[^a-z0-9 ]/g, "")
+        .split(" ")
+        .filter(Boolean);
+      return SINONIMOS_COLUNA[campo].some((sin) => {
+        const sinPalavras = sin.split(" ");
+        return (
+          sinPalavras.every((w, k) => palavras[k] === w) && palavras.length > sinPalavras.length
+        );
+      });
+    });
+    if (achada) {
+      resultado[campo] = achada;
+      usadas.add(achada);
+    }
+  }
   return resultado;
 }

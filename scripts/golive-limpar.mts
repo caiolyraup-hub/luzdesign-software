@@ -1,6 +1,7 @@
 // Go-live: lista (SEM apagar) tudo o que é de teste. A execução real não existe hoje: fica para o
 // dia 14, com o ok do dono do projeto. Uso: pnpm golive:limpar --simular
 import { createClient } from "@supabase/supabase-js";
+import { clienteEhDeTeste as ehTeste } from "../src/lib/orcamento/eh-teste";
 
 if (!process.argv.includes("--simular")) {
   console.error(
@@ -14,7 +15,6 @@ const admin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { persistSession: false } },
 );
-const ehTeste = (nome: string | null | undefined) => /^teste([^a-zà-ú]|$)/i.test(nome ?? "");
 const um = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
 type Orc = {
