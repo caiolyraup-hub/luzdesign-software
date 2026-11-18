@@ -32,3 +32,10 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 - Trava: a partir de 19/11/2026 00:00 (Maceió) todo teste recusa rodar contra a produção, salvo `PERMITIR_TESTE_EM_PRODUCAO=1`. E2E também recusa servidor sem `IA_SIMULADA=1` ou `NODE_ENV=production` (nunca chama a OpenAI de verdade).
 - Pendente (pós-piloto): banco de testes separado (segundo projeto Supabase gratuito ou `supabase start`, que exige Docker, não instalado). Auditoria: `pnpm testes:sobras`.
 - Next atualizado para 16.4.6 (aviso de segurança resolvido).
+
+## Go-live: lacunas conhecidas (dia 13B)
+
+- Backup completo do Postgres antes e depois do go-live: não há `pg_dump` nem Docker nesta máquina e o plano gratuito do Supabase não guarda backup diário. Instalar o cliente PostgreSQL (ou Docker) antes do dia 24; até lá, só a exportação XLSX pela tela.
+- `golive:limpar` e `contas:transferir` só existem em modo simulação. A execução real (incluindo mover arquivos no Storage) será ligada no dia, com o ok do dono.
+- Marcar/desmarcar piloto à mão existe como função (`marcar_piloto`), mas ainda sem botão na tela.
+- O kit de fita grava os itens com origem `manual`; o resumo do piloto não separa o kit.

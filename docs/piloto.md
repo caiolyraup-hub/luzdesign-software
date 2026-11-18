@@ -1,10 +1,10 @@
 # Roteiro do piloto (quinta, 19/11/2026)
 
-Participam **Aline e Kely**, com **clientes de verdade**. Os orçamentos criados no piloto são reais e **ficam** (não serão apagados no go-live). Só o que é de teste (cliente "TESTE...", os orçamentos do seed) sai no dia 24.
+Participam **Aline e Kely**, com **clientes de verdade**. No piloto elas entram com as **contas de teste delas** (`+aline` e `+kely`, com senha nova, trocada no primeiro login). Os orçamentos criados por essas contas a partir de 19/11 00:00 ficam marcados como **piloto**: contam nos números e o go-live **não os apaga** (vão para as contas reais no dia 24, ver `docs/go-live.md`). Só o que é de teste (cliente "TESTE...", os orçamentos do seed) sai.
 
 ## Antes (quarta, 18/11)
 
-- Criar as contas reais: preencher `REAL_EMAIL_*` no `.env.local` e rodar `pnpm usuarios:reais --criar` (mostra a senha provisória de cada pessoa uma vez só; todas trocam a senha no primeiro login).
+- As contas reais **não** são criadas agora (ficam para o go-live). Passar para a Aline e para a Kely a senha nova da conta de teste delas; no primeiro login elas escolhem a própria senha.
 - Entregar o **guia** (`dados/guia-vendedora.pdf`) e abrir o sistema no celular de cada uma.
 - Conferir `pnpm deploy:conferir` (o que está no ar é o commit mais novo).
 - Lembrar: o catálogo ainda é **provisório** (158 produtos vindos de orçamentos antigos). Se um produto não existir, use **item avulso** com preço manual e **relate**.
@@ -31,8 +31,8 @@ Em qualquer tela, **Relatar problema** (menu): escrever o que aconteceu; a tela 
 
 - **Relatos** em aberto: resolver ou anotar em `docs/pendencias.md`.
 - **Erros de hoje** em Ajustes (e a tabela `erros_app`): algum erro de servidor?
-- Orçamentos criados (Equipe): quantos, quantos gerados e enviados.
-- **Tempo médio para montar** um orçamento: do evento de criação ao "gerado" (campos `criado_em` e `gerado_em` dos orçamentos do dia).
+- **Resumo do dia**: `pnpm piloto:resumo` (ou a aba **Resumo do dia** em Relatos). Por vendedora: orçamentos criados, gerados e enviados; **mediana do tempo do rascunho até gerar**; itens por origem (manual, lista colada, Indicação da IA, montagem da IA; o kit de fita conta como manual); relatos abertos com o texto; erros do dia; custo de IA do dia. Orçamentos de teste ficam fora, o piloto entra.
+- Olhar no resumo: mediana acima de 15 a 20 minutos (algo atrapalha), muitos itens avulsos (falta produto no catálogo), erros do dia, relatos abertos e custo de IA fora do normal.
 - Perguntas para Aline e Kely: o que atrapalhou? o que faltou? o guia ajudou?
 - `pnpm deploy:conferir` e `pnpm golive:limpar --simular` (para ver o que ainda é de teste).
 

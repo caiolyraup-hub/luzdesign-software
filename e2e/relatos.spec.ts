@@ -87,6 +87,13 @@ test("Aline relata um problema com foto e a gerência resolve", async ({ page })
     .single();
   expect(dep!.status).toBe("resolvido");
   expect(dep!.resolvido_em).not.toBeNull();
+
+  // Aba "Resumo do dia" (dia 13B): números por vendedora, relatos abertos, erros e custo de IA; sem comissão.
+  await page.getByRole("link", { name: "Resumo do dia" }).click();
+  await expect(page.getByText("Custo de IA do dia")).toBeVisible();
+  await expect(page.getByText("Relatos abertos (")).toBeVisible();
+  await expect(page.getByText("Aline", { exact: true })).toBeVisible();
+  await expect(page.getByText(/comiss/i)).toHaveCount(0);
 });
 
 test("o dono também vê o link e a lista de relatos; todos os perfis têm o botão Relatar problema", async ({

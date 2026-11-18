@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import ExcelJS from "exceljs";
 import { guardarCacheDescricoes } from "./auxiliar";
@@ -14,6 +14,8 @@ const admin = createClient(
 
 const PREFIXO = "TESTE PDF E2E";
 const NOME = `${PREFIXO} ${Date.now()}`;
+const ENDERECO = "Rua das Flores, 123, Ponta Verde, Maceió";
+const ARQUITETO = "Helena Prado Arquitetura";
 
 /** Remove o que o teste criou (cliente, orçamento, itens, PDFs no Storage) e acerta o contador. */
 async function limpar() {
@@ -82,7 +84,13 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   // Orçamento da Aline com as 10 perguntas respondidas (o formulário já tem o próprio E2E).
   const cli = await admin
     .from("clientes")
-    .insert({ vendedora_id: aline!.id, nome: NOME, whatsapp: "+5582900009950" })
+    .insert({
+      vendedora_id: aline!.id,
+      nome: NOME,
+      whatsapp: "+5582900009950",
+      endereco: ENDERECO,
+      arquiteto_indicador: ARQUITETO,
+    })
     .select("id")
     .single();
   const orc = await admin
@@ -90,6 +98,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
     .insert({
       vendedora_id: aline!.id,
       cliente_id: cli.data!.id,
+      endereco: ENDERECO,
       respostas: {
         versao: 1,
         cliente_nome: NOME,
@@ -250,6 +259,13 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   // Sem análise do ambiente nem motivo dos produtos (dia 8).
   expect(texto.replaceAll(" ", "")).not.toContain("ANÁLISEDOAMBIENTE");
   // Com o logo em public/marca, ele vai embutido no PDF (sem logo o arquivo tem poucos KB).
+  // Endereço e arquiteto certos; nada de fabricante nem referência (catálogo protegido).
+  expect(texto).toContain(ENDERECO);
+  expect(texto).toContain(ARQUITETO);
+  expect(texto).not.toMatch(/fabricante|refer[êe]ncia/i);
+  // Guarda o PDF desta rodada para conferir com os olhos (test-results/telas/piloto-pdf-orcamento.pdf).
+  mkdirSync("test-results/telas", { recursive: true });
+  writeFileSync("test-results/telas/piloto-pdf-orcamento.pdf", bytes);
   if (existsSync("public/marca/logo.png")) expect(bytes.length).toBeGreaterThan(100_000);
 
   // Planilha XLSX do mesmo orçamento, com fórmulas.
