@@ -1,6 +1,7 @@
 project_id = "luz-design-orcamentos"
 
 [auth]
+enable_signup = false
 site_url = "https://luzdesign-software.vercel.app"
 additional_redirect_urls = [
   "http://localhost:3000",

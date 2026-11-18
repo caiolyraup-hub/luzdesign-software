@@ -76,6 +76,22 @@ try {
   ver(false, `supabase migration list --remote falhou: ${(e as Error).message.split("\n")[0]}`);
 }
 
+// Cadastro público do Supabase precisa estar FECHADO (só a service role cria conta).
+try {
+  const urlSb = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonSb = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!urlSb || !anonSb)
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL/ANON_KEY ausentes no .env.local");
+  const cfg = (await (
+    await fetch(`${urlSb}/auth/v1/settings`, { headers: { apikey: anonSb } })
+  ).json()) as {
+    disable_signup?: boolean;
+  };
+  ver(cfg.disable_signup === true, "cadastro público do Supabase está fechado (disable_signup)");
+} catch (e) {
+  ver(false, `não consegui conferir o cadastro público: ${(e as Error).message}`);
+}
+
 console.log(
   falhas
     ? `\n${falhas} divergência(s).`
