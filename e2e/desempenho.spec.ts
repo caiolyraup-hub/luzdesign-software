@@ -38,6 +38,10 @@ async function medir(page: Page, nome: string, acao: () => Promise<void>, meta: 
 
 test("telas e busca no celular simulado (CPU 4×, 4G)", async ({ page }) => {
   await entrar(page); // login sem limitação; a simulação vale para a navegação medida
+  // Aquece as rotas antes de medir (o servidor de desenvolvimento compila cada rota na primeira visita;
+  // na produção não existe esse custo). A medição vale para a segunda visita, já com a simulação ligada.
+  for (const rota of ["/", "/orcamentos?filtro=todos", "/produtos", "/meus-numeros"])
+    await page.goto(rota);
   await simularCelular(page);
 
   await medir(
