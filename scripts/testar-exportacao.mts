@@ -2,6 +2,7 @@
 // Kely, a vendedora não recebe a aba Eventos, os de teste ficam fora por padrão e entram com a opção, e
 // a auditoria (eventos_exportacao) só é lida pelo dono (e pela gerência) e só o servidor grava.
 // Uso: pnpm test:rls. Cria dados "EXPORT RLS" e apaga tudo no fim.
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

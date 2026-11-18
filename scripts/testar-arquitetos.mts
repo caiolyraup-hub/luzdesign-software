@@ -1,6 +1,7 @@
 // Arquitetos (dia 11B) contra o Supabase real: todos leem e criam; só a gerência edita, desativa e
 // junta; os números da vendedora nunca incluem orçamento da outra; a foto não sai sem URL assinada.
 // Uso: pnpm test:rls. Cria dados "ARQ RLS" e apaga tudo no fim.
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

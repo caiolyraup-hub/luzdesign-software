@@ -1,6 +1,7 @@
 // Catálogo protegido (dia 11C) contra o Supabase real: a vendedora não lê produtos_dados_fornecedor
 // por nenhum caminho (tabela, API de produtos, busca, exportação), a busca por referência é exata e
 // não devolve a referência; a gerência lê. Uso: pnpm test:rls
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

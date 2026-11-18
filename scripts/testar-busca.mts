@@ -1,6 +1,7 @@
 // Busca e filtros da lista (dia 10A) contra o Supabase real: a busca da Aline nunca devolve orçamento da
 // Kely, nem com o mesmo nome de cliente, o mesmo código de produto, filtro de vendedora ou cursor forjado.
 // Uso: pnpm test:rls. Cria dados "BUSCA RLS" e apaga tudo no fim.
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

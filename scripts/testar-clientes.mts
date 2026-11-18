@@ -1,6 +1,7 @@
 // Clientes (dia 10D) contra o Supabase real: a vendedora não lê cliente de outra (nem a ficha por URL
 // direta), só a dona altera as notas, só a gerência junta duplicados e a fusão fica registrada.
 // Uso: pnpm test:rls. Cria dados "CLIENTE RLS" e apaga tudo no fim.
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

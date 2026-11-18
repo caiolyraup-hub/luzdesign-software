@@ -2,6 +2,7 @@
 // Supabase real: fabricante, referência e modelo vão para produtos_dados_fornecedor (e só a gerência os
 // lê); a descrição de `produtos` sai limpa; uma descrição editada à mão NÃO é sobrescrita pela carga.
 // Usa os códigos 99996 a 99998 e apaga tudo no fim. Uso: pnpm test:rls
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { importar } from "../src/lib/estoque/importar";

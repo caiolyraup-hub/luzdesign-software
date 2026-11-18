@@ -1,5 +1,6 @@
 // Teste de integração da RLS contra o Supabase real (precisa de migrations + usuários + seed).
 // Uso: pnpm test:rls   (lê .env.local)
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

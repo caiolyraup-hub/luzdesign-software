@@ -1,6 +1,7 @@
 // Comissões (dia 11D) contra o Supabase real: só o dono lê e escreve; a vendedora que fecha o
 // orçamento gera a comissão sem conseguir lê-la; a gerente também não vê. Uso: pnpm test:rls.
 // Cria dados "COM RLS", define percentuais de teste e restaura tudo (percentuais voltam a vazio).
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

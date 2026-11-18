@@ -27,6 +27,9 @@ export async function GET() {
       commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7),
       build: process.env.BUILD_DATA ?? null,
       migration,
+      // Para os testes recusarem servidor que chamaria a OpenAI de verdade.
+      modo: process.env.NODE_ENV,
+      iaSimulada: process.env.IA_SIMULADA === "1" && process.env.NODE_ENV !== "production",
     },
     { headers: { "Cache-Control": "no-store" } },
   );

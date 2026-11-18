@@ -2,6 +2,7 @@
 // API do Supabase (tabelas, funções e Storage). Perfis: Aline, Kely, gerente, dono e um usuário logado
 // SEM papel (conta criada no Auth, sem linha em `usuarios`). Qualquer célula fora do esperado falha.
 // Uso: pnpm test:rls   (com --docs também grava docs/permissoes.md)
+import "./guarda-import.mts";
 import { writeFileSync } from "node:fs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

@@ -13,6 +13,8 @@ const BASE_EXTERNA = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
   timeout: 120_000,
   expect: { timeout: 30_000 },
   fullyParallel: false,

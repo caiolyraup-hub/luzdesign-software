@@ -1,5 +1,6 @@
 // Revisão e PDF (dia 6) contra o Supabase real: gera PDF de verdade (render + Storage + banco).
 // Uso: pnpm test:rls (roda depois dos outros). Cria dados "TESTE RLS PDF" e apaga tudo no fim.
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { gerarOrcamento } from "../src/lib/pdf/gerar";

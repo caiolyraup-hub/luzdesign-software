@@ -1,5 +1,6 @@
 // Dia 12B: gera PDF e XLSX com o CATÁLOGO INTEIRO (banco real) e procura qualquer fabricante,
 // modelo ou referência do fornecedor no texto. Nenhum pode aparecer. Uso: pnpm test:rls
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import ExcelJS from "exceljs";

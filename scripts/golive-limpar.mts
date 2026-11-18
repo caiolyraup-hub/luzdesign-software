@@ -75,6 +75,58 @@ console.log(
 for (const u of contas) console.log(`  ${u.nome} (${u.perfil}) ${u.email}`);
 console.log(`\nProdutos suspeitos de teste (${produtosTeste?.length ?? 0}):`);
 for (const p of produtosTeste ?? []) console.log(`  ${p.codigo} ${p.descricao}`);
+// Orçamentos anteriores ao piloto (19/11/2026): todos são de contas de teste, mesmo sem marcador no nome.
+const INICIO_PILOTO = "2026-11-19T00:00:00-03:00";
+const idsMarcados = new Set(testeOrc.map(({ o }) => o.id));
+const { data: antigos } = await admin
+  .from("orcamentos")
+  .select("id, numero, status, criado_em, clientes(nome), usuarios(nome)")
+  .lt("criado_em", INICIO_PILOTO)
+  .order("numero");
+const semMarcador = (antigos ?? []).filter((o) => !idsMarcados.has(o.id));
+console.log(
+  `\nOrçamentos criados ANTES do piloto, sem marcador de teste no nome (${semMarcador.length}) — confirmar com o dono; são das contas de teste:`,
+);
+for (const o of semMarcador)
+  console.log(
+    `  ${o.numero} [${o.status}] ${um(o.usuarios as unknown as { nome: string } | null)?.nome ?? "?"} — cliente "${um(o.clientes as unknown as { nome: string } | null)?.nome ?? "?"}"`,
+  );
+const { data: usoIa } = await admin.from("uso_ia").select("id");
+console.log(
+  `\nRegistros de uso da IA (uso_ia): ${(usoIa ?? []).length} (custos dos testes; zerar o painel de custo no go-live)`,
+);
+const { data: expo } = await admin.from("eventos_exportacao").select("id");
+console.log(
+  `Auditoria de exportações (eventos_exportacao) de contas de teste: ${(expo ?? []).length}`,
+);
+
+async function arquivos(bucket: string, pasta = ""): Promise<string[]> {
+  const { data } = await admin.storage.from(bucket).list(pasta, { limit: 1000 });
+  const saida: string[] = [];
+  for (const o of data ?? []) {
+    if (o.id) saida.push(`${pasta}${o.name}`);
+    else saida.push(...(await arquivos(bucket, `${pasta}${o.name}/`)));
+  }
+  return saida;
+}
+const { data: todosOrc } = await admin.from("orcamentos").select("id");
+const existentes = new Set((todosOrc ?? []).map((o) => o.id));
+console.log(
+  "\nArquivos no Storage (todos anteriores ao piloto; incluem órfãos de orçamentos já apagados):",
+);
+for (const b of ["anexos", "pdfs", "arquitetos", "relatos"]) {
+  const lista = await arquivos(b);
+  const orfaos =
+    b === "anexos" || b === "pdfs" ? lista.filter((c) => !existentes.has(c.split("/")[1])) : [];
+  console.log(
+    `  ${b}: ${lista.length} arquivo(s)${orfaos.length ? `, ${orfaos.length} órfão(s) (sem orçamento): ${orfaos.join(", ")}` : ""}`,
+  );
+}
+const { data: cache } = await admin.from("produtos_descricao_formatada").select("codigo");
+console.log(
+  `\nCache de descrições da IA (produtos_descricao_formatada): ${(cache ?? []).length} linha(s), geradas por testes com a IA real; são refeitas sozinhas (limpar é opcional).`,
+);
+
 console.log(
   "\nO que a execução real do dia 14 deve fazer (precisa de autorização): apagar os itens acima na ordem",
 );

@@ -21,6 +21,7 @@
     "itens:limpar-descricoes": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/limpar-descricoes-itens.mts",
     "env:verificar": "tsx scripts/env-verificar.mts",
     "deploy:conferir": "tsx scripts/deploy-conferir.mts",
+    "testes:sobras": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/auditar-sobras.mts",
     "golive:limpar": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/golive-limpar.mts",
     "catalogo:provisorio": "tsx --env-file=.env.local scripts/catalogo-provisorio.mts",
     "test:e2e": "playwright test",

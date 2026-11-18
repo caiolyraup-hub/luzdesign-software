@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { guardarCacheDescricoes } from "./auxiliar";
 import { expect, test } from "@playwright/test";
 
 // Dia 9B: kit de fita, "Seus mais usados" e duplicar ambiente (sem IA), no celular de 390 px.
@@ -13,12 +14,6 @@ const NOME = `${PREFIXO} ${Date.now()}`;
 const NOME_HIST = `${PREFIXO} HIST ${Date.now()}`;
 
 async function limpar() {
-  // As descrições dos produtos usados aqui vêm do catálogo: o cache de textos padronizados pela IA é compartilhado
-  // e pode guardar outra versão (por exemplo, "6 W" com espaço). Sem cache, o texto é o do catálogo.
-  await admin
-    .from("produtos_descricao_formatada")
-    .delete()
-    .in("codigo", ["9520", "12222", "10340", "10338", "12086", "12615"]);
   const { data: clientes } = await admin.from("clientes").select("id").like("nome", `${PREFIXO}%`);
   const ids = (clientes ?? []).map((c) => c.id);
   if (ids.length) {
@@ -33,8 +28,18 @@ async function limpar() {
   await admin.from("orcamento_contador").update({ ultimo: maior }).eq("ano", 2026);
 }
 
-test.beforeAll(limpar);
-test.afterAll(limpar);
+// O cache de descrições da IA é compartilhado: guarda o que já existe para estes códigos, deixa o teste
+// usar o texto do catálogo e RESTAURA o cache no fim (nada de dado real se perde).
+const CODIGOS_CACHE = ["9520", "12222", "10340", "10338", "12086", "12615"];
+let restaurarCache: (() => Promise<void>) | null = null;
+test.beforeAll(async () => {
+  restaurarCache = await guardarCacheDescricoes(admin, CODIGOS_CACHE);
+  await limpar();
+});
+test.afterAll(async () => {
+  await limpar();
+  await restaurarCache?.();
+});
 
 const reais = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/ /g, " ");

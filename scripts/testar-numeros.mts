@@ -2,6 +2,7 @@
 // custo_ia_orcamentos, a view orcamentos_reais e o câmbio.
 // Uso: pnpm test:rls (roda por último). Cria dados "NUMEROS RLS" (e um "TESTE NUMEROS RLS") e apaga tudo no fim.
 // Os números são comparados por diferença, porque o banco pode ter orçamentos reais.
+import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { hojeMaceioISO, adicionarDiasISO } from "../src/lib/formatar";
