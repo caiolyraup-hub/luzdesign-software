@@ -39,3 +39,11 @@ Em qualquer tela, **Relatar problema** (menu): escrever o que aconteceu; a tela 
 ## Depois do piloto
 
 23/11: carga do **estoque real** e ajustes do piloto. 24/11: go-live (limpeza dos testes, troca das senhas e conferência final).
+
+## Se o sistema cair no meio do atendimento
+
+1. Não espere nem insista: volte para a planilha antiga e siga atendendo o cliente normalmente.
+2. Anote o orçamento na planilha (cliente, produtos, valores) como sempre foi feito.
+3. Avise o Caio por WhatsApp ("sistema fora"), com a hora e o que a tela mostrou.
+4. Quando o sistema voltar, registre depois os orçamentos que ficaram na planilha. Nada se perde: a planilha é a fonte até lá.
+5. Orçamento já enviado ao cliente continua valendo; o PDF enviado não depende do sistema.

@@ -46,6 +46,8 @@ interface Props {
   /** Ambientes da pergunta 5, na ordem. */
   ambientesBase: string[];
   descontoPct: number;
+  /** O catálogo ainda é o provisório (sem importação real do estoque). */
+  catalogoProvisorio?: boolean;
   /** Pendências e avisos de orçamentos montados antes pela IA (só leitura). */
   pendencias: string[];
   avisos: string[];
@@ -280,6 +282,12 @@ export function Revisao(p: Props) {
           {p.numero} · {p.clienteNome}
         </p>
       </div>
+
+      {p.catalogoProvisorio ? (
+        <p role="note" className="rounded-lg bg-amber-50 px-3 py-2 text-base text-amber-900">
+          Catálogo provisório: confira os preços antes de enviar.
+        </p>
+      ) : null}
 
       {p.status === "gerado" ? (
         <p className="rounded-lg border-2 border-sky-700 bg-sky-50 p-4 text-lg">

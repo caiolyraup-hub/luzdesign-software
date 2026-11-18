@@ -83,12 +83,20 @@ async function Procedencia() {
   const provisorio = !carga || String(carga.origem).startsWith("provisorio");
   const quando = carga ? dataBR.format(new Date(carga.terminado_em ?? carga.iniciado_em)) : null;
   return (
-    <p role="note" className="rounded-lg bg-amber-50 p-3 text-base text-zinc-800">
-      {provisorio ? "Catálogo provisório" : `Catálogo importado (${carga?.origem})`}, {count ?? 0}{" "}
-      produtos
-      {quando ? `, importado em ${quando}` : ""}.
-      {provisorio ? " A planilha real do estoque ainda vai substituir estes dados." : ""}
-    </p>
+    <div
+      role="note"
+      className={`rounded-lg border-2 p-4 text-lg ${provisorio ? "border-amber-700 bg-amber-50" : "border-emerald-700 bg-emerald-50"}`}
+    >
+      <p className="font-semibold">
+        {provisorio ? "ATENÇÃO: catálogo provisório" : `Catálogo importado (${carga?.origem})`}
+      </p>
+      <p>
+        {count ?? 0} produtos{quando ? `, importado em ${quando}` : ""}.
+        {provisorio
+          ? " Veio de orçamentos antigos, não do estoque real: os preços podem estar defasados. A planilha real do estoque ainda vai substituir estes dados."
+          : ""}
+      </p>
+    </div>
   );
 }
 

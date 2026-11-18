@@ -41,7 +41,7 @@ export function lerGuiaMarkdown(md: string): BlocoGuia[] {
 function Trechos({ texto }: { texto: string }) {
   const partes = texto.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
   return (
-    <Text>
+    <Text style={{ lineHeight: 1.32 }}>
       {partes.map((p, i) =>
         p.startsWith("**") ? (
           <Text key={i} style={{ fontFamily: "Helvetica-Bold" }}>
@@ -75,7 +75,6 @@ export function DocumentoGuia({
       fontFamily: "Helvetica",
       fontSize: tamanho,
       color: COR_TEXTO,
-      lineHeight: 1.32,
     },
     cabecalho: {
       flexDirection: "row",
@@ -99,6 +98,16 @@ export function DocumentoGuia({
     marcador: { width: 14, color: COR_DESTAQUE, fontFamily: "Helvetica-Bold" },
     corpo: { flex: 1 },
     paragrafo: { marginBottom: 3 },
+    rodape: {
+      position: "absolute",
+      bottom: 22,
+      left: 34,
+      right: 34,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      fontSize: 8,
+      color: "#6B7280",
+    },
     destaque: { backgroundColor: COR_DESTAQUE_SUAVE, padding: 5, marginTop: 4, marginBottom: 2 },
   });
   return (
@@ -140,6 +149,10 @@ export function DocumentoGuia({
             </View>
           );
         })}
+        <View style={e.rodape} fixed>
+          <Text>Luz Design · Guia rápido da vendedora</Text>
+          <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
+        </View>
       </Page>
     </Document>
   );

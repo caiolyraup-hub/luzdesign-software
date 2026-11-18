@@ -25,3 +25,10 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 ## Aviso de segurança do Next.js
 
 `next build` e `next dev` avisam que o Next.js 16.4.4 tem uma vulnerabilidade conhecida (npm advisory). O aviso **interrompe o primeiro comando** e deixa passar na repetição. Recomenda-se `next upgrade --agent=security`, mas atualizar o framework a dois dias do piloto é uma decisão sua: não foi feito.
+
+## Testes e banco de produção (dia 13)
+
+- Os testes (e2e e `test:rls`) usam o `.env.local`, que aponta para o Supabase de produção. Caminho adotado hoje: **(c)** marcar os dados de teste e apagar no fim de cada teste; o cache de descrições dos e2e agora é guardado e **restaurado** (nada de produto real é apagado); exportações e uso da IA simulada são apagados no teardown.
+- Trava: a partir de 19/11/2026 00:00 (Maceió) todo teste recusa rodar contra a produção, salvo `PERMITIR_TESTE_EM_PRODUCAO=1`. E2E também recusa servidor sem `IA_SIMULADA=1` ou `NODE_ENV=production` (nunca chama a OpenAI de verdade).
+- Pendente (pós-piloto): banco de testes separado (segundo projeto Supabase gratuito ou `supabase start`, que exige Docker, não instalado). Auditoria: `pnpm testes:sobras`.
+- Next atualizado para 16.4.6 (aviso de segurança resolvido).

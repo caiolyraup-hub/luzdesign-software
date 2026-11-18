@@ -69,20 +69,26 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
     );
   }
 
-  const [{ data: cfg }, { count: anexos }, { data: indicacoes }, usadosHoje] = await Promise.all([
-    supabase.from("configuracoes_loja").select("desconto_avista_pct").eq("id", true).maybeSingle(),
-    supabase.from("anexos").select("id", { count: "exact", head: true }).eq("orcamento_id", id),
-    supabase
-      .from("indicacoes_ia")
-      .select("ambiente, criado_em, resposta")
-      .eq("orcamento_id", id)
-      .order("criado_em", { ascending: false })
-      .limit(40),
-    criarRepositorioIA(supabase, criarClienteAdmin()).contarUso({
-      vendedoraId: usuario.id,
-      desde: inicioDoDiaMaceio(new Date()),
-    }),
-  ]);
+  const [{ data: cfg }, { count: anexos }, { data: indicacoes }, usadosHoje, { data: provisorio }] =
+    await Promise.all([
+      supabase
+        .from("configuracoes_loja")
+        .select("desconto_avista_pct")
+        .eq("id", true)
+        .maybeSingle(),
+      supabase.from("anexos").select("id", { count: "exact", head: true }).eq("orcamento_id", id),
+      supabase
+        .from("indicacoes_ia")
+        .select("ambiente, criado_em, resposta")
+        .eq("orcamento_id", id)
+        .order("criado_em", { ascending: false })
+        .limit(40),
+      criarRepositorioIA(supabase, criarClienteAdmin()).contarUso({
+        vendedoraId: usuario.id,
+        desde: inicioDoDiaMaceio(new Date()),
+      }),
+      supabase.rpc("catalogo_eh_provisorio"),
+    ]);
 
   // Só a última indicação de cada ambiente.
   const historico: HistoricoIndicacao[] = [];
@@ -110,6 +116,7 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
       }}
       ambientesBase={ambientesDasRespostas(respostas)}
       descontoPct={Number(cfg?.desconto_avista_pct ?? 10)}
+      catalogoProvisorio={provisorio === true}
       pendencias={montagem.pendencias ?? []}
       avisos={montagem.avisos ?? []}
       pedidoClienteInicial={
