@@ -166,6 +166,9 @@ test("kit de fita de 5 m, duplicar ambiente com preço de hoje e seus mais usado
     .eq("orcamento_id", id)
     .order("ordem");
   const porCodigo = Object.fromEntries((itens ?? []).map((i) => [i.codigo, i]));
+  // Origem dos itens (dia 14): o kit grava "kit"; o produto escolhido à mão continua "manual".
+  for (const c of ["12222", "12086", "10527"]) expect(porCodigo[c].origem).toBe("kit");
+  expect(porCodigo["9520"].origem).toBe("manual");
   expect(Number(porCodigo["12222"].quantidade)).toBe(5);
   expect(Number(porCodigo["12086"].quantidade)).toBe(2);
   expect(Number(porCodigo["10527"].quantidade)).toBe(1);
