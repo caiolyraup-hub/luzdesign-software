@@ -13,7 +13,7 @@ import { lerFiltrosLista } from "../src/lib/orcamento/filtros-lista";
 
 function exigir(nome: string): string {
   const valor = process.env[nome];
-  if (!valor) throw new Error(`Variável ${nome} ausente no .env.local`);
+  if (!valor) throw new Error(`Variável ${nome} ausente no .env.test.local`);
   return valor;
 }
 

@@ -1,11 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { prepararAmbienteDeTeste } from "./scripts/guarda-producao";
 
-// As credenciais de teste vêm do .env.local (as mesmas do pnpm test:rls).
-try {
-  process.loadEnvFile(".env.local");
-} catch {
-  // sem .env.local: as variáveis precisam estar no ambiente
-}
+// Os e2e rodam SÓ no projeto luz-design-testes: as chaves vêm de .env.test.local (e nunca de .env.local).
+// Se algum valor apontar para a produção, o teste falha logo no começo (scripts/guarda-producao.ts).
+prepararAmbienteDeTeste();
 
 const PORTA = 3210;
 // E2E_BASE_URL aponta o teste para outro endereço (por exemplo, a produção) e dispensa o servidor local.

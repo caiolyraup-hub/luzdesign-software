@@ -29,7 +29,7 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 ## Testes e banco de produção (dia 13)
 
 - Os testes (e2e e `test:rls`) usam o `.env.local`, que aponta para o Supabase de produção. Caminho adotado hoje: **(c)** marcar os dados de teste e apagar no fim de cada teste; o cache de descrições dos e2e agora é guardado e **restaurado** (nada de produto real é apagado); exportações e uso da IA simulada são apagados no teardown.
-- Trava: a partir de 19/11/2026 00:00 (Maceió) todo teste recusa rodar contra a produção, salvo `PERMITIR_TESTE_EM_PRODUCAO=1`. E2E também recusa servidor sem `IA_SIMULADA=1` ou `NODE_ENV=production` (nunca chama a OpenAI de verdade).
+- Trava (dia 14): todo teste recusa qualquer variável com o ref de produção; sem variável de liberação. Ver `docs/testes.md`. E2E também recusa servidor sem `IA_SIMULADA=1` ou `NODE_ENV=production` (nunca chama a OpenAI de verdade).
 - Pendente (pós-piloto): banco de testes separado (segundo projeto Supabase gratuito ou `supabase start`, que exige Docker, não instalado). Auditoria: `pnpm testes:sobras`.
 - Next atualizado para 16.4.6 (aviso de segurança resolvido).
 

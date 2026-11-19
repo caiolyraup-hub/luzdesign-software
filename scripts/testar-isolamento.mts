@@ -1,12 +1,12 @@
 // Teste de integração da RLS contra o Supabase real (precisa de migrations + usuários + seed).
-// Uso: pnpm test:rls   (lê .env.local)
+// Uso: pnpm test:rls   (lê .env.test.local, só o projeto de testes)
 import "./guarda-import.mts";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 function exigir(nome: string): string {
   const valor = process.env[nome];
-  if (!valor) throw new Error(`Variável ${nome} ausente no .env.local`);
+  if (!valor) throw new Error(`Variável ${nome} ausente no .env.test.local`);
   return valor;
 }
 

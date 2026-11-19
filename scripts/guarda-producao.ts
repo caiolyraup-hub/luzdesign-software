@@ -1,24 +1,47 @@
 /**
- * Trava dos testes contra a PRODUÇÃO (dia 13). Os testes (e2e e test:rls) usam o `.env.local`, que
- * aponta para o mesmo Supabase do sistema. Até 18/11 isso é aceitável (ainda não há dado real). A
- * partir do início do piloto (19/11/2026, 00:00 em Maceió) cada teste recusa rodar, a não ser que
- * `PERMITIR_TESTE_EM_PRODUCAO=1` esteja definido de propósito, para ninguém sujar o banco ou o
- * cache enquanto a Aline e a Kely usam o sistema.
+ * Trava dos testes contra a PRODUÇÃO (dia 14). Os testes (e2e, test:rls, matriz) rodam SOMENTE no
+ * projeto Supabase `luz-design-testes`, com as chaves de `.env.test.local`. Se qualquer variável de
+ * ambiente tiver, em qualquer parte do valor, o ref do projeto de produção, o teste falha logo no
+ * começo, qualquer que seja o nome da variável. Não existe mais variável para liberar (o antigo
+ * PERMITIR_TESTE_EM_PRODUCAO foi removido).
  */
 export const REF_PRODUCAO = "xdrubtojofckgxilkttm";
-export const INICIO_DO_PILOTO = new Date("2026-11-19T00:00:00-03:00");
+export const ARQUIVO_ENV_TESTE = ".env.test.local";
+
+/** Nomes das variáveis cujo valor contém o ref de produção (só os nomes: nunca imprime valor). */
+export function variaveisComProducao(
+  env: Record<string, string | undefined> = process.env,
+): string[] {
+  return Object.entries(env)
+    .filter(([, v]) => typeof v === "string" && v.includes(REF_PRODUCAO))
+    .map(([nome]) => nome)
+    .sort();
+}
 
 export function bancoEhProducao(url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""): boolean {
   return url.includes(REF_PRODUCAO);
 }
 
-export function garantirTesteSeguro(agora: Date = new Date()): void {
-  if (!bancoEhProducao()) return;
-  if (agora < INICIO_DO_PILOTO) return;
-  if (process.env.PERMITIR_TESTE_EM_PRODUCAO === "1") return;
+/** Lança se qualquer variável apontar para a produção. */
+export function garantirTesteSeguro(env: Record<string, string | undefined> = process.env): void {
+  const achadas = variaveisComProducao(env);
+  if (achadas.length === 0) return;
   throw new Error(
-    "TESTE RECUSADO: o piloto já começou e este teste gravaria no banco de PRODUÇÃO (dados reais da loja). " +
-      "Rode os testes contra um banco de testes ou, se for mesmo necessário e você sabe o que apaga, " +
-      "defina PERMITIR_TESTE_EM_PRODUCAO=1.",
+    `TESTE RECUSADO: a variável ${achadas.join(", ")} aponta para o banco de PRODUÇÃO (${REF_PRODUCAO}). ` +
+      `Os testes rodam só no projeto luz-design-testes, com as chaves de ${ARQUIVO_ENV_TESTE}. ` +
+      "Não use .env.local nem exporte variáveis de produção ao rodar testes (ver docs/testes.md).",
   );
+}
+
+/** Carrega `.env.test.local` (e só ele) e confere a trava. Falha com instrução se o arquivo não existe. */
+export function prepararAmbienteDeTeste(): void {
+  try {
+    process.loadEnvFile(ARQUIVO_ENV_TESTE);
+  } catch {
+    throw new Error(
+      `TESTE RECUSADO: falta o arquivo ${ARQUIVO_ENV_TESTE} (chaves do projeto luz-design-testes). ` +
+        "Crie o projeto de testes e rode `pnpm testes:ambiente` (ver docs/testes.md).",
+    );
+  }
+  garantirTesteSeguro();
 }

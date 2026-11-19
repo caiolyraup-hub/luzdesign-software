@@ -87,7 +87,7 @@ Limpar antes de transferir apagaria a história de teste junto com a conta; tran
 
 ## 11. Conferência final
 
-- **Comando:** `pnpm deploy:conferir`, `pnpm test:rls` (não rode contra a produção depois do início do piloto: precisa de `PERMITIR_TESTE_EM_PRODUCAO=1` e dados que o teste vai criar e apagar; só rode se tiver certeza) e `pnpm piloto:resumo`.
+- **Comando:** `pnpm deploy:conferir`, `pnpm test:rls` (roda no projeto de testes, nunca na produção; ver `docs/testes.md`) e `pnpm piloto:resumo`.
 - **Conferência:** `deploy:conferir` verde (commit, migrations e cadastro público fechado).
 
 ---

@@ -1,4 +1,5 @@
-// Importado por cada scripts/testar-*.mts: recusa rodar contra a produção depois do início do piloto.
-import { garantirTesteSeguro } from "./guarda-producao";
+// Importado por cada scripts/testar-*.mts: carrega .env.test.local e recusa rodar se algo apontar
+// para a produção.
+import { prepararAmbienteDeTeste } from "./guarda-producao";
 
-garantirTesteSeguro();
+prepararAmbienteDeTeste();

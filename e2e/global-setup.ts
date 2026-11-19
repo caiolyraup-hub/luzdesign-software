@@ -1,8 +1,9 @@
 import { garantirTesteSeguro } from "../scripts/guarda-producao";
 
 /**
- * Antes de qualquer e2e (dia 13):
- * 1. depois do início do piloto, recusa gravar no banco de produção (ver scripts/guarda-producao.ts);
+ * Antes de qualquer e2e (dias 13 e 14):
+ * 1. nenhuma variável pode apontar para a produção, e o SERVIDOR testado também não (um `pnpm dev`
+ *    aberto antes com o .env.local seria reaproveitado): ver scripts/guarda-producao.ts;
  * 2. recusa rodar se o servidor testado chamaria a OpenAI de VERDE (custa dinheiro e grava textos no
  *    cache de descrições): NODE_ENV=production, ou servidor sem IA_SIMULADA=1.
  *    Para testes que comprovadamente não usam a IA (por exemplo, olhar o site no ar), defina
@@ -17,14 +18,19 @@ export default async function globalSetup() {
       "E2E RECUSADO: NODE_ENV=production. Em produção a IA simulada fica desligada e o teste chamaria a OpenAI de verdade. Rode contra `pnpm dev` com IA_SIMULADA=1.",
     );
   }
-  if (process.env.E2E_SEM_IA === "1") return;
   const base = process.env.E2E_BASE_URL ?? "http://localhost:3210";
-  let saude: { modo?: string; iaSimulada?: boolean } | null = null;
+  let saude: { modo?: string; iaSimulada?: boolean; bancoProducao?: boolean } | null = null;
   try {
     saude = await (await fetch(`${base}/api/saude`, { cache: "no-store" })).json();
   } catch {
     // servidor ainda sem /api/saude (versão antiga): trata como não confiável
   }
+  if (saude?.bancoProducao) {
+    throw new Error(
+      `E2E RECUSADO: o servidor ${base} está ligado ao banco de PRODUÇÃO. Pare esse servidor e deixe o Playwright subir o seu (ele usa .env.test.local).`,
+    );
+  }
+  if (process.env.E2E_SEM_IA === "1") return;
   if (!saude?.iaSimulada) {
     throw new Error(
       `E2E RECUSADO: o servidor ${base} NÃO está com a IA simulada (modo: ${saude?.modo ?? "desconhecido"}). ` +

@@ -7,7 +7,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 function exigir(nome: string): string {
   const v = process.env[nome];
-  if (!v) throw new Error(`Variável ${nome} ausente no .env.local`);
+  if (!v) throw new Error(`Variável ${nome} ausente no .env.test.local`);
   return v;
 }
 const url = exigir("NEXT_PUBLIC_SUPABASE_URL");

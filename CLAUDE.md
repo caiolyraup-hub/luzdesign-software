@@ -19,7 +19,7 @@ A vendedora escolhe os produtos. A IA só (1) sugere produtos na **Indicação d
 
 Next.js (App Router) + TypeScript strict + Tailwind CSS (Vercel); Supabase (Postgres com RLS, Auth, Storage, cron); OpenAI SDK (só no servidor); pnpm, ESLint, Prettier, Vitest.
 
-Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento no Supabase real), `pnpm test:e2e` (Playwright, celular 390 px), `pnpm ia:testar` (chama a OpenAI de verdade: 1 Indicação e a padronização de 10 códigos; centavos de dólar), `pnpm ia:avaliar` (Indicação em 5 ambientes dos orçamentos reais, relatório em `dados/avaliacao/relatorio-ia.md`; cerca de US$ 0,4 por rodada), `pnpm exportacao:exemplo` (gera `dados/exemplo-exportacao.xlsx` com dados fictícios), `pnpm pdf:exemplo` (gera `dados/exemplo-orcamento.pdf` e `.xlsx` para ver o visual), `pnpm format`.
+Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede), `pnpm test:rls` (isolamento, no projeto Supabase de **testes** `luz-design-testes`), `pnpm test:e2e` (Playwright, celular 390 px, também no projeto de testes), `pnpm ia:testar` (chama a OpenAI de verdade: 1 Indicação e a padronização de 10 códigos; centavos de dólar), `pnpm ia:avaliar` (Indicação em 5 ambientes dos orçamentos reais, relatório em `dados/avaliacao/relatorio-ia.md`; cerca de US$ 0,4 por rodada), `pnpm exportacao:exemplo` (gera `dados/exemplo-exportacao.xlsx` com dados fictícios), `pnpm pdf:exemplo` (gera `dados/exemplo-orcamento.pdf` e `.xlsx` para ver o visual), `pnpm format`.
 
 ## Convenções
 
@@ -30,6 +30,10 @@ Comandos: `pnpm dev`, `pnpm lint`, `pnpm build`, `pnpm test` (rápido, sem rede)
 - Não invente dados de produtos.
 - Tipos de domínio em `src/lib/dominio.ts`.
 - O Next.js desta versão tem mudanças em relação ao que se conhece: consulte `node_modules/next/dist/docs/` antes de usar APIs novas (ver `AGENTS.md`).
+
+## Testes nunca tocam a produção
+
+Todos os testes (`test:rls`, a matriz e o e2e) rodam **só** no projeto `luz-design-testes`, com as chaves de `.env.test.local`; o `.env.local` é só da produção. Se qualquer variável tiver o ref de produção (`xdrubtojofckgxilkttm`), o teste falha no começo, e não há variável para liberar. Detalhes e criação do projeto: `docs/testes.md`.
 
 ## Segurança
 

@@ -29,6 +29,8 @@ export async function GET() {
       migration,
       // Para os testes recusarem servidor que chamaria a OpenAI de verdade.
       modo: process.env.NODE_ENV,
+      // Os e2e recusam um servidor ligado ao banco de produção (scripts/guarda-producao.ts).
+      bancoProducao: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").includes("xdrubtojofckgxilkttm"),
       iaSimulada: process.env.IA_SIMULADA === "1" && process.env.NODE_ENV !== "production",
     },
     { headers: { "Cache-Control": "no-store" } },
