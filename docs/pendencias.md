@@ -38,3 +38,10 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 - Backup: resolvido no dia 14 com `pnpm backup` (JSON por tabela + Storage, sem Docker nem `pg_dump`) e `pnpm backup:conferir`. As senhas das contas não entram no backup.
 - `golive:limpar` e `contas:transferir` só existem em modo simulação. A execução real (incluindo mover arquivos no Storage) será ligada no dia, com o ok do dono.
 - Itens de kit gravados antes do dia 14 continuam como `manual`; só os novos têm origem `kit`.
+
+## Ambiente de testes separado (dia 14): pendente
+
+- O projeto `luz-design-testes` **não foi criado**: o plano gratuito do Supabase aceita 2 projetos ativos e a organização já tem 2 (`luz-design-orcamentos` e `dbijlopiyknlznihycxn`); a CLI devolveu `entitlement_required / free_project_limit`. Em 19/11 às 14:35 o `dbijlopiyknlznihycxn` seguia ativo e nada foi pausado ou apagado.
+- Tudo o mais está pronto: a trava (qualquer variável com o ref de produção derruba o teste), o `.env.test.local`, `pnpm testes:ambiente` (cria as chaves, aplica as migrations, fecha o cadastro, cria as contas e o seed, carrega os 158 produtos) e `docs/testes.md`.
+- Para destravar: pausar um projeto da organização (ou subir de plano), criar `luz-design-testes` em sa-east-1 e rodar `pnpm testes:ambiente`; depois a suíte, um teste por vez (`docs/testes.md`).
+- Até lá os testes que precisam de banco (`test:rls`, matriz e e2e) **não rodam**: só `pnpm test` (PGlite em memória), que cobre as migrations, o RLS por SQL, o backup e o piloto. Os e2e novos (`e2e/piloto.spec.ts`, origem `kit` em `e2e/atalhos.spec.ts`, aba Resumo do dia em `e2e/relatos.spec.ts`) aguardam o projeto.
