@@ -59,3 +59,6 @@ supabase/.temp/
 # Avaliação da IA (pedidos derivados dos orçamentos reais e relatórios)
 /dados/avaliacao/
 /dados/exemplo-exportacao.xlsx
+
+# Backups do banco e do Storage (dados reais): fora do git
+/dados/backups/
