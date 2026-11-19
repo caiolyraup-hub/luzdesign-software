@@ -74,6 +74,8 @@ export interface FiltrosLista {
   validade?: FiltroValidade;
   /** Só a gerente. */
   vendedora?: string;
+  /** Só a gerência: apenas os orçamentos marcados como piloto. */
+  piloto?: boolean;
   ordem: Ordem;
 }
 
@@ -135,6 +137,7 @@ export function lerFiltrosLista(
       ? (validade as FiltroValidade)
       : undefined,
     vendedora: opcoes.gerente && vendedora && UUID.test(vendedora) ? vendedora : undefined,
+    piloto: opcoes.gerente && um(params.piloto) === "1" ? true : undefined,
     ordem: (ORDENS as readonly string[]).includes(ordem ?? "") ? (ordem as Ordem) : "recentes",
   };
 }
@@ -157,6 +160,7 @@ export function paraParams(f: FiltrosLista): URLSearchParams {
   if (f.motivo) p.set("motivo", f.motivo);
   if (f.validade) p.set("validade", f.validade);
   if (f.vendedora) p.set("vendedora", f.vendedora);
+  if (f.piloto) p.set("piloto", "1");
   if (f.ordem !== "recentes") p.set("ordem", f.ordem);
   return p;
 }
@@ -181,6 +185,7 @@ export function paraRpc(
     ...(f.motivo ? { motivo: f.motivo } : {}),
     ...(f.validade ? { validade: f.validade } : {}),
     ...(f.vendedora ? { vendedora: f.vendedora } : {}),
+    ...(f.piloto ? { piloto: "1" } : {}),
     incluir_teste: !f.campo,
     ordem: f.ordem,
     ...(extra.cursor ? { cursor: extra.cursor } : {}),
@@ -258,6 +263,8 @@ export function chipsAtivos(
       rotulo: nomeVendedora?.(f.vendedora) ?? "Vendedora",
       semEle: sem({ vendedora: undefined }),
     });
+  if (f.piloto)
+    chips.push({ id: "piloto", rotulo: "Só do piloto", semEle: sem({ piloto: undefined }) });
   return chips;
 }
 

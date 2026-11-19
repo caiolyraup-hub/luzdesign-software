@@ -117,6 +117,7 @@ const ROTULOS_ORIGEM: Record<string, string> = {
   lista_colada: "Lista colada",
   indicacao_ia: "Indicação da IA",
   montagem_ia: "Montagem antiga",
+  kit: "Kit de fita",
 };
 const rotuloTipo = (t: string | null) =>
   OPCOES_TIPO_CLIENTE.find((o) => o.valor === t)?.rotulo ?? t ?? "";

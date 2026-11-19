@@ -29,7 +29,7 @@ export interface ItemRevisao {
   descricaoManual?: boolean;
 }
 
-export type OrigemItem = "manual" | "lista_colada" | "indicacao_ia" | "montagem_ia";
+export type OrigemItem = "manual" | "lista_colada" | "indicacao_ia" | "montagem_ia" | "kit";
 
 export const QUANTIDADE_MAXIMA = 100_000;
 

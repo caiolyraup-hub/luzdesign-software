@@ -324,6 +324,19 @@ export function BuscaFiltros({
                   </label>
                 ) : null}
 
+                {vendedoras && vendedoras.length > 0 ? (
+                  <label className="flex min-h-14 items-center gap-3 text-lg">
+                    <input
+                      type="checkbox"
+                      name="piloto"
+                      value="1"
+                      defaultChecked={filtros.piloto}
+                      className="size-6"
+                    />
+                    Só orçamentos do piloto
+                  </label>
+                ) : null}
+
                 <label className="block space-y-1">
                   <span className="text-lg font-medium">Ordenar por</span>
                   <select name="ordem" defaultValue={filtros.ordem} className={campo}>

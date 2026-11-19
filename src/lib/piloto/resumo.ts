@@ -6,7 +6,13 @@ export interface ResumoVendedora {
   gerados: number;
   enviados: number;
   mediana_ate_gerar_min: number | null;
-  itens: { manual: number; lista_colada: number; indicacao_ia: number; montagem_ia: number };
+  itens: {
+    manual: number;
+    lista_colada: number;
+    indicacao_ia: number;
+    montagem_ia: number;
+    kit: number;
+  };
 }
 export interface ResumoPiloto {
   dia: string;
@@ -43,7 +49,7 @@ export function formatarResumo(r: ResumoPiloto): string {
       `${v.nome}`,
       `  orçamentos: ${v.criados} criados · ${v.gerados} gerados · ${v.enviados} enviados`,
       `  do início do rascunho até gerar (mediana): ${formatarMediana(v.mediana_ate_gerar_min)}`,
-      `  itens por origem: ${v.itens.manual} manual (inclui kit de fita) · ${v.itens.lista_colada} lista colada · ${v.itens.indicacao_ia} Indicação da IA · ${v.itens.montagem_ia} montagem da IA`,
+      `  itens por origem: ${v.itens.manual} manual · ${v.itens.kit} kit de fita · ${v.itens.lista_colada} lista colada · ${v.itens.indicacao_ia} Indicação da IA · ${v.itens.montagem_ia} montagem da IA`,
       "",
     );
   }

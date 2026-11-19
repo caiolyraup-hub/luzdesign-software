@@ -114,3 +114,23 @@ export async function reabrirParaEdicao(orcamentoId: string): Promise<RespostaSt
   if (error) return { ok: false, erro: erroDoBanco(error.message) };
   return { ok: true, status: "gerado" };
 }
+
+/**
+ * Marca ou desmarca o orçamento como PILOTO (função SQL marcar_piloto, só gerência e dono). O
+ * orçamento piloto conta nos números e o go-live não o apaga.
+ */
+export async function marcarPiloto(
+  orcamentoId: string,
+  piloto: boolean,
+): Promise<{ ok: true; piloto: boolean } | { ok: false; erro: string }> {
+  const usuario = await obterUsuarioAtual();
+  if (usuario.perfil !== "gerente" && usuario.perfil !== "dono")
+    return { ok: false, erro: "Só a gerência marca orçamento do piloto." };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc("marcar_piloto", {
+    p_orcamento: orcamentoId,
+    p_piloto: piloto,
+  });
+  if (error) return { ok: false, erro: "Não foi possível mudar a marca agora. Tente de novo." };
+  return { ok: true, piloto };
+}

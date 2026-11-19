@@ -391,7 +391,7 @@ export async function restaurarItem(
     if (!salvo.descricao_manual) descricao = produto.descricao;
     preco = produto.preco_unitario;
   }
-  const origens: OrigemItem[] = ["manual", "lista_colada", "indicacao_ia", "montagem_ia"];
+  const origens: OrigemItem[] = ["manual", "lista_colada", "indicacao_ia", "montagem_ia", "kit"];
   const { error } = await c.supabase.from("orcamento_itens").insert({
     orcamento_id: orcamentoId,
     codigo: salvo.avulso ? null : salvo.codigo,
@@ -947,7 +947,7 @@ export async function adicionarKit(
 ): Promise<RespostaAdicao> {
   const c = await abrirContexto(orcamentoId);
   if (eFalha(c)) return c;
-  const r = await inserirProdutos(c, ambiente, linhas, "manual");
+  const r = await inserirProdutos(c, ambiente, linhas, "kit");
   if (!r.ok) return r;
   const e = await estadoAtual(c);
   if (!e.ok) return e;

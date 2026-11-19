@@ -22,6 +22,7 @@ const ROTULO_ORIGEM: Record<string, string> = {
   lista_colada: "Lista colada",
   indicacao_ia: "Indicação da IA",
   montagem_ia: "Montado pela IA",
+  kit: "Kit de fita",
 };
 
 export function ItemCard({

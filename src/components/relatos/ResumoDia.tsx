@@ -57,8 +57,9 @@ export async function ResumoDia({ dia }: { dia?: string }) {
               Do rascunho até gerar (mediana): {formatarMediana(v.mediana_ate_gerar_min)}
             </p>
             <p className="text-base text-zinc-700">
-              Itens: {v.itens.manual} manual (inclui kit) · {v.itens.lista_colada} lista colada ·{" "}
-              {v.itens.indicacao_ia} Indicação da IA · {v.itens.montagem_ia} montagem da IA
+              Itens: {v.itens.manual} manual · {v.itens.kit} kit de fita · {v.itens.lista_colada}{" "}
+              lista colada · {v.itens.indicacao_ia} Indicação da IA · {v.itens.montagem_ia} montagem
+              da IA
             </p>
           </li>
         ))}

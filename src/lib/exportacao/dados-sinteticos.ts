@@ -50,7 +50,7 @@ export function dadosSinteticos(n: number, itensPorOrcamento: number) {
         unidade: k % 5 === 0 ? "m" : "un",
         preco_unitario: 20 + k * 1.1,
         avulso: k % 7 === 6,
-        origem: ["manual", "lista_colada", "indicacao_ia", "montagem_ia"][k % 4],
+        origem: ["manual", "lista_colada", "indicacao_ia", "montagem_ia", "kit"][k % 5],
       })),
     );
   const eventos = async (ids: string[]): Promise<EventoExport[]> =>

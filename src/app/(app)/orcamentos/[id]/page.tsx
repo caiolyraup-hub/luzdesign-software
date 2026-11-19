@@ -6,6 +6,7 @@ import type { StatusOrcamento } from "@/lib/dominio";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import { StatusAcoes } from "@/components/orcamento/StatusAcoes";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
+import { MarcarPiloto } from "@/components/orcamento/MarcarPiloto";
 import { ReabrirEdicao } from "@/components/orcamento/ReabrirEdicao";
 import { RenovarValidade } from "@/components/orcamento/RenovarValidade";
 import { avisoValidade, STATUS_QUE_VENCEM } from "@/lib/orcamento/validade";
@@ -47,7 +48,7 @@ async function Detalhe({
   const { data: orc } = await supabase
     .from("orcamentos")
     .select(
-      "id, numero, status, vendedora_id, cliente_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, enviado_em, ultimo_envio_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, endereco, clientes(nome, whatsapp)",
+      "id, numero, status, vendedora_id, cliente_id, valor_total, valor_fechado, motivo_perda, validade, criado_em, montado_em, gerado_em, enviado_em, ultimo_envio_em, pdf_caminho, xlsx_caminho, pdf_versao, pdf_versoes, endereco, piloto, clientes(nome, whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -186,6 +187,10 @@ async function Detalhe({
           </p>
         ) : null}
       </div>
+
+      {ehGerencia(usuario.perfil) ? (
+        <MarcarPiloto orcamentoId={id} piloto={Boolean(orc.piloto)} />
+      ) : null}
 
       {podeRenovar ? (
         <RenovarValidade

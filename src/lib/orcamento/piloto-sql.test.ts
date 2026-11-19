@@ -27,6 +27,8 @@ const piloto = async (id: string) =>
 
 beforeAll(async () => {
   db = await criarBancoLocal();
+  // A marca automática depende da data (piloto_inicio); os testes não podem depender do relógio.
+  await db.exec("update configuracoes_loja set piloto_inicio = now() + interval '1 year'");
   await db.exec(`
     insert into auth.users values ('${ALINE}'), ('${KELY}'), ('${GERENTE}'), ('${ALINE_REAL}');
     insert into usuarios values

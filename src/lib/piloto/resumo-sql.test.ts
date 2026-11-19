@@ -34,6 +34,8 @@ async function itens(orcId: string, origem: string, n: number) {
 
 beforeAll(async () => {
   db = await criarBancoLocal();
+  // A marca automática depende da data (piloto_inicio); os testes não podem depender do relógio.
+  await db.exec("update configuracoes_loja set piloto_inicio = now() + interval '1 year'");
   await db.exec(`
     insert into auth.users values ('${ALINE}'), ('${KELY}'), ('${GERENTE}');
     insert into usuarios values
@@ -91,6 +93,7 @@ beforeAll(async () => {
   );
   await itens("a0000000-0000-0000-0000-000000000001", "manual", 3);
   await itens("a0000000-0000-0000-0000-000000000001", "indicacao_ia", 2);
+  await itens("a0000000-0000-0000-0000-000000000001", "kit", 2);
   await itens("a0000000-0000-0000-0000-000000000002", "lista_colada", 4);
   await itens("a0000000-0000-0000-0000-000000000003", "manual", 9); // teste: não conta
   await itens("a0000000-0000-0000-0000-000000000005", "montagem_ia", 1);
@@ -139,6 +142,7 @@ describe("resumo_piloto (dados sintéticos)", () => {
       lista_colada: 4,
       indicacao_ia: 2,
       montagem_ia: 0,
+      kit: 2,
     });
     expect(r.vendedoras.find((v) => v.nome === "Kely")!.itens.montagem_ia).toBe(1);
   });
