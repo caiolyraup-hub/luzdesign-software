@@ -4,18 +4,18 @@ Definidas como dados em `src/lib/orcamento/perguntas.ts` (ids, rótulos, tipo, o
 
 **O que mudou em 13/11 (pedido do Seu Filipe):** saíram as perguntas de tipo de obra, ambientes e linha (técnica/decorativa); entrou o **endereço da obra** (opcional). Os ambientes agora são criados na tela **Produtos do orçamento**, que abre com "Geral" e tem sugestões rápidas.
 
-| #   | Id técnico            | Pergunta                                     | Tipo        | Obrigatória | Opções (valor gravado)                                                                                  |
-| --- | --------------------- | -------------------------------------------- | ----------- | ----------- | ------------------------------------------------------------------------------------------------------- |
-| 1   | `cliente_nome`        | Nome do cliente                              | texto curto | sim         | 2 a 120 caracteres                                                                                      |
-| 2   | `cliente_whatsapp`    | WhatsApp do cliente                          | telefone    | sim         | aceita formatos brasileiros com DDD; gravado como `+55DDDNÚMERO`                                        |
-| 3   | `tipo_cliente`        | Tipo de cliente                              | cards       | sim         | `final`, `arquiteto`, `eletricista`, `construtora`, `empresa`                                           |
-| 3   | `indicacao_arquiteto` | Veio indicado por arquiteto? (não arquiteto) | sim/não     | não         | `true` / `false`                                                                                        |
-| 3   | `arquiteto_indicador` | Nome do arquiteto(a)                         | texto curto | condicional | obrigatório quando `tipo_cliente = arquiteto` **ou** `indicacao_arquiteto = true`                       |
+| #   | Id técnico            | Pergunta                                     | Tipo        | Obrigatória | Opções (valor gravado)                                                                                    |
+| --- | --------------------- | -------------------------------------------- | ----------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| 1   | `cliente_nome`        | Nome do cliente                              | texto curto | sim         | 2 a 120 caracteres                                                                                        |
+| 2   | `cliente_whatsapp`    | WhatsApp do cliente                          | telefone    | sim         | aceita formatos brasileiros com DDD; gravado como `+55DDDNÚMERO`                                          |
+| 3   | `tipo_cliente`        | Tipo de cliente                              | cards       | sim         | `final`, `arquiteto`, `eletricista`, `construtora`, `empresa`                                             |
+| 3   | `indicacao_arquiteto` | Veio indicado por arquiteto? (não arquiteto) | sim/não     | não         | `true` / `false`                                                                                          |
+| 3   | `arquiteto_indicador` | Nome do arquiteto(a)                         | texto curto | condicional | obrigatório quando `tipo_cliente = arquiteto` **ou** `indicacao_arquiteto = true`                         |
 | 4   | `endereco`            | Endereço da obra                             | texto curto | não         | até 200 caracteres ("Rua, número, bairro"); pré-preenchido com o último endereço do cliente já cadastrado |
-| 5   | `pedido_cliente`      | O que o cliente pediu                        | texto longo | não         | pode colar a mensagem do WhatsApp; serve de ponto de partida da Indicação da IA                          |
-| 6   | `faixa_investimento`  | Faixa de investimento indicada pelo cliente  | texto curto | não         | texto livre                                                                                             |
-| 7   | `prazo`               | Prazo                                        | cards       | sim         | `pronta_entrega`, `encomenda` (30 a 45 dias úteis)                                                      |
-| 8   | `observacoes`         | Observações e condições especiais            | texto longo | não         | desconto, forma de pagamento                                                                            |
+| 5   | `pedido_cliente`      | O que o cliente pediu                        | texto longo | não         | pode colar a mensagem do WhatsApp; serve de ponto de partida da Indicação da IA                           |
+| 6   | `faixa_investimento`  | Faixa de investimento indicada pelo cliente  | texto curto | não         | texto livre                                                                                               |
+| 7   | `prazo`               | Prazo                                        | cards       | sim         | `pronta_entrega`, `encomenda` (30 a 45 dias úteis)                                                        |
+| 8   | `observacoes`         | Observações e condições especiais            | texto longo | não         | desconto, forma de pagamento                                                                              |
 
 Obrigatórias: 1, 2, 3 (e o arquiteto quando exigido) e 7.
 

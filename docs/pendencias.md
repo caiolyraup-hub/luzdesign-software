@@ -35,7 +35,6 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 
 ## Go-live: lacunas conhecidas (dia 13B)
 
-- Backup completo do Postgres antes e depois do go-live: não há `pg_dump` nem Docker nesta máquina e o plano gratuito do Supabase não guarda backup diário. Instalar o cliente PostgreSQL (ou Docker) antes do dia 24; até lá, só a exportação XLSX pela tela.
+- Backup: resolvido no dia 14 com `pnpm backup` (JSON por tabela + Storage, sem Docker nem `pg_dump`) e `pnpm backup:conferir`. As senhas das contas não entram no backup.
 - `golive:limpar` e `contas:transferir` só existem em modo simulação. A execução real (incluindo mover arquivos no Storage) será ligada no dia, com o ok do dono.
-- Marcar/desmarcar piloto à mão existe como função (`marcar_piloto`), mas ainda sem botão na tela.
-- O kit de fita grava os itens com origem `manual`; o resumo do piloto não separa o kit.
+- Itens de kit gravados antes do dia 14 continuam como `manual`; só os novos têm origem `kit`.

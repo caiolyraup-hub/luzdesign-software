@@ -4,11 +4,11 @@ Os testes **nunca** rodam no banco de produção (`xdrubtojofckgxilkttm`). Eles 
 
 ## O que roda onde
 
-| Comando | Onde |
-| --- | --- |
-| `pnpm test` (Vitest, PGlite em memória) | local, sem rede |
-| `pnpm test:rls` (isolamento, matriz, importação, vazamento do catálogo...) | projeto de testes |
-| `pnpm test:e2e` (Playwright: Chromium 390 px, iPhone, Android) | servidor local (`pnpm dev`, IA simulada) ligado ao projeto de testes |
+| Comando                                                                    | Onde                                                                 |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `pnpm test` (Vitest, PGlite em memória)                                    | local, sem rede                                                      |
+| `pnpm test:rls` (isolamento, matriz, importação, vazamento do catálogo...) | projeto de testes                                                    |
+| `pnpm test:e2e` (Playwright: Chromium 390 px, iPhone, Android)             | servidor local (`pnpm dev`, IA simulada) ligado ao projeto de testes |
 
 ## A trava
 

@@ -20,12 +20,13 @@ Situação de partida (piloto de 19/11 a 23/11): Aline e Kely usam as **contas d
 
 Limpar antes de transferir apagaria a história de teste junto com a conta; transferir antes de criar a conta real não é possível. Por isso a ordem acima.
 
-## 1. Backup antes
+## 1. Backup antes (obrigatório)
 
-- **Comando:** na tela Orçamentos, **Exportar** (gerência), com os testes incluídos, e guardar o XLSX com a data no nome. Guardar também o PDF de cada orçamento do piloto (botão Baixar PDF) ou copiar a pasta `pdfs` do Storage.
-- **Conferência:** o XLSX abre e tem tantas linhas quanto o número de orçamentos (`pnpm testes:sobras` mostra a contagem).
-- **Desfazer:** não se aplica (só leitura).
-- **Lacuna conhecida:** não há `pg_dump` nem Docker nesta máquina, então não existe dump completo do Postgres. O plano gratuito do Supabase não guarda backup diário. Antes do dia 24: instalar o cliente PostgreSQL (`pg_dump`) ou o Docker, e então rodar `npx supabase db dump --linked -f backup-antes.sql`. Está em `docs/pendencias.md`.
+- **Comando:** `pnpm backup` (só lê a produção; sem Docker e sem `pg_dump`). Salva em `dados/backups/AAAA-MM-DD-HHMM/` (fora do git): um JSON por tabela (lido em lotes de 1.000), os arquivos do Storage (anexos, PDFs, XLSX, fotos de arquitetos e relatos) com o mesmo caminho, as contas do Auth (sem senhas, a API não as entrega) e o `manifesto.json` (contagem de linhas por tabela, tamanho e soma de verificação, commit e última migration). Rode fora do horário de uso.
+- **Conferência:** `pnpm backup:conferir dados/backups/<pasta>` confere os arquivos pelo manifesto, **restaura tudo num Postgres local em memória** com as migrations do repositório e compara a contagem de cada tabela e a quantidade e o valor dos orçamentos por status. Só siga se terminar com "Backup conferido".
+- **Guardar** a pasta fora desta máquina (por exemplo, no Google Drive da loja). Ela tem dados de clientes.
+- **Simular restauração:** `pnpm backup:restaurar <pasta> --simular` (contra o projeto de testes, nunca grava). Restaurar na produção **não existe** de propósito: se um dia for preciso, planeje com o Caio e use um projeto novo.
+- **Desfazer:** não se aplica (só leitura). Limite conhecido: as senhas das contas não entram no backup; contas restauradas precisam de senha nova.
 
 ## 2. Importar o estoque real
 
@@ -41,6 +42,7 @@ Limpar antes de transferir apagaria a história de teste junto com a conta; tran
    - Na revisão de um orçamento da vendedora a faixa "Catálogo provisório: confira os preços antes de enviar" **não aparece mais** (a regra: existe uma carga terminada cuja origem não começa com "provisorio").
    - Procure 5 produtos conhecidos pelo código e confira preço e descrição. Verifique um produto com descrição editada: continua editada.
    - Gere um orçamento de teste (cliente "TESTE ...") e confira os preços no PDF.
+
 - **Desfazer:** reimporte a planilha anterior (os preços voltam). O orçamento já gerado guarda preço e descrição congelados e não muda. Se a planilha estiver errada, **não desative ausentes**: produtos fora da planilha ficam como estão.
 - **Pronta para a planilha?** O importador foi conferido com cabeçalhos típicos de sistemas de estoque (testes em `src/lib/estoque`), mas o formato real da loja ainda não foi visto: se alguma coluna não for reconhecida, mapeie à mão na prévia.
 
@@ -91,10 +93,10 @@ Limpar antes de transferir apagaria a história de teste junto com a conta; tran
 - **Conferência:** gerar um PDF de verificação (orçamento marcado como teste) e ler o cabeçalho e o rodapé.
 - **Desfazer:** os valores anteriores ficam no histórico do Ajustes; os orçamentos já gerados não mudam.
 
-## 10. Backup depois
+## 10. Backup depois (obrigatório)
 
-- **Comando:** repetir o passo 1.
-- **Conferência:** a contagem do XLSX "depois" = (orçamentos do piloto + novos) e nenhum de teste.
+- **Comando:** `pnpm backup` e `pnpm backup:conferir dados/backups/<pasta>`, como no passo 1.
+- **Conferência:** o manifesto "depois" tem os orçamentos do piloto (agora nas contas reais) e nenhum de teste; compare com o manifesto "antes": só deve ter diminuído o que a limpeza apagou.
 
 ## 11. Conferência final
 
