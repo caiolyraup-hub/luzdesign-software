@@ -29,9 +29,20 @@ Limpar antes de transferir apagaria a história de teste junto com a conta; tran
 
 ## 2. Importar o estoque real
 
-- **Comando:** gerência, tela **Estoque**, importar a planilha real (XLSX/CSV) com o mapeamento de colunas salvo.
-- **Conferência:** em **Produtos** o aviso âmbar "catálogo provisório" some e, na revisão da vendedora, a faixa "Catálogo provisório: confira os preços antes de enviar" também. Isso só acontece se a origem da carga **não** começar com "provisorio" (a importação de planilha grava `planilha:<arquivo>`). Conferir os preços de 5 produtos conhecidos.
-- **Desfazer:** os produtos antigos ficam inativos, não são apagados; reimportar a planilha anterior restaura. O orçamento já gerado guarda preço e descrição congelados e não muda.
+**Recebi a planilha → importar → conferir** (feito pela tela, pela gerência ou pelo dono; 23/11 é o dia previsto):
+
+1. **Antes de tudo**, faça o backup (passo 1) e abra a planilha no Excel só para olhar o cabeçalho (códigos de 1 a 5 dígitos, preço com vírgula ou ponto, uma linha por produto).
+2. Entre como gerência → **Estoque** → escolha o arquivo (XLSX ou CSV). O sistema sugere o mapeamento das colunas pelos nomes mais comuns (Código/Cód., Descrição, Preço/Preço de Venda/Valor Venda, Estoque/Qtde Estoque/Saldo, Grupo/Seção/Categoria, Marca/Fabricante, Und/Unid, Modelo, Referência do fabricante). Confira cada coluna sugerida; corrija o que estiver errado. O mapeamento fica salvo para a próxima carga.
+3. **Prévia**: veja quantos produtos entram, quantos mudam de preço e quantos erros (linha e motivo). Código inválido, preço vazio ou texto no preço aparecem como erro e a linha é pulada; as outras entram. Só marque "desativar ausentes" se a planilha for o estoque **inteiro**.
+4. **Confirmar**. A carga é gravada com a origem `estoque_real:<nome do arquivo>`. As descrições **editadas à mão** na tela Produtos são mantidas (a importação não as sobrescreve).
+5. **Conferência** (nesta ordem):
+   - Estoque → "Última carga": origem `estoque_real:…`, linhas gravadas = linhas válidas, erros esperados.
+   - Produtos (gerência): o aviso âmbar "ATENÇÃO: catálogo provisório" virou o aviso verde "Catálogo importado (estoque_real:…)".
+   - Na revisão de um orçamento da vendedora a faixa "Catálogo provisório: confira os preços antes de enviar" **não aparece mais** (a regra: existe uma carga terminada cuja origem não começa com "provisorio").
+   - Procure 5 produtos conhecidos pelo código e confira preço e descrição. Verifique um produto com descrição editada: continua editada.
+   - Gere um orçamento de teste (cliente "TESTE ...") e confira os preços no PDF.
+- **Desfazer:** reimporte a planilha anterior (os preços voltam). O orçamento já gerado guarda preço e descrição congelados e não muda. Se a planilha estiver errada, **não desative ausentes**: produtos fora da planilha ficam como estão.
+- **Pronta para a planilha?** O importador foi conferido com cabeçalhos típicos de sistemas de estoque (testes em `src/lib/estoque`), mas o formato real da loja ainda não foi visto: se alguma coluna não for reconhecida, mapeie à mão na prévia.
 
 ## 3. Criar as contas reais
 

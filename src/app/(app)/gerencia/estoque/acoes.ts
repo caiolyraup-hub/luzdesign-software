@@ -130,7 +130,8 @@ export async function confirmarImportacao(formData: FormData): Promise<RespostaI
     const carga = prepararCarga(planilha.linhas, mapeamento);
 
     const resumo = await importar(criarRepositorioSupabase(criarClienteAdmin()), carga.produtos, {
-      origem: `planilha:${nome}`.slice(0, 120),
+      // "estoque_real:" marca a carga como a do estoque da loja: some o aviso de catálogo provisório.
+      origem: `estoque_real:${nome}`.slice(0, 120),
       linhasLidas: carga.linhasLidas,
       erros: carga.erros,
       codigosVistos: carga.codigosVistos,

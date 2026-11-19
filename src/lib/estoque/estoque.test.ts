@@ -440,3 +440,57 @@ describe("sugerirMapeamento: cabeçalhos mais longos", () => {
     });
   });
 });
+
+// Dia 14: nomes de coluna mais comuns em planilhas de estoque (a loja ainda vai mandar a dela).
+describe("sugerirMapeamento com cabeçalhos comuns de sistema de estoque", () => {
+  const casos: [string, string[], Record<string, string>][] = [
+    [
+      "sistema A",
+      [
+        "Cód.",
+        "Descrição do Produto",
+        "Preço de Venda",
+        "Qtde. Estoque",
+        "Grupo",
+        "Fabricante",
+        "Und",
+      ],
+      {
+        codigo: "Cód.",
+        descricao: "Descrição do Produto",
+        preco_unitario: "Preço de Venda",
+        estoque_disponivel: "Qtde. Estoque",
+        categoria: "Grupo",
+        marca: "Fabricante",
+        unidade: "Und",
+      },
+    ],
+    [
+      "sistema B",
+      ["Código Produto", "Nome Produto", "Valor Venda", "Saldo Estoque", "Seção", "Unid"],
+      {
+        codigo: "Código Produto",
+        descricao: "Nome Produto",
+        preco_unitario: "Valor Venda",
+        estoque_disponivel: "Saldo Estoque",
+        categoria: "Seção",
+        unidade: "Unid",
+      },
+    ],
+    [
+      "planilha simples",
+      ["CODIGO", "DESCRICAO", "PRECO", "ESTOQUE"],
+      {
+        codigo: "CODIGO",
+        descricao: "DESCRICAO",
+        preco_unitario: "PRECO",
+        estoque_disponivel: "ESTOQUE",
+      },
+    ],
+  ];
+  for (const [nome, colunas, esperado] of casos) {
+    it(`reconhece ${nome}`, () => {
+      expect(sugerirMapeamento(colunas)).toMatchObject(esperado);
+    });
+  }
+});
