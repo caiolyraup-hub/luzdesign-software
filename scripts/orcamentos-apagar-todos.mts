@@ -172,29 +172,44 @@ if (!conf.ok) {
 }
 console.log(`\nBackup ${pastaBackup} conferido agora (restaura inteiro, totais batem).`);
 
-// 2) confirmações digitadas
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const r1 = (
-  await rl.question(
-    `\nIsto APAGA ${sim.antes.orcamentos} orçamento(s) de ${projeto} (clientes: ${clientes}, contador: ${contador}). Digite SIM para continuar: `,
-  )
-).trim();
-if (r1 !== "SIM") {
+// 2) confirmações digitadas pela pessoa: no terminal (pergunta) ou, onde não há terminal interativo
+// (como o "!" do Claude Code), como argumento: --confirmar=SIM e, havendo piloto, --confirmar-piloto="SIM PILOTO".
+const interativo = Boolean(process.stdin.isTTY);
+async function confirmar(pergunta: string, esperado: string, argumento: string | undefined) {
+  if (argumento !== undefined) return argumento.trim() === esperado;
+  if (!interativo) {
+    console.error(
+      `
+Sem terminal interativo para perguntar. Acrescente --confirmar=${JSON.stringify(esperado).replace(/"/g, "")} ao comando (a confirmação é sua; nada foi apagado).`,
+    );
+    process.exit(2);
+  }
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const r = (await rl.question(pergunta)).trim();
+  rl.close();
+  return r === esperado;
+}
+const ok1 = await confirmar(
+  `
+Isto APAGA ${sim.antes.orcamentos} orçamento(s) de ${projeto} (clientes: ${clientes}, contador: ${contador}). Digite SIM para continuar: `,
+  "SIM",
+  valor("confirmar"),
+);
+if (!ok1) {
   console.log("Cancelado. Nada foi apagado.");
   process.exit(1);
 }
-if (sim.antes.orcamentos_piloto > 0) {
-  const r2 = (
-    await rl.question(
-      `${sim.antes.orcamentos_piloto} orçamento(s) são do PILOTO (clientes de verdade). Digite SIM PILOTO para apagá-los também: `,
-    )
-  ).trim();
-  if (r2 !== "SIM PILOTO") {
+if (sim.antes.orcamentos_piloto > 0 && incluirPiloto) {
+  const ok2 = await confirmar(
+    `${sim.antes.orcamentos_piloto} orçamento(s) são do PILOTO (clientes de verdade). Digite SIM PILOTO para apagá-los também: `,
+    "SIM PILOTO",
+    valor("confirmar-piloto"),
+  );
+  if (!ok2) {
     console.log("Cancelado. Nada foi apagado.");
     process.exit(1);
   }
 }
-rl.close();
 
 // 3) banco (uma transação) e depois Storage
 const res = await chamar(true);
