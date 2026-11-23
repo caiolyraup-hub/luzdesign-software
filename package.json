@@ -29,6 +29,7 @@
     "backup": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/backup.mts",
     "backup:conferir": "tsx --tsconfig tsconfig.scripts.json scripts/backup-conferir.mts",
     "backup:restaurar": "tsx --tsconfig tsconfig.scripts.json scripts/backup-restaurar.mts",
+    "orcamentos:apagar-todos": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/orcamentos-apagar-todos.mts",
     "golive:limpar": "tsx --tsconfig tsconfig.scripts.json --env-file=.env.local scripts/golive-limpar.mts",
     "catalogo:provisorio": "tsx --env-file=.env.local scripts/catalogo-provisorio.mts",
     "test:e2e": "playwright test",

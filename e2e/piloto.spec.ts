@@ -64,7 +64,7 @@ test("a gerência marca e desmarca piloto na tela e filtra a lista; a vendedora 
   const id = orc.data!.id as string;
   await admin.from("orcamentos").update({ piloto: false }).eq("id", id);
 
-  // Vendedora: sem botão, e a função recusa.
+  // Vendedora: sem botão e sem o filtro (a lista dela é /orcamentos).
   await entrar(page, process.env.SEED_EMAIL_ALINE!);
   await page.goto(`/orcamentos/${id}`);
   await expect(page.getByRole("heading", { name: `Orçamento ${orc.data!.numero}` })).toBeVisible();
@@ -82,7 +82,7 @@ test("a gerência marca e desmarca piloto na tela e filtra a lista; a vendedora 
 
   // Filtro "Piloto" da lista (pela URL e pela gaveta).
   const q = encodeURIComponent(PREFIXO);
-  await page.goto(`/orcamentos?filtro=todos&q=${q}&piloto=1`);
+  await page.goto(`/gerencia?filtro=todos&q=${q}&piloto=1`);
   await expect(page.getByText(NOME)).toBeVisible();
   await expect(page.getByText("Só do piloto")).toBeVisible(); // chip do filtro ativo
 
@@ -90,8 +90,8 @@ test("a gerência marca e desmarca piloto na tela e filtra a lista; a vendedora 
   await page.goto(`/orcamentos/${id}`);
   await page.getByRole("button", { name: "Desmarcar piloto" }).click();
   await expect(page.getByText("Este orçamento não está marcado como do piloto.")).toBeVisible();
-  await page.goto(`/orcamentos?filtro=todos&q=${q}&piloto=1`);
+  await page.goto(`/gerencia?filtro=todos&q=${q}&piloto=1`);
   await expect(page.getByText(NOME)).toHaveCount(0);
-  await page.goto(`/orcamentos?filtro=todos&q=${q}`);
+  await page.goto(`/gerencia?filtro=todos&q=${q}`);
   await expect(page.getByText(NOME)).toBeVisible();
 });
