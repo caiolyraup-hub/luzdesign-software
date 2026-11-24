@@ -40,7 +40,12 @@ export async function restaurarNoPglite(db: PGlite, pasta: string): Promise<void
         order by ordinal_position`,
       [nome],
     );
-    const lista = cols.rows.map((c) => `"${c.column_name}"`).join(", ");
+    // só as colunas que o backup tem: migrations novas (ainda fora da produção) usam o padrão da coluna
+    const presentes = new Set(Object.keys(linhas[0]));
+    const lista = cols.rows
+      .filter((c) => presentes.has(c.column_name))
+      .map((c) => `"${c.column_name}"`)
+      .join(", ");
     await db.query(
       `insert into public."${nome}" (${lista}) overriding system value
        select ${lista} from jsonb_populate_recordset(null::public."${nome}", $1::jsonb)`,
