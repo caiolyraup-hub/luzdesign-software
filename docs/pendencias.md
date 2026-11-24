@@ -45,3 +45,8 @@ Itens que **não** são erro e não entram no piloto; ficam aqui para decisão (
 - Tudo o mais está pronto: a trava (qualquer variável com o ref de produção derruba o teste), o `.env.test.local`, `pnpm testes:ambiente` (cria as chaves, aplica as migrations, fecha o cadastro, cria as contas e o seed, carrega os 158 produtos) e `docs/testes.md`.
 - Para destravar: pausar um projeto da organização (ou subir de plano), criar `luz-design-testes` em sa-east-1 e rodar `pnpm testes:ambiente`; depois a suíte, um teste por vez (`docs/testes.md`).
 - Até lá os testes que precisam de banco (`test:rls`, matriz e e2e) **não rodam**: só `pnpm test` (PGlite em memória), que cobre as migrations, o RLS por SQL, o backup e o piloto. Os e2e novos (`e2e/piloto.spec.ts`, origem `kit` em `e2e/atalhos.spec.ts`, aba Resumo do dia em `e2e/relatos.spec.ts`) aguardam o projeto.
+
+## Banco do estoque criptografado (dia 16, parte C): pendente
+
+- Em 24/11 a loja ainda não tinha entregado o arquivo do banco do estoque na máquina do Caio, então a Parte C (ligar o catálogo ao banco do estoque: `src/lib/estoque/leitor-banco.ts`, `pnpm estoque:banco`) **não foi iniciada**. O catálogo continua vindo da planilha (`docs/estoque.md`) ou do provisório de 158 produtos.
+- Para retomar: informar o caminho do arquivo, o nome do programa de estoque (se souber) e digitar a senha **só no terminal** (campo escondido) ou no `.env.local`. A cópia aberta do banco fica numa pasta temporária fora do repositório e é apagada no fim; nada de senha em log, git, chat ou Supabase.
