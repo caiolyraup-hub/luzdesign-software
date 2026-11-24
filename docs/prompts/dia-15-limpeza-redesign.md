@@ -5,6 +5,7 @@ Mande para o Claude Code: **"Leia docs/prompts/dia-15-limpeza-redesign.md e exec
 ---
 
 Amanhã, 24/11, é o go-live. Hoje são duas tarefas, nesta ordem:
+
 - **Parte A:** apagar todos os orçamentos que existem no sistema, para a loja começar do zero;
 - **Parte B:** um visual novo para o sistema inteiro, com branco, amarelo e marrom, glassmorfismo, Montserrat e San Francisco, efeitos, transições e movimento.
 
@@ -28,6 +29,7 @@ Amanhã, 24/11, é o go-live. Hoje são duas tarefas, nesta ordem:
 ### A1. Mapa do que sai e do que fica
 
 Leia as migrations e monte a lista de tudo que depende de um orçamento. Pelo menos:
+
 - `orcamentos`, `orcamento_itens`, `orcamento_ambientes`;
 - `anexos` e os arquivos no Storage (anexos, PDFs e XLSX gerados);
 - `eventos` ligados a orçamento (status, envio, D+5, D+10, fechado, perdido, follow-up);
@@ -37,12 +39,14 @@ Leia as migrations e monte a lista de tudo que depende de um orçamento. Pelo me
 Para cada tabela, diga se sai inteira, se sai só o que está ligado a orçamento ou se fica. Confira as chaves estrangeiras e os `on delete`, para nada ficar órfão nem nada de fora ser levado junto em cascata.
 
 Duas tabelas pedem decisão minha, e você só pergunta, não decide:
+
 - **`clientes`**: liste os clientes que ficariam sem nenhum orçamento. Pergunte se eu quero apagar todos eles ou manter.
 - **`orcamento_contador`**: pergunte se a numeração volta para `2026-0001` ou continua de onde está. Avise que, se algum PDF do piloto já foi para um cliente, voltar o número pode gerar dois documentos com o mesmo número.
 
 ### A2. Simulação
 
 Crie `pnpm orcamentos:apagar-todos`. Se o `golive:limpar` real já existe, reaproveite o código dele. Sem argumento, ele só simula e mostra:
+
 - quantos orçamentos saem, por status e por vendedora, e o valor total;
 - **quantos são do piloto** (`piloto = true`), numa linha separada. Esses eram clientes de verdade. Eles também saem, mas só se eu confirmar à parte;
 - quantas linhas saem de cada tabela dependente e quantos arquivos saem do Storage, com o tamanho;
@@ -72,14 +76,15 @@ Trabalhe no branch `dia-15`. Hoje o tema é quase vazio (`src/app/globals.css` c
 
 Crie os tokens em `globals.css` e use só eles nos componentes. Nenhuma cor solta no código:
 
-| Token | Uso | Sugestão |
-|---|---|---|
-| `branco` | fundo, cartões | `#FFFDF8` (branco quente) e `#FFFFFF` |
+| Token     | Uso                                                 | Sugestão                                          |
+| --------- | --------------------------------------------------- | ------------------------------------------------- |
+| `branco`  | fundo, cartões                                      | `#FFFDF8` (branco quente) e `#FFFFFF`             |
 | `amarelo` | destaque, botão principal, foco, item ativo do menu | `#F2B705`, com um tom claro `#FDF1C7` para fundos |
-| `marrom` | texto, títulos, ícones, botão secundário | `#3E2A1E` para texto, `#6B4A35` para títulos |
-| `cobre` | a cor do logo, para ligar com o PDF | `#9F5F47` |
+| `marrom`  | texto, títulos, ícones, botão secundário            | `#3E2A1E` para texto, `#6B4A35` para títulos      |
+| `cobre`   | a cor do logo, para ligar com o PDF                 | `#9F5F47`                                         |
 
 Regras:
+
 - **Texto nunca vai em amarelo sobre branco**, porque não dá para ler. No botão amarelo, o texto é marrom escuro.
 - Todo texto precisa de contraste WCAG AA (4,5:1; 3:1 para títulos grandes). Rode uma checagem e me mostre os pares.
 - Os status (Rascunho, Gerado, Enviado, D+5, D+10, Fechado, Perdido) continuam diferentes entre si. Fechado e Perdido precisam se distinguir também sem a cor, pelo ícone ou pelo texto.

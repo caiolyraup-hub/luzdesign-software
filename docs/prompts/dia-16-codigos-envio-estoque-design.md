@@ -5,6 +5,7 @@ Mande para o Claude Code: **"Leia docs/prompts/dia-16-codigos-envio-estoque-desi
 ---
 
 A loja já está usando o sistema. Hoje são quatro partes, nesta ordem:
+
 - **Parte A:** o PDF e o XLSX do orçamento mostram só o código do produto, sem a descrição;
 - **Parte B:** a data de envio de cada orçamento fica sempre registrada e visível;
 - **Parte C:** ligar o catálogo ao banco de dados do estoque da loja, que vem criptografado;
@@ -47,6 +48,7 @@ Hoje o PDF mostra QTD | CÓDIGO | DESCRIÇÃO | UNIT. | TOTAL, com a categoria e
 ### A3. A IA na geração
 
 A padronização da descrição pela IA (`produtos_descricao_formatada`) existia para o documento. Com a descrição fora do documento:
+
 - quando `documento_mostrar_descricao` estiver desligado, **não chame a IA ao gerar** (fica mais rápido e sem custo);
 - não apague a tabela nem o cache, porque a configuração pode ser religada;
 - se a mensagem do WhatsApp ou qualquer outro texto que vai para o cliente listar itens com descrição, tire a descrição dali também e me diga onde estava.
@@ -64,6 +66,7 @@ O que já existe (dia 8): o botão **Marquei como enviado** com a data, a funç�
 ### B1. Como está hoje (só leitura, em produção)
 
 Me mostre, por vendedora:
+
 - quantos orçamentos estão `gerado` há mais de 1 dia sem envio registrado;
 - quantos estão `enviado`, `followup_d5`, `followup_d10`, `fechado` ou `perdido` com `enviado_em` vazio;
 - se algum caminho muda o status sem passar pelo `marcar_enviado` (por exemplo, fechar direto de `gerado`).
@@ -95,6 +98,7 @@ Até hoje o catálogo vem de planilha (`docs/estoque.md`, `src/lib/estoque/impor
 ### C0. O que você precisa de mim
 
 No começo da Parte C, me pergunte:
+
 - o caminho do arquivo do banco na minha máquina;
 - o nome do programa de estoque, se eu souber;
 - a senha, **só no terminal**, num campo escondido. Não me peça a senha no chat.

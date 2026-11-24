@@ -10,7 +10,7 @@ export function LinkRelatar() {
   return (
     <Link
       href={`/relatar?tela=${encodeURIComponent(pathname)}`}
-      className="min-h-11 px-3 py-2 text-base text-zinc-700 underline"
+      className="min-h-11 px-2 py-2 text-base whitespace-nowrap text-zinc-700 underline"
     >
       Relatar problema
     </Link>

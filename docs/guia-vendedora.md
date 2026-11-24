@@ -36,6 +36,16 @@ Você não vê marca nem referência dos produtos: é assim mesmo, de propósito
 
 Depois de enviado, os produtos não mudam mais. Para alterar, toque em **Editar e enviar nova versão**.
 
+### Registrar o envio
+
+Depois de **Baixar PDF**, **Baixar planilha**, **Compartilhar** ou **Abrir WhatsApp**, o sistema pergunta: **"Você já mandou para o cliente?"**
+
+- **Enviei agora**: grava o envio com a hora de agora.
+- **Enviei em outra data**: escolha o dia (não pode ser futuro nem antes de o orçamento ser gerado).
+- **Ainda não**: nada é gravado; o lembrete volta depois.
+
+Se esquecer, o cartão do orçamento mostra **Envio não registrado** com o botão **Registrar envio**, e em **Para hoje** aparece a seção **Registrar envio** com os orçamentos gerados há mais de 1 dia. Sem a data de envio, os follow-ups e os números ficam errados. Para **fechar** ou **perder** um orçamento que ainda está só gerado, o sistema pede antes o dia em que você enviou.
+
 ## 5. Acompanhar
 
 Na tela **Início** (Para hoje) aparecem:

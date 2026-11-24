@@ -252,13 +252,15 @@ a[class*="rounded-lg"]:active {
   }
 }
 
-/* Troca de página: fade e leve deslize (template.tsx). */
+/* Troca de página: fade e leve deslize (app/(app)/template.tsx). As animações de entrada usam fill-mode
+ * `backwards`: depois do fim não sobra transform no elemento (senão ele viraria o contêiner dos elementos
+ * `fixed` de dentro, como a barra de navegação e a barra de total da revisão). */
 .pagina-entra {
-  animation: entrada 220ms var(--ease) both;
+  animation: entrada 220ms var(--ease) backwards;
 }
 /* Listas e cartões entram em cascata curta (até 8 itens). */
 .cascata > * {
-  animation: entrada 240ms var(--ease) both;
+  animation: entrada 240ms var(--ease) backwards;
 }
 .cascata > *:nth-child(2) {
   animation-delay: 30ms;
@@ -283,17 +285,17 @@ a[class*="rounded-lg"]:active {
 }
 /* Folhas e modais. */
 .folha-entra {
-  animation: subir 260ms var(--ease) both;
+  animation: subir 260ms var(--ease) backwards;
 }
 .modal-entra {
-  animation: escala 200ms var(--ease) both;
+  animation: escala 200ms var(--ease) backwards;
 }
 .fundo-entra {
-  animation: entrada 180ms linear both;
+  animation: entrada 180ms linear backwards;
 }
 /* Selo de status que acabou de mudar; Fechado ganha um brilho amarelo discreto. */
 .selo-muda {
-  animation: selo 280ms var(--ease) both;
+  animation: selo 280ms var(--ease) backwards;
 }
 .selo-brilho {
   position: relative;

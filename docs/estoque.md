@@ -69,3 +69,8 @@ A importação (`src/lib/estoque/importar.ts`, função `separarFornecedor`) gra
 - `pnpm catalogo:proteger` limpa o catálogo já gravado (idempotente: parte de `descricao_fornecedor`), limpa os apelidos e apaga o cache de descrições da IA. Rodado em 13/11/2026: 158 produtos, 157 descrições alteradas.
 - `pnpm itens:limpar-descricoes [--gravar]` corrige a descrição congelada de itens de orçamentos ainda não enviados, **sem mexer no preço**, e lista os que já foram enviados.
 - Efeito colateral inevitável: perfis e alguns embutidos que só se distinguiam pela referência ficam com a mesma descrição comercial (10 grupos). A vendedora os distingue pelo **código interno** e, quando o arquiteto manda a referência, pela busca por referência.
+
+## Dia 16: documentos só com o código; banco do estoque
+
+- O PDF e a planilha do orçamento mostram só o **código** do produto (Ajustes > "Documento do cliente" liga a descrição de volta). As telas internas e a exportação da gerência continuam com a descrição.
+- Ligar o catálogo ao **banco do estoque criptografado** (`pnpm estoque:banco`) ficou **pendente**: a loja ainda não entregou o arquivo. Veja `docs/pendencias.md`. Quando chegar: copiar o arquivo do banco, rodar `pnpm estoque:banco <arquivo>` (simula), conferir, e só então `--gravar`.

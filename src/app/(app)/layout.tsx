@@ -29,7 +29,7 @@ async function Moldura({ children }: { children: React.ReactNode }) {
     <>
       <header className="vidro sticky top-0 z-20 rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-2">
-          <span className="flex items-center gap-2 text-base font-medium">
+          <span className="flex min-w-0 items-center gap-2 text-base font-medium">
             <Image
               src="/marca/logo-quadrado.jpg"
               alt="Luz Design"
@@ -37,14 +37,14 @@ async function Moldura({ children }: { children: React.ReactNode }) {
               height={32}
               className="size-8 rounded-md"
             />
-            {usuario.nome}
+            <span className="truncate">{usuario.nome}</span>
           </span>
           <div className="flex items-center">
             <LinkRelatar />
             {ehGerencia(usuario.perfil) ? (
               <Link
                 href="/relatos"
-                className="min-h-11 px-3 py-2 text-base text-zinc-700 underline"
+                className="min-h-11 px-2 py-2 text-base whitespace-nowrap text-zinc-700 underline"
               >
                 Relatos
               </Link>
