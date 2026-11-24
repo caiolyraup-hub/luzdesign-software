@@ -6,6 +6,8 @@ import { followupDeHoje, type ConfigFollowup } from "@/lib/orcamento/followup";
 import { rotuloMotivo } from "@/lib/orcamento/status";
 import { avisoValidade } from "@/lib/orcamento/validade";
 import { BadgeValidade } from "./BadgeValidade";
+import { envioNaoRegistrado, textoEnvio } from "@/lib/orcamento/envio";
+import { BotaoRegistrarEnvio } from "./RegistrarEnvio";
 import { StatusAcoes } from "./StatusAcoes";
 
 export interface DadosCartao {
@@ -23,6 +25,8 @@ export interface DadosCartao {
   geradoEm: string | null;
   /** Envio mais recente: de onde contam os follow-ups. */
   ultimoEnvioEm: string | null;
+  /** Primeiro envio (pode ser igual ao último). */
+  enviadoEm?: string | null;
   /** Validade do orçamento gerado (AAAA-MM-DD). */
   validade?: string | null;
 }
@@ -59,10 +63,18 @@ export function CartaoOrcamento({
           {d.numero}
           {d.vendedoraNome ? ` · ${d.vendedoraNome}` : ""} · {formatarDataHora(d.atualizadoEm)}
         </span>
+        {textoEnvio(d) && d.status !== "gerado" ? (
+          <span className="block text-base text-zinc-600">{textoEnvio(d)}</span>
+        ) : null}
         <span className="flex flex-wrap items-center gap-2">
           <BadgeStatus status={d.status} />
           {d.status === "perdido" && d.motivoPerda ? (
             <span className="text-base text-zinc-700">{rotuloMotivo(d.motivoPerda)}</span>
+          ) : null}
+          {envioNaoRegistrado(d) ? (
+            <span className="rounded-full bg-indigo-100 px-3 py-1 text-base font-semibold text-indigo-900">
+              Envio não registrado
+            </span>
           ) : null}
           {venc ? <BadgeValidade aviso={venc} /> : null}
           {devido ? (
@@ -96,13 +108,20 @@ export function CartaoOrcamento({
           </Link>
         ) : null
       ) : podeAgir ? (
-        <StatusAcoes
-          orcamentoId={d.id}
-          status={d.status as StatusOrcamento}
-          valorTotal={d.valorTotal}
-          geradoEm={d.geradoEm}
-          compacto
-        />
+        <div className="space-y-2">
+          {envioNaoRegistrado(d) ? (
+            <BotaoRegistrarEnvio orcamentoId={d.id} geradoEm={d.geradoEm} />
+          ) : null}
+          <StatusAcoes
+            orcamentoId={d.id}
+            status={d.status as StatusOrcamento}
+            valorTotal={d.valorTotal}
+            geradoEm={d.geradoEm}
+            enviadoEm={d.enviadoEm}
+            semEnviado
+            compacto
+          />
+        </div>
       ) : null}
     </li>
   );

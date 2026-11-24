@@ -463,6 +463,7 @@ try {
           p_para: para,
           p_valor_fechado: valor,
           p_motivo: motivo,
+          p_data_envio: new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10), // só vale se o orçamento ainda não tem envio registrado (dia 16)
         });
 
       assert.equal((await mudar(aline, "enviado")).error, null);

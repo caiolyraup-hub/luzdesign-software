@@ -7,6 +7,8 @@ import { formatarDataHora } from "@/lib/formatar";
 import { BadgeValidade } from "@/components/orcamento/BadgeValidade";
 import { formatarMoeda, isoParaBR } from "@/lib/formatar";
 import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
+import { BotaoRegistrarEnvio } from "@/components/orcamento/RegistrarEnvio";
+import { paraRegistrarEnvio } from "@/lib/orcamento/para-registrar-envio";
 import { paraRenovarDeHoje } from "@/lib/orcamento/para-renovar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -29,6 +31,42 @@ async function FollowupsDeHoje() {
       <ul className="space-y-3">
         {cartoes.map((c) => (
           <CartaoFollowup key={c.id} d={c} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+async function RegistrarEnvio() {
+  const usuario = await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const lista = await paraRegistrarEnvio(supabase, usuario);
+  if (lista.length === 0) return null;
+  return (
+    <section aria-label="Registrar envio" className="space-y-3">
+      <h2 className="text-xl font-semibold">Registrar envio ({lista.length})</h2>
+      <p className="text-base text-zinc-600">
+        Orçamentos gerados há mais de 1 dia sem envio registrado. Sem a data, os follow-ups e os
+        números ficam errados.
+      </p>
+      <ul className="space-y-3">
+        {lista.map((r) => (
+          <li key={r.id} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+            <Link href={`/orcamentos/${r.id}`} className="block space-y-1">
+              <span className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-lg font-medium">{r.clienteNome}</span>
+                {r.valorTotal > 0 ? (
+                  <span className="shrink-0 text-lg font-semibold">
+                    {formatarMoeda(r.valorTotal)}
+                  </span>
+                ) : null}
+              </span>
+              <span className="block text-base text-zinc-600">
+                {r.numero} · gerado em {formatarDataHora(r.geradoEm)}
+              </span>
+            </Link>
+            <BotaoRegistrarEnvio orcamentoId={r.id} geradoEm={r.geradoEm} />
+          </li>
         ))}
       </ul>
     </section>
@@ -180,6 +218,9 @@ export default function Page() {
       >
         Novo orçamento
       </Link>
+      <Suspense fallback={null}>
+        <RegistrarEnvio />
+      </Suspense>
       <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
         <FollowupsDeHoje />
       </Suspense>

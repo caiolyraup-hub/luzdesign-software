@@ -7,6 +7,7 @@ import { NotasCliente, NovoOrcamentoDoCliente } from "@/components/clientes/Acoe
 import { resumoDoCliente } from "@/lib/clientes/resumo";
 import { formatarDataBR, formatarMoeda, isoParaBR } from "@/lib/formatar";
 import { OPCOES_TIPO_CLIENTE } from "@/lib/orcamento/perguntas";
+import { textoEnvio } from "@/lib/orcamento/envio";
 import { rotuloMotivo } from "@/lib/orcamento/status";
 import { avisoValidade } from "@/lib/orcamento/validade";
 import { obterUsuarioAtual } from "@/lib/sessao";
@@ -21,6 +22,8 @@ interface LinhaOrcamento {
   motivo_perda: string | null;
   validade: string | null;
   criado_em: string;
+  enviado_em: string | null;
+  ultimo_envio_em: string | null;
 }
 
 async function Ficha({ params }: Pick<PageProps<"/clientes/[id]">, "params">) {
@@ -43,7 +46,9 @@ async function Ficha({ params }: Pick<PageProps<"/clientes/[id]">, "params">) {
 
   const { data: orcs } = await supabase
     .from("orcamentos")
-    .select("id, numero, status, valor_total, valor_fechado, motivo_perda, validade, criado_em")
+    .select(
+      "id, numero, status, valor_total, valor_fechado, motivo_perda, validade, criado_em, enviado_em, ultimo_envio_em",
+    )
     .eq("cliente_id", id)
     .order("criado_em", { ascending: false });
   const lista = (orcs ?? []) as unknown as LinhaOrcamento[];
@@ -149,6 +154,11 @@ async function Ficha({ params }: Pick<PageProps<"/clientes/[id]">, "params">) {
                         ? ` · validade ${isoParaBR(o.validade).slice(0, 5)}`
                         : ""}
                     </span>
+                    {textoEnvio({ enviadoEm: o.enviado_em, ultimoEnvioEm: o.ultimo_envio_em }) ? (
+                      <span className="block text-base text-zinc-600">
+                        {textoEnvio({ enviadoEm: o.enviado_em, ultimoEnvioEm: o.ultimo_envio_em })}
+                      </span>
+                    ) : null}
                     <span className="flex flex-wrap items-center gap-2">
                       <BadgeStatus status={o.status} />
                       {venc ? <BadgeValidade aviso={venc} /> : null}

@@ -22,6 +22,7 @@ const ERROS: Record<string, string> = {
   VALOR_INVALIDO: "Informe o valor da venda (maior que zero).",
   DATA_FUTURA: "A data do envio não pode ser no futuro.",
   DATA_ANTES_DE_GERADO: "A data do envio não pode ser antes de o orçamento ser gerado.",
+  ENVIO_OBRIGATORIO: "Informe a data em que o orçamento foi enviado ao cliente.",
 };
 
 function erroDoBanco(mensagem: string): string {
@@ -36,7 +37,7 @@ function erroDoBanco(mensagem: string): string {
 export async function mudarStatus(
   orcamentoId: string,
   para: StatusOrcamento,
-  extra: { valorFechado?: number; motivo?: MotivoPerda } = {},
+  extra: { valorFechado?: number; motivo?: MotivoPerda; dataEnvio?: string } = {},
 ): Promise<RespostaStatus> {
   await obterUsuarioAtual();
   if (!STATUS_ORCAMENTO.includes(para)) return { ok: false, erro: "Status inválido." };
@@ -53,12 +54,18 @@ export async function mudarStatus(
     }
   }
 
+  if (extra.dataEnvio !== undefined) {
+    if (!DATA_ISO.test(extra.dataEnvio)) return { ok: false, erro: "Data inválida." };
+    if (extra.dataEnvio > hojeMaceioISO()) return { ok: false, erro: ERROS.DATA_FUTURA };
+  }
   const supabase = await criarClienteServidor();
   const { error } = await supabase.rpc("mudar_status_orcamento", {
     p_orcamento: orcamentoId,
     p_para: para,
     p_valor_fechado: para === "fechado" ? (extra.valorFechado ?? null) : null,
     p_motivo: para === "perdido" ? (extra.motivo ?? null) : null,
+    // Só vale quando o orçamento ainda não tem envio registrado (fechar/perder direto de "gerado").
+    p_data_envio: para === "fechado" || para === "perdido" ? (extra.dataEnvio ?? null) : null,
   });
   if (error) return { ok: false, erro: erroDoBanco(error.message) };
   return { ok: true, status: para };

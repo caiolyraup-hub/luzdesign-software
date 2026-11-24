@@ -22,6 +22,8 @@ interface LinhaSql {
   atualizado_em: string;
   gerado_em: string | null;
   ultimo_envio_em: string | null;
+  /** Primeiro envio. */
+  enviado_em?: string | null;
   validade: string | null;
   vendedora_nome: string | null;
   cliente_id: string;
@@ -64,6 +66,7 @@ export async function listarOrcamentos(
       atualizadoEm: l.atualizado_em,
       geradoEm: l.gerado_em,
       ultimoEnvioEm: l.ultimo_envio_em,
+      enviadoEm: l.enviado_em ?? null,
       validade: l.validade,
     })),
   };

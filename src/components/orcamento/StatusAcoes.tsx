@@ -15,6 +15,10 @@ interface Props {
   valorTotal: number;
   /** Quando o orçamento foi gerado (o envio não pode ser antes). */
   geradoEm?: string | null;
+  /** Primeiro envio já registrado (se vazio em "gerado", fechar ou perder pede a data do envio). */
+  enviadoEm?: string | null;
+  /** Esconde "Marquei como enviado" (o cartão tem o botão Registrar envio). */
+  semEnviado?: boolean;
   /** Versão menor, para cartões de lista. */
   compacto?: boolean;
 }
@@ -38,6 +42,8 @@ export function StatusAcoes({
   status,
   valorTotal,
   geradoEm = null,
+  enviadoEm = null,
+  semEnviado = false,
   compacto = false,
 }: Props) {
   const router = useRouter();
@@ -49,15 +55,24 @@ export function StatusAcoes({
   const [erro, setErro] = useState<string | null>(null);
   const [feito, setFeito] = useState<string | null>(null);
 
-  const acoes = acoesDoStatus(status);
+  const acoes = acoesDoStatus(status).filter((a) => !(semEnviado && a.pede === "data"));
   if (acoes.length === 0) return null;
+  // Fechar ou perder um orçamento "gerado" sem envio registrado pede antes a data do envio (padrão: hoje).
+  const pedeDataEnvio = status === "gerado" && !enviadoEm;
 
   const tamanho = compacto ? "min-h-11 px-3 text-base" : "min-h-14 px-4 text-lg";
 
   async function confirmar(acao: AcaoStatus) {
     setErro(null);
     setOcupado(true);
-    const extra: { valorFechado?: number; motivo?: MotivoPerda } = {};
+    const extra: { valorFechado?: number; motivo?: MotivoPerda; dataEnvio?: string } = {};
+    if (pedeDataEnvio && (acao.pede === "valor" || acao.pede === "motivo")) {
+      if (!data) {
+        setOcupado(false);
+        return setErro("Informe a data em que enviou o orçamento ao cliente.");
+      }
+      extra.dataEnvio = data;
+    }
     if (acao.pede === "valor") {
       const n = Number(valor.replace(/\./g, "").replace(",", "."));
       if (!(n > 0)) {
@@ -158,6 +173,22 @@ export function StatusAcoes({
               Já vem com o total do orçamento; ajuste se negociou outro valor.
             </span>
           </label>
+          {pedeDataEnvio ? (
+            <label className="block space-y-1">
+              <span className="text-lg font-medium">Quando você enviou para o cliente?</span>
+              <input
+                type="date"
+                value={data}
+                max={hojeMaceioISO()}
+                min={geradoEm ? dataMaceioISO(geradoEm) : undefined}
+                onChange={(e) => setData(e.target.value)}
+                className="min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg"
+              />
+              <span className="block text-base text-zinc-600">
+                O envio ainda não estava registrado. Hoje, ou o dia em que mandou.
+              </span>
+            </label>
+          ) : null}
           <button
             type="button"
             disabled={ocupado}
@@ -194,6 +225,22 @@ export function StatusAcoes({
               </button>
             ))}
           </div>
+          {pedeDataEnvio ? (
+            <label className="block space-y-1">
+              <span className="text-lg font-medium">Quando você enviou para o cliente?</span>
+              <input
+                type="date"
+                value={data}
+                max={hojeMaceioISO()}
+                min={geradoEm ? dataMaceioISO(geradoEm) : undefined}
+                onChange={(e) => setData(e.target.value)}
+                className="min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg"
+              />
+              <span className="block text-base text-zinc-600">
+                O envio ainda não estava registrado. Hoje, ou o dia em que mandou.
+              </span>
+            </label>
+          ) : null}
           <button
             type="button"
             disabled={ocupado || !motivo}

@@ -101,6 +101,8 @@ test("dono define percentuais, vê as comissões do fechamento da Aline e paga a
     p_orcamento: orc.data!.id,
     p_para: "fechado",
     p_valor_fechado: 2000,
+    // fechar direto de "gerado" exige a data do envio (dia 16)
+    p_data_envio: new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10),
   });
   expect(f.error).toBeNull();
 

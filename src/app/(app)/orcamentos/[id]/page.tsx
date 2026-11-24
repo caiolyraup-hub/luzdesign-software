@@ -6,6 +6,8 @@ import type { StatusOrcamento } from "@/lib/dominio";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import { StatusAcoes } from "@/components/orcamento/StatusAcoes";
 import { CompartilharPdf } from "@/components/orcamento/CompartilharPdf";
+import { EnvioAposAcao } from "@/components/orcamento/RegistrarEnvio";
+import { textoEnvio } from "@/lib/orcamento/envio";
 import { MarcarPiloto } from "@/components/orcamento/MarcarPiloto";
 import { ReabrirEdicao } from "@/components/orcamento/ReabrirEdicao";
 import { RenovarValidade } from "@/components/orcamento/RenovarValidade";
@@ -237,15 +239,11 @@ async function Detalhe({
             status={orc.status as StatusOrcamento}
             valorTotal={Number(orc.valor_total)}
             geradoEm={orc.gerado_em}
+            enviadoEm={orc.enviado_em}
           />
-          {orc.ultimo_envio_em ? (
+          {textoEnvio({ enviadoEm: orc.enviado_em, ultimoEnvioEm: orc.ultimo_envio_em }) ? (
             <p className="text-base text-zinc-600">
-              Enviado em {formatarDataBR(orc.ultimo_envio_em)}
-              {orc.enviado_em &&
-              formatarDataBR(orc.enviado_em) !== formatarDataBR(orc.ultimo_envio_em)
-                ? ` (primeiro envio em ${formatarDataBR(orc.enviado_em)})`
-                : ""}
-              .
+              {textoEnvio({ enviadoEm: orc.enviado_em, ultimoEnvioEm: orc.ultimo_envio_em })}.
             </p>
           ) : null}
           {minha && ["enviado", "followup_d5", "followup_d10"].includes(orc.status) ? (
@@ -282,58 +280,66 @@ async function Detalhe({
       ) : null}
 
       {temPdf && urlPdf && urlDownload ? (
-        <section aria-label="PDF" className="space-y-3">
-          <h2 className="text-xl font-semibold">Orçamento (versão {orc.pdf_versao})</h2>
-          {/* Tela grande: prévia do PDF na página (montada só no cliente). Celular: o botão abre o leitor do aparelho. */}
-          <PreviaPdf url={urlPdf} titulo={`Prévia do orçamento ${orc.numero}`} />
-          <a
-            href={urlPdf}
-            target="_blank"
-            rel="noopener"
-            className="flex min-h-14 items-center justify-center rounded-lg border border-amber-700 text-lg font-semibold text-amber-700 md:hidden"
-          >
-            Ver PDF
-          </a>
-          {minha ? (
-            <CompartilharPdf
-              urlPdf={urlPdf}
-              urlDownload={urlDownload}
-              nomeArquivo={nomePdf}
-              whatsappCliente={zap}
-              mensagem={mensagem}
-            />
-          ) : (
+        <EnvioAposAcao
+          orcamentoId={id}
+          geradoEm={orc.gerado_em}
+          ativo={
+            orc.status === "gerado" && !orc.enviado_em && (minha || ehGerencia(usuario.perfil))
+          }
+        >
+          <section aria-label="PDF" className="space-y-3">
+            <h2 className="text-xl font-semibold">Orçamento (versão {orc.pdf_versao})</h2>
+            {/* Tela grande: prévia do PDF na página (montada só no cliente). Celular: o botão abre o leitor do aparelho. */}
+            <PreviaPdf url={urlPdf} titulo={`Prévia do orçamento ${orc.numero}`} />
             <a
-              href={urlDownload}
-              download={nomePdf}
-              className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+              href={urlPdf}
+              target="_blank"
+              rel="noopener"
+              className="flex min-h-14 items-center justify-center rounded-lg border border-amber-700 text-lg font-semibold text-amber-700 md:hidden"
             >
-              Baixar PDF
+              Ver PDF
             </a>
-          )}
-          {urlXlsx ? (
-            <div className="space-y-1">
+            {minha ? (
+              <CompartilharPdf
+                urlPdf={urlPdf}
+                urlDownload={urlDownload}
+                nomeArquivo={nomePdf}
+                whatsappCliente={zap}
+                mensagem={mensagem}
+              />
+            ) : (
               <a
-                href={urlXlsx}
-                download={nomeXlsx}
+                href={urlDownload}
+                download={nomePdf}
                 className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
               >
-                Baixar planilha (XLSX)
+                Baixar PDF
               </a>
-              <p className="text-base text-zinc-600">
-                Se editar a planilha, lembre de informar o valor final ao marcar Fechado.
-              </p>
-            </div>
-          ) : null}
-          {editavel ? (
-            <Link
-              href={`/orcamentos/${id}/revisao`}
-              className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
-            >
-              Editar (gera nova versão)
-            </Link>
-          ) : null}
-        </section>
+            )}
+            {urlXlsx ? (
+              <div className="space-y-1">
+                <a
+                  href={urlXlsx}
+                  download={nomeXlsx}
+                  className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+                >
+                  Baixar planilha (XLSX)
+                </a>
+                <p className="text-base text-zinc-600">
+                  Se editar a planilha, lembre de informar o valor final ao marcar Fechado.
+                </p>
+              </div>
+            ) : null}
+            {editavel ? (
+              <Link
+                href={`/orcamentos/${id}/revisao`}
+                className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
+              >
+                Editar (gera nova versão)
+              </Link>
+            ) : null}
+          </section>
+        </EnvioAposAcao>
       ) : null}
 
       {anteriores.length > 0 ? (

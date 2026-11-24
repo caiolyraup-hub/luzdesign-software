@@ -59,7 +59,12 @@ const dados = montarDadosPdf({
     instagram: null,
     site: null,
   },
-  config: { validade_dias: 7, desconto_avista_pct: 10, linhas_rodape: "Mercadoria frágil" },
+  config: {
+    validade_dias: 7,
+    desconto_avista_pct: 10,
+    linhas_rodape: "Mercadoria frágil",
+    mostrar_descricao: true, // a descrição é opcional (dia 16); o padrão só com código está no teste abaixo
+  },
   numero: "2026-0099",
   versao: 1,
   cliente: { nome: "Cliente Teste", whatsapp: null, arquiteto: null },
@@ -80,6 +85,18 @@ describe("documentos do cliente", () => {
     const t = text.replace(/\s+/g, " ");
     expect(t).toContain("10338");
     expect(t).toContain("FONTE 24W");
+    expect(acha(t)).toEqual([]);
+  });
+
+  it("no padrão (só código) o PDF e o XLSX também não trazem fabricante nem referência, nem a descrição", async () => {
+    const semDescricao = { ...dados, mostrarDescricao: false };
+    const pdf = await renderizarPdf(semDescricao, null);
+    const { text } = await extractText(await getDocumentProxy(new Uint8Array(pdf)), {
+      mergePages: true,
+    });
+    const t = text.replace(/\s+/g, " ");
+    expect(t).toContain("10338");
+    expect(t).not.toContain("FONTE 24W");
     expect(acha(t)).toEqual([]);
   });
 

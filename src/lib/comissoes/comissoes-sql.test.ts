@@ -28,7 +28,7 @@ async function novoOrcamento(
   `);
 }
 const fechar = (n: number, valor?: number) =>
-  comoUsuario(db, ALINE, "select mudar_status_orcamento($1, 'fechado', $2)", [
+  comoUsuario(db, ALINE, "select mudar_status_orcamento($1, 'fechado', $2, null, current_date)", [
     orc(n),
     valor ?? null,
   ]);
