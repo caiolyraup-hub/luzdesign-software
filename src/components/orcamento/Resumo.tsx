@@ -94,7 +94,7 @@ export function Resumo({ orcamentoId, respostas, anexos, onAnexos, onEditar }: P
         <Link
           href={`/orcamentos/${orcamentoId}/revisao`}
           aria-disabled={pendentes.length > 0}
-          className={`flex min-h-14 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white ${
+          className={`bg-primario text-sobre-primario flex min-h-14 items-center justify-center rounded-lg text-lg font-semibold ${
             pendentes.length > 0 ? "pointer-events-none opacity-50" : ""
           }`}
         >

@@ -199,7 +199,7 @@ export function KitFita({ ambiente, onConfirmar, onFechar }: Props) {
             type="button"
             onClick={() => void calcular()}
             disabled={ocupado || metros.trim() === ""}
-            className="min-h-14 w-full rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white disabled:opacity-50"
+            className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-5 text-lg font-semibold disabled:opacity-50"
           >
             {ocupado ? "Calculando..." : "Calcular o kit"}
           </button>
@@ -322,7 +322,7 @@ export function KitFita({ ambiente, onConfirmar, onFechar }: Props) {
               type="button"
               onClick={() => void confirmar()}
               disabled={ocupado || linhas.length === 0}
-              className="min-h-14 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+              className="bg-primario text-sobre-primario min-h-14 flex-[2] rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
             >
               {ocupado ? "Adicionando..." : "Adicionar kit ao ambiente"}
             </button>

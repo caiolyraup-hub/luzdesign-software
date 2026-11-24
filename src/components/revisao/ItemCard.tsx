@@ -71,6 +71,7 @@ export function ItemCard({
   return (
     <li className="space-y-3 p-4">
       <div className="space-y-1">
+        {!item.avulso ? <p className="codigo text-xl">Cód. {item.codigo}</p> : null}
         {item.avulso ? (
           <input
             type="text"
@@ -117,13 +118,11 @@ export function ItemCard({
             </div>
           </div>
         ) : (
-          <p className="text-lg font-medium">{item.descricao}</p>
+          <p className="text-base font-medium">{item.descricao}</p>
         )}
         <p className="text-base text-zinc-600">
-          {item.avulso
-            ? "Item avulso"
-            : `Cód. ${item.codigo}${item.marca ? ` · ${item.marca}` : ""}`}
-          {origem ? ` · ${origem}` : ""}
+          {item.avulso ? "Item avulso" : (item.marca ?? "")}
+          {origem ? `${item.avulso || item.marca ? " · " : ""}${origem}` : ""}
           {item.descricaoManual && !item.avulso ? " · descrição escrita por você" : ""}
         </p>
         {item.produtoAtivo === false ? (

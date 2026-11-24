@@ -16,6 +16,7 @@ import {
 } from "@/lib/orcamento/filtros-lista";
 import { contagemDosPresets, listarOrcamentos } from "@/lib/orcamento/listar";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 async function Lista({ searchParams }: Pick<PageProps<"/orcamentos">, "searchParams">) {
   await connection();
@@ -108,7 +109,7 @@ export default function Page({ searchParams }: PageProps<"/orcamentos">) {
         <h1 className="text-2xl font-semibold">Meus orçamentos</h1>
         <LinkClientes />
       </div>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Lista searchParams={searchParams} />
       </Suspense>
     </section>

@@ -23,7 +23,7 @@ export function FormularioRelato({ tela }: { tela: string }) {
         </p>
         <Link
           href="/"
-          className="flex min-h-14 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+          className="bg-primario text-sobre-primario flex min-h-14 items-center justify-center rounded-lg text-lg font-semibold"
         >
           Voltar ao início
         </Link>
@@ -84,7 +84,7 @@ export function FormularioRelato({ tela }: { tela: string }) {
       <button
         type="submit"
         disabled={ocupado}
-        className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-60"
+        className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold disabled:opacity-60"
       >
         {ocupado ? "Enviando..." : "Enviar relato"}
       </button>

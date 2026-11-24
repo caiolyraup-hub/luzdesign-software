@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { carregarMaisOrcamentos } from "@/app/(app)/orcamentos/acoes-lista";
 import type { ConfigFollowup } from "@/lib/orcamento/followup";
+import { ListaVazia } from "@/components/ui/ListaVazia";
 import { CartaoOrcamento, type DadosCartao } from "./CartaoOrcamento";
 
 interface Props {
@@ -56,10 +57,16 @@ export function ListaOrcamentos({
     }
   }
 
-  if (cartoes.length === 0) return <p className="text-lg text-zinc-600">{vazio}</p>;
+  if (cartoes.length === 0)
+    return (
+      <ListaVazia
+        titulo={vazio}
+        acao={gerencia ? undefined : { rotulo: "Novo orçamento", href: "/orcamentos/novo" }}
+      />
+    );
   return (
     <div className="space-y-4">
-      <ul className="space-y-3">
+      <ul className="cascata space-y-3">
         {cartoes.map((c) => (
           <CartaoOrcamento
             key={c.id}

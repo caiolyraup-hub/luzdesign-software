@@ -29,6 +29,7 @@ import { followupDeHoje, textoPrazoFollowup } from "@/lib/orcamento/followup";
 import { contagemDosPresets, listarOrcamentos } from "@/lib/orcamento/listar";
 import { STATUS_QUE_VENCEM } from "@/lib/orcamento/validade";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 interface LinhaVencida {
   id: string;
@@ -278,7 +279,7 @@ export default function Page({ searchParams }: PageProps<"/gerencia">) {
         Números da equipe no período e, abaixo, todos os orçamentos para acompanhar e mudar o
         status.
       </p>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Equipe searchParams={searchParams} />
       </Suspense>
     </section>

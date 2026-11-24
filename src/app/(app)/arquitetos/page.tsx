@@ -9,6 +9,7 @@ import { textoAniversario } from "@/lib/arquitetos/validacao";
 import { formatarMoeda } from "@/lib/formatar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 async function Arquitetos({ searchParams }: Pick<PageProps<"/arquitetos">, "searchParams">) {
   await connection();
@@ -100,7 +101,7 @@ export default function Page({ searchParams }: PageProps<"/arquitetos">) {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Arquitetos</h1>
-      <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Arquitetos searchParams={searchParams} />
       </Suspense>
     </div>

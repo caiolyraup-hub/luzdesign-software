@@ -12,6 +12,7 @@ import { formatarWhatsapp } from "@/lib/orcamento/perguntas";
 import { formatarDataBR, formatarMoeda } from "@/lib/formatar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 interface LinhaOrcamento {
   id: string;
@@ -194,7 +195,7 @@ async function Ficha({ params }: Pick<PageProps<"/arquitetos/[id]">, "params">) 
 
 export default function Page({ params }: PageProps<"/arquitetos/[id]">) {
   return (
-    <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+    <Suspense fallback={<EsqueletoLista />}>
       <Ficha params={params} />
     </Suspense>
   );

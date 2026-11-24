@@ -225,10 +225,7 @@ export function Editor({ orcamentoId, respostasIniciais, anexosIniciais, passoIn
           aria-valuenow={Math.round(percentual)}
           className="h-2 overflow-hidden rounded-full bg-zinc-200"
         >
-          <div
-            className="h-full bg-amber-700 transition-[width]"
-            style={{ width: `${percentual}%` }}
-          />
+          <div className="bg-cobre h-full transition-[width]" style={{ width: `${percentual}%` }} />
         </div>
       </div>
 
@@ -285,7 +282,7 @@ export function Editor({ orcamentoId, respostasIniciais, anexosIniciais, passoIn
               type="button"
               onClick={proximo}
               disabled={pendente}
-              className="min-h-14 flex-[2] rounded-lg bg-amber-700 text-lg font-semibold text-white disabled:opacity-60"
+              className="bg-primario text-sobre-primario min-h-14 flex-[2] rounded-lg text-lg font-semibold disabled:opacity-60"
             >
               {pendente
                 ? "Salvando..."

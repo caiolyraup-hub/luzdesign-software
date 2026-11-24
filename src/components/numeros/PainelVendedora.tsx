@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NumeroContando } from "@/components/ui/NumeroContando";
 import { formatarMoeda } from "@/lib/formatar";
 import {
   formatarDias,
@@ -22,12 +23,15 @@ import {
 function Cartao({
   titulo,
   valor,
+  numero,
   linhas,
   href,
   destaque = false,
 }: {
   titulo: string;
   valor: string;
+  /** Quando informado, o valor conta até o número na primeira vez. */
+  numero?: { valor: number; tipo: "moeda" | "porcentagem" | "inteiro" };
   linhas: string[];
   href: string;
   destaque?: boolean;
@@ -36,11 +40,13 @@ function Cartao({
     <Link
       href={href}
       className={`block min-h-32 space-y-1 rounded-lg border-2 p-4 ${
-        destaque ? "border-[#9F5F47] bg-[#9F5F47]/10" : "border-zinc-300 bg-white"
+        destaque ? "border-cobre bg-cobre/10" : "border-zinc-300 bg-white"
       }`}
     >
       <span className="block text-base font-medium text-zinc-700">{titulo}</span>
-      <strong className="block text-2xl leading-tight">{valor}</strong>
+      <strong className="numero block text-2xl leading-tight">
+        {numero ? <NumeroContando valor={numero.valor} tipo={numero.tipo} /> : valor}
+      </strong>
       {linhas.map((l) => (
         <span key={l} className="block text-base text-zinc-700">
           {l}
@@ -95,6 +101,7 @@ export function PainelVendedora({
           destaque
           titulo="Vendido"
           valor={formatarMoeda(m.valor_vendido)}
+          numero={{ valor: m.valor_vendido, tipo: "moeda" }}
           linhas={[`${m.fechados} ${m.fechados === 1 ? "fechado" : "fechados"}`]}
           href={lista({ filtro: "fechados", campo: "fechado" })}
         />
@@ -112,12 +119,14 @@ export function PainelVendedora({
         <Cartao
           titulo="Em aberto (agora)"
           valor={formatarMoeda(m.em_aberto_valor)}
+          numero={{ valor: m.em_aberto_valor, tipo: "moeda" }}
           linhas={[`${m.em_aberto_qtd} ${m.em_aberto_qtd === 1 ? "orçamento" : "orçamentos"}`]}
           href={lista({ filtro: "followup" })}
         />
         <Cartao
           titulo="Deixou de vender"
           valor={formatarMoeda(m.valor_perdido)}
+          numero={{ valor: m.valor_perdido, tipo: "moeda" }}
           linhas={[`${m.perdidos} ${m.perdidos === 1 ? "perdido" : "perdidos"}`]}
           href={lista({ filtro: "perdidos", campo: "perdido" })}
         />

@@ -14,6 +14,7 @@ import { respostasComCliente } from "@/lib/orcamento/respostas";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 // "Gerar orçamento" e "Pedir indicação" são Server Actions chamadas desta página.
 export const maxDuration = 300;
@@ -131,7 +132,7 @@ async function Carregar({ params }: Pick<PageProps<"/orcamentos/[id]/revisao">, 
 
 export default function Page({ params }: PageProps<"/orcamentos/[id]/revisao">) {
   return (
-    <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+    <Suspense fallback={<EsqueletoLista />}>
       <Carregar params={params} />
     </Suspense>
   );

@@ -7,6 +7,7 @@ import { ResumoDia } from "@/components/relatos/ResumoDia";
 import { ehGerencia } from "@/lib/dominio";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 const dataHora = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -117,7 +118,7 @@ export default function Page({ searchParams }: PageProps<"/relatos">) {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Relatos do piloto</h1>
-      <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Lista searchParams={searchParams} />
       </Suspense>
     </section>

@@ -14,12 +14,14 @@ async function Aviso({ searchParams }: Pick<PageProps<"/login">, "searchParams">
 export default function Page({ searchParams }: PageProps<"/login">) {
   return (
     <main className="mx-auto w-full max-w-md px-4 pt-16 pb-8">
-      <h1 className="mb-1 text-3xl font-semibold">Luz Design</h1>
-      <p className="mb-8 text-lg text-zinc-600">Entre para ver seus orçamentos.</p>
-      <Suspense fallback={null}>
-        <Aviso searchParams={searchParams} />
-      </Suspense>
-      <FormularioLogin />
+      <div className="vidro-forte space-y-1 rounded-2xl p-6">
+        <h1 className="mb-1 text-3xl font-semibold">Luz Design</h1>
+        <p className="mb-8 text-lg text-zinc-600">Entre para ver seus orçamentos.</p>
+        <Suspense fallback={null}>
+          <Aviso searchParams={searchParams} />
+        </Suspense>
+        <FormularioLogin />
+      </div>
     </main>
   );
 }

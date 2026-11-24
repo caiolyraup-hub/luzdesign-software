@@ -5,10 +5,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { PGlite } from "@electric-sql/pglite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { criarBancoLocal } from "../testes/banco-local";
 import { conferirBackup } from "./conferir";
 import { fazerBackup, TABELAS, type FonteBackup, type Linha } from "./nucleo";
+
+// Restaurar sobe um Postgres em memória com todas as migrations: leva alguns segundos.
+vi.setConfig({ testTimeout: 60_000 });
 
 const ALINE = "00000000-0000-0000-0000-00000000000a";
 const GERENTE = "00000000-0000-0000-0000-00000000000c";

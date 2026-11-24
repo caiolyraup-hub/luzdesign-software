@@ -7,6 +7,7 @@ import type { TipoAnexo } from "@/lib/orcamento/perguntas";
 import { respostasComCliente } from "@/lib/orcamento/respostas";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 const VALIDADE_URL_SEGUNDOS = 3600;
 
@@ -78,7 +79,7 @@ async function Carregar({
 
 export default function Page({ params, searchParams }: PageProps<"/orcamentos/[id]/editar">) {
   return (
-    <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+    <Suspense fallback={<EsqueletoLista />}>
       <Carregar params={params} searchParams={searchParams} />
     </Suspense>
   );

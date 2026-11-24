@@ -19,7 +19,7 @@ export function BotaoRegistrarEnvio({
       <button
         type="button"
         onClick={() => setAberta(true)}
-        className={`rounded-lg bg-amber-700 font-semibold text-white ${
+        className={`bg-primario text-sobre-primario rounded-lg font-semibold ${
           compacto ? "min-h-11 px-3 text-base" : "min-h-14 w-full px-4 text-lg"
         }`}
       >

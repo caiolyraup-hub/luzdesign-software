@@ -87,7 +87,7 @@ export function CartaoFollowup({ d }: { d: DadosFollowup }) {
             type="button"
             disabled={ocupado}
             onClick={() => void fiz()}
-            className={`${botao} bg-amber-700 text-white disabled:opacity-60`}
+            className={`${botao} bg-primario text-sobre-primario disabled:opacity-60`}
           >
             {ocupado ? "Salvando..." : "Fiz o follow-up"}
           </button>

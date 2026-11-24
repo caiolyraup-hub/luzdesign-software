@@ -108,11 +108,11 @@ function ListaSugestoes({
                 className="space-y-2 rounded-lg border border-zinc-300 bg-white p-3"
                 aria-label={`Sugestão ${s.codigo}`}
               >
-                <p className="text-lg font-medium">{s.descricao}</p>
+                <p className="codigo text-xl">Cód. {s.codigo}</p>
+                <p className="text-base font-medium">{s.descricao}</p>
                 <p className="text-base text-zinc-600">
-                  Cód. {s.codigo}
-                  {s.categoria ? ` · ${s.categoria}` : ""} · {moedaSimples(s.precoUnitario)}/
-                  {s.unidade}
+                  {s.categoria ? `${s.categoria} · ` : ""}
+                  {moedaSimples(s.precoUnitario)}/{s.unidade}
                   {s.jaNoAmbiente ? " · já está neste ambiente" : ""}
                 </p>
                 {s.motivo ? <p className="text-base text-zinc-700">{s.motivo}</p> : null}
@@ -155,7 +155,7 @@ function ListaSugestoes({
         <button
           type="button"
           onClick={() => void adicionar(pendentes)}
-          className="min-h-12 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white"
+          className="bg-primario text-sobre-primario min-h-12 w-full rounded-lg px-4 text-lg font-semibold"
         >
           Adicionar todas ({pendentes.length})
         </button>

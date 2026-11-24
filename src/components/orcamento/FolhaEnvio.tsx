@@ -1,8 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { marcarEnviado } from "@/app/(app)/orcamentos/acoes-status";
+import { Botao } from "@/components/ui/Botao";
+import { classeCampo } from "@/components/ui/Campo";
+import { Folha } from "@/components/ui/Folha";
+import { useToast } from "@/components/ui/Toast";
 import { hojeMaceioISO } from "@/lib/formatar";
 import { dataDeEnvioValida } from "@/lib/orcamento/envio";
 import { dataMaceioISO } from "@/lib/orcamento/followup";
@@ -21,19 +25,11 @@ interface Props {
  */
 export function FolhaEnvio({ orcamentoId, geradoEm, aberta, onFechar }: Props) {
   const router = useRouter();
+  const { avisar } = useToast();
   const [outraData, setOutraData] = useState(false);
   const [data, setData] = useState(() => hojeMaceioISO());
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!aberta) return;
-    const aoTeclar = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
-    window.addEventListener("keydown", aoTeclar);
-    return () => window.removeEventListener("keydown", aoTeclar);
-  }, [aberta, onFechar]);
-
-  if (!aberta) return null;
 
   async function gravar(valor?: string) {
     setErro(null);
@@ -53,85 +49,49 @@ export function FolhaEnvio({ orcamentoId, geradoEm, aberta, onFechar }: Props) {
     setOcupado(false);
     if (!r.ok) return setErro(r.erro);
     setOutraData(false);
+    avisar("sucesso", "Envio registrado.");
     onFechar();
     router.refresh();
   }
 
-  const botao =
-    "flex min-h-14 w-full items-center justify-center rounded-lg px-4 text-lg font-semibold";
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
-        type="button"
-        aria-label="Fechar"
-        tabIndex={-1}
-        onClick={onFechar}
-        className="absolute inset-0 bg-black/40"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="titulo-folha-envio"
-        className="relative w-full max-w-md space-y-3 rounded-t-2xl bg-white p-5 pb-8 shadow-xl sm:rounded-2xl"
-      >
-        <h2 id="titulo-folha-envio" className="text-xl font-semibold">
-          Você já mandou para o cliente?
-        </h2>
-        <p className="text-base text-zinc-600">
-          Registrar o envio mantém os follow-ups e os números certos.
+    <Folha aberta={aberta} onFechar={onFechar} titulo="Você já mandou para o cliente?">
+      <p className="text-base text-zinc-600">
+        Registrar o envio mantém os follow-ups e os números certos.
+      </p>
+      <Botao disabled={ocupado} onClick={() => void gravar()}>
+        {ocupado && !outraData ? "Salvando..." : "Enviei agora"}
+      </Botao>
+      {outraData ? (
+        <div className="space-y-2 rounded-lg border-2 border-indigo-700 bg-indigo-50 p-3">
+          <label className="block space-y-1">
+            <span className="text-lg font-medium">Data do envio</span>
+            <input
+              type="date"
+              value={data}
+              max={hojeMaceioISO()}
+              min={geradoEm ? dataMaceioISO(geradoEm) : undefined}
+              onChange={(e) => setData(e.target.value)}
+              className={classeCampo}
+            />
+          </label>
+          <Botao disabled={ocupado} onClick={() => void gravar(data)}>
+            {ocupado ? "Salvando..." : "Confirmar envio"}
+          </Botao>
+        </div>
+      ) : (
+        <Botao variante="secundario" onClick={() => setOutraData(true)}>
+          Enviei em outra data
+        </Botao>
+      )}
+      <Botao variante="fantasma" onClick={onFechar}>
+        Ainda não
+      </Botao>
+      {erro ? (
+        <p role="alert" className="text-lg text-red-700">
+          {erro}
         </p>
-        <button
-          type="button"
-          disabled={ocupado}
-          onClick={() => void gravar()}
-          className={`${botao} bg-amber-700 text-white disabled:opacity-60`}
-        >
-          {ocupado && !outraData ? "Salvando..." : "Enviei agora"}
-        </button>
-        {outraData ? (
-          <div className="space-y-2 rounded-lg border-2 border-indigo-700 bg-indigo-50 p-3">
-            <label className="block space-y-1">
-              <span className="text-lg font-medium">Data do envio</span>
-              <input
-                type="date"
-                value={data}
-                max={hojeMaceioISO()}
-                min={geradoEm ? dataMaceioISO(geradoEm) : undefined}
-                onChange={(e) => setData(e.target.value)}
-                className="min-h-14 w-full rounded-lg border border-zinc-300 bg-white px-4 text-lg"
-              />
-            </label>
-            <button
-              type="button"
-              disabled={ocupado}
-              onClick={() => void gravar(data)}
-              className={`${botao} bg-indigo-700 text-white disabled:opacity-60`}
-            >
-              {ocupado ? "Salvando..." : "Confirmar envio"}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setOutraData(true)}
-            className={`${botao} border border-amber-700 bg-white text-amber-800`}
-          >
-            Enviei em outra data
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onFechar}
-          className={`${botao} border border-zinc-300 bg-white text-zinc-700`}
-        >
-          Ainda não
-        </button>
-        {erro ? (
-          <p role="alert" className="text-lg text-red-700">
-            {erro}
-          </p>
-        ) : null}
-      </div>
-    </div>
+      ) : null}
+    </Folha>
   );
 }

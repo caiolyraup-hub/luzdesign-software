@@ -428,7 +428,7 @@ export function Revisao(p: Props) {
                   type="button"
                   onClick={() => void salvarAvulso(g.nome)}
                   disabled={formAvulso.descricao.trim().length < 2}
-                  className="min-h-12 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+                  className="bg-primario text-sobre-primario min-h-12 flex-[2] rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
                 >
                   Adicionar avulso
                 </button>
@@ -478,7 +478,7 @@ export function Revisao(p: Props) {
                   type="button"
                   onClick={() => void confirmarDuplicar()}
                   disabled={!nomeAmbienteValido(duplicarEm.nome) || salvando}
-                  className="min-h-12 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+                  className="bg-primario text-sobre-primario min-h-12 flex-[2] rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
                 >
                   Duplicar ambiente
                 </button>
@@ -489,7 +489,7 @@ export function Revisao(p: Props) {
               <button
                 type="button"
                 onClick={() => setBusca({ tipo: "adicionar", ambiente: g.nome })}
-                className="min-h-12 rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white"
+                className="bg-primario text-sobre-primario min-h-12 rounded-lg px-4 text-lg font-semibold"
               >
                 Adicionar produto
               </button>
@@ -560,7 +560,7 @@ export function Revisao(p: Props) {
               type="button"
               onClick={() => void criarAmbiente()}
               disabled={!nomeAmbienteValido(novoAmbiente)}
-              className="min-h-12 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+              className="bg-primario text-sobre-primario min-h-12 flex-[2] rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
             >
               Criar ambiente
             </button>
@@ -626,7 +626,7 @@ export function Revisao(p: Props) {
             type="button"
             onClick={() => void gerar()}
             disabled={!podeGerar}
-            className="min-h-14 w-full rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white disabled:opacity-50"
+            className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-5 text-lg font-semibold disabled:opacity-50"
           >
             {p.status === "gerado" ? "Gerar nova versão do orçamento" : "Gerar orçamento"}
           </button>

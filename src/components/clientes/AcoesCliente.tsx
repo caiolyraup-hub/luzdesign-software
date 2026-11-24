@@ -33,7 +33,7 @@ export function NovoOrcamentoDoCliente({ clienteId }: { clienteId: string }) {
         type="button"
         onClick={() => void criar()}
         disabled={ocupado}
-        className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-60"
+        className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold disabled:opacity-60"
       >
         {ocupado ? "Criando..." : "Novo orçamento para este cliente"}
       </button>

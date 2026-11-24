@@ -116,7 +116,7 @@ export function Duplicados({ pares }: { pares: ParDuplicado[] }) {
                       type="button"
                       onClick={() => void juntar(p)}
                       disabled={ocupado}
-                      className="min-h-12 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-60"
+                      className="bg-primario text-sobre-primario min-h-12 flex-[2] rounded-lg px-4 text-lg font-semibold disabled:opacity-60"
                     >
                       {ocupado ? "Juntando..." : "Confirmar e juntar"}
                     </button>

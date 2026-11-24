@@ -6,6 +6,7 @@ import { ListaClientes } from "@/components/clientes/ListaClientes";
 import { lerFiltrosClientes, listarClientes } from "@/lib/clientes/listar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 async function Clientes({ searchParams }: Pick<PageProps<"/clientes">, "searchParams">) {
   await connection();
@@ -87,7 +88,7 @@ export default function Page({ searchParams }: PageProps<"/clientes">) {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Clientes</h1>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Clientes searchParams={searchParams} />
       </Suspense>
     </section>

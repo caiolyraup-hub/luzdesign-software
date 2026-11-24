@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { hojeMaceioISO } from "@/lib/formatar";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { FormularioConfiguracoes, type ConfiguracoesLoja } from "./formulario";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 async function Dados() {
   await connection(); // a sessão depende da requisição: fora do prerender
@@ -73,7 +74,7 @@ export default function Page() {
       <Suspense fallback={null}>
         <ErrosDeHoje />
       </Suspense>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Dados />
       </Suspense>
     </section>

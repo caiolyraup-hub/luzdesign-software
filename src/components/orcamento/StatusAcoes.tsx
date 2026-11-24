@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/Toast";
 import { marcarEnviado, mudarStatus } from "@/app/(app)/orcamentos/acoes-status";
 import type { MotivoPerda, StatusOrcamento } from "@/lib/dominio";
 import { hojeMaceioISO } from "@/lib/formatar";
@@ -24,7 +25,7 @@ interface Props {
 }
 
 const ESTILOS: Record<AcaoStatus["estilo"], string> = {
-  primaria: "bg-amber-700 text-white",
+  primaria: "bg-primario text-sobre-primario",
   secundaria: "border border-amber-700 bg-white text-amber-800",
   sucesso: "bg-emerald-700 text-white",
   perigo: "border border-red-700 bg-white text-red-800",
@@ -52,8 +53,7 @@ export function StatusAcoes({
   const [motivo, setMotivo] = useState<MotivoPerda | null>(null);
   const [data, setData] = useState(() => hojeMaceioISO());
   const [ocupado, setOcupado] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [feito, setFeito] = useState<string | null>(null);
+  const { avisar } = useToast();
 
   const acoes = acoesDoStatus(status).filter((a) => !(semEnviado && a.pede === "data"));
   if (acoes.length === 0) return null;
@@ -63,13 +63,12 @@ export function StatusAcoes({
   const tamanho = compacto ? "min-h-11 px-3 text-base" : "min-h-14 px-4 text-lg";
 
   async function confirmar(acao: AcaoStatus) {
-    setErro(null);
     setOcupado(true);
     const extra: { valorFechado?: number; motivo?: MotivoPerda; dataEnvio?: string } = {};
     if (pedeDataEnvio && (acao.pede === "valor" || acao.pede === "motivo")) {
       if (!data) {
         setOcupado(false);
-        return setErro("Informe a data em que enviou o orçamento ao cliente.");
+        return avisar("erro", "Informe a data em que enviou o orçamento ao cliente.");
       }
       extra.dataEnvio = data;
     }
@@ -77,36 +76,34 @@ export function StatusAcoes({
       const n = Number(valor.replace(/\./g, "").replace(",", "."));
       if (!(n > 0)) {
         setOcupado(false);
-        return setErro("Informe o valor da venda.");
+        return avisar("erro", "Informe o valor da venda.");
       }
       extra.valorFechado = n;
     }
     if (acao.pede === "motivo") {
       if (!motivo) {
         setOcupado(false);
-        return setErro("Escolha o motivo da perda.");
+        return avisar("erro", "Escolha o motivo da perda.");
       }
       extra.motivo = motivo;
     }
     if (acao.pede === "data" && !data) {
       setOcupado(false);
-      return setErro("Informe a data do envio.");
+      return avisar("erro", "Informe a data do envio.");
     }
     const r =
       acao.pede === "data"
         ? await marcarEnviado(orcamentoId, data)
         : await mudarStatus(orcamentoId, acao.para, extra);
     setOcupado(false);
-    if (!r.ok) return setErro(r.erro);
+    if (!r.ok) return avisar("erro", r.erro);
     setAberta(null);
     setMotivo(null);
-    setFeito(acao.rotulo);
+    avisar("sucesso", "Status atualizado.");
     router.refresh();
   }
 
   function tocar(acao: AcaoStatus) {
-    setFeito(null);
-    setErro(null);
     if (acao.pede) setAberta(aberta?.para === acao.para ? null : acao);
     else void confirmar(acao);
   }
@@ -250,17 +247,6 @@ export function StatusAcoes({
             {ocupado ? "Salvando..." : "Confirmar perda"}
           </button>
         </div>
-      ) : null}
-
-      {erro ? (
-        <p role="alert" className="text-lg text-red-700">
-          {erro}
-        </p>
-      ) : null}
-      {feito ? (
-        <p role="status" className="text-base text-emerald-800">
-          Status atualizado.
-        </p>
       ) : null}
     </div>
   );

@@ -207,7 +207,7 @@ export function Lancamentos({
               );
               if (r) setSel(new Set());
             }}
-            className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+            className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
           >
             Marcar como paga{sel.size > 0 ? ` (${sel.size} · ${formatarMoeda(totalSel)})` : ""}
           </button>
@@ -260,7 +260,7 @@ export function FechamentosAnteriores() {
             <button
               type="button"
               disabled={ocupado}
-              className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white"
+              className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold"
               onClick={async () => {
                 if (await executar(() => calcularAnteriores(true), "Comissões gravadas."))
                   setPrevia(null);
@@ -335,7 +335,7 @@ export function FormAjustes({ inicial }: { inicial: Ajustes }) {
       <button
         type="submit"
         disabled={ocupado}
-        className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+        className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
       >
         Salvar percentuais
       </button>

@@ -66,7 +66,7 @@ export function EditarDescricao({ codigo, descricao }: { codigo: string; descric
             setAberto(false);
             router.refresh();
           }}
-          className="min-h-12 flex-[2] rounded-lg bg-amber-700 text-lg font-semibold text-white disabled:opacity-50"
+          className="bg-primario text-sobre-primario min-h-12 flex-[2] rounded-lg text-lg font-semibold disabled:opacity-50"
         >
           Salvar descrição
         </button>

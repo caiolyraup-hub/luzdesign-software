@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Importador } from "./importador";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 const dataHora = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -79,7 +80,7 @@ export default function Page() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Estoque</h1>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <UltimaCarga />
       </Suspense>
       <Importador />

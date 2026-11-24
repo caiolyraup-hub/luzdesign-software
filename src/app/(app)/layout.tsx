@@ -1,4 +1,7 @@
+import Image from "next/image";
 import { Suspense } from "react";
+import { ProvedorToast } from "@/components/ui/Toast";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 import { BarraNavegacao } from "@/components/BarraNavegacao";
 import { LinkRelatar } from "@/components/relatos/LinkRelatar";
 import { ehGerencia } from "@/lib/dominio";
@@ -24,9 +27,18 @@ async function Moldura({ children }: { children: React.ReactNode }) {
     followups.length + renovar.length + aniversarios.filter((a) => a.dias === 0).length;
   return (
     <>
-      <header className="border-b border-zinc-200">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2">
-          <span className="text-base font-medium">{usuario.nome}</span>
+      <header className="vidro sticky top-0 z-20 rounded-none border-x-0 border-t-0">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-2">
+          <span className="flex items-center gap-2 text-base font-medium">
+            <Image
+              src="/marca/logo-quadrado.jpg"
+              alt="Luz Design"
+              width={32}
+              height={32}
+              className="size-8 rounded-md"
+            />
+            {usuario.nome}
+          </span>
           <div className="flex items-center">
             <LinkRelatar />
             {ehGerencia(usuario.perfil) ? (
@@ -53,8 +65,16 @@ async function Moldura({ children }: { children: React.ReactNode }) {
 
 export default function LayoutApp({ children }: LayoutProps<"/">) {
   return (
-    <Suspense fallback={<p className="px-4 pt-6 text-base">Carregando...</p>}>
-      <Moldura>{children}</Moldura>
-    </Suspense>
+    <ProvedorToast>
+      <Suspense
+        fallback={
+          <div className="mx-auto w-full max-w-3xl px-4 pt-6">
+            <EsqueletoLista />
+          </div>
+        }
+      >
+        <Moldura>{children}</Moldura>
+      </Suspense>
+    </ProvedorToast>
   );
 }

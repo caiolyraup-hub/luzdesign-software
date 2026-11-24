@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { FormAjustes, PercentualProprio } from "@/components/comissoes/AcoesComissoes";
 import { lerPercentuais } from "@/lib/comissoes/carregar";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 const txt = (n: number | null | undefined) =>
   n === null || n === undefined ? "" : String(n).replace(".", ",");
@@ -71,7 +72,7 @@ export default function Page() {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Ajustes de comissão</h1>
-      <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Conteudo />
       </Suspense>
     </section>

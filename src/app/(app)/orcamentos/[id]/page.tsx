@@ -20,6 +20,7 @@ import { rotuloMotivo } from "@/lib/orcamento/status";
 import { descontoAvistaCentavos, moedaCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 // A renovação gera PDF e planilha numa ação do servidor chamada desta página.
 export const maxDuration = 300;
@@ -208,7 +209,7 @@ async function Detalhe({
           <p className="text-lg text-zinc-600">Este orçamento ainda é um rascunho.</p>
           <Link
             href={`/orcamentos/${id}/editar`}
-            className="flex min-h-14 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+            className="bg-primario text-sobre-primario flex min-h-14 items-center justify-center rounded-lg text-lg font-semibold"
           >
             Continuar
           </Link>
@@ -391,7 +392,7 @@ async function Detalhe({
 
 export default function Page({ params, searchParams }: PageProps<"/orcamentos/[id]">) {
   return (
-    <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+    <Suspense fallback={<EsqueletoLista />}>
       <Detalhe params={params} searchParams={searchParams} />
     </Suspense>
   );

@@ -11,6 +11,7 @@ import {
 import { carregarComissoes, lerPercentuais } from "@/lib/comissoes/carregar";
 import { formatarMoeda, hojeMaceioISO } from "@/lib/formatar";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 type Param = string | string[] | undefined;
 const um = (v: Param) => (Array.isArray(v) ? v[0] : v);
@@ -63,7 +64,7 @@ async function Conteudo({ searchParams }: Pick<PageProps<"/comissoes">, "searchP
           <p className="text-base text-zinc-700">Enquanto estiverem vazios, nada é calculado.</p>
           <Link
             href="/comissoes/ajustes"
-            className="flex min-h-12 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+            className="bg-primario text-sobre-primario flex min-h-12 items-center justify-center rounded-lg text-lg font-semibold"
           >
             Ajustes de comissão
           </Link>
@@ -203,7 +204,7 @@ export default function Page({ searchParams }: PageProps<"/comissoes">) {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Comissões</h1>
-      <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Conteudo searchParams={searchParams} />
       </Suspense>
     </section>

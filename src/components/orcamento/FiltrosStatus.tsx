@@ -30,7 +30,7 @@ export function FiltrosStatus({
           aria-current={atual === f.id ? "page" : undefined}
           className={`flex min-h-11 shrink-0 items-center rounded-full border px-4 text-base ${
             atual === f.id
-              ? "border-amber-700 bg-amber-700 font-semibold text-white"
+              ? "bg-primario text-sobre-primario border-amber-700 font-semibold"
               : "border-zinc-300 bg-white"
           }`}
         >

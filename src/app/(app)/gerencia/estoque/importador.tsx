@@ -24,7 +24,7 @@ type Previa = Extract<RespostaPrevia, { ok: true }>;
 type Resultado = Extract<RespostaImportacao, { ok: true }>;
 
 const botao = "min-h-14 rounded-lg px-5 text-lg font-semibold disabled:opacity-60";
-const botaoPrincipal = `${botao} bg-amber-700 text-white`;
+const botaoPrincipal = `${botao} bg-primario text-sobre-primario`;
 const botaoSecundario = `${botao} border border-zinc-300 bg-white`;
 
 export function Importador() {

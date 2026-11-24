@@ -87,11 +87,12 @@ export function ColarLista({ ambiente, onConfirmar, onFechar }: Props) {
               <ul className="divide-y divide-sky-200 rounded-lg border border-sky-200 bg-white">
                 {previa.reconhecidas.map((l) => (
                   <li key={l.linha} className="space-y-0.5 p-3 text-base">
+                    <p className="codigo text-lg">Cód. {l.codigo}</p>
                     <p className="font-medium">
                       {l.quantidade} {l.unidade} · {l.descricao}
                     </p>
                     <p className="text-zinc-600">
-                      Cód. {l.codigo} · {moedaSimples(l.precoUnitario)}/{l.unidade} ={" "}
+                      {moedaSimples(l.precoUnitario)}/{l.unidade} ={" "}
                       {moedaCentavos(l.subtotalCentavos)}
                     </p>
                     {l.aviso ? <p className="text-amber-900">{l.aviso}</p> : null}

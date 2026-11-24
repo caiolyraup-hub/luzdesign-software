@@ -14,7 +14,7 @@ interface Props {
 }
 
 const botaoPrincipal =
-  "flex min-h-14 w-full items-center justify-center rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white";
+  "flex min-h-14 w-full items-center justify-center rounded-lg bg-primario px-5 text-lg font-semibold text-sobre-primario";
 const botaoSecundario =
   "flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-300 px-5 text-lg";
 

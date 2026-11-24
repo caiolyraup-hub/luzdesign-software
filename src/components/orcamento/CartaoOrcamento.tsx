@@ -102,7 +102,7 @@ export function CartaoOrcamento({
         podeAgir ? (
           <Link
             href={`/orcamentos/${d.id}/editar`}
-            className="flex min-h-12 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+            className="bg-primario text-sobre-primario flex min-h-12 items-center justify-center rounded-lg text-lg font-semibold"
           >
             Continuar
           </Link>

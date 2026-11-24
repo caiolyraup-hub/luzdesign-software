@@ -35,7 +35,7 @@ export function FormularioTrocaSenha() {
       <button
         type="submit"
         disabled={pendente}
-        className="min-h-14 w-full rounded-lg bg-amber-700 text-lg font-semibold text-white disabled:opacity-60"
+        className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg text-lg font-semibold disabled:opacity-60"
       >
         {pendente ? "Salvando..." : "Salvar e entrar"}
       </button>

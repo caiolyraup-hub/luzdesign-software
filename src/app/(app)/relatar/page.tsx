@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { FormularioRelato } from "@/components/relatos/FormularioRelato";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 async function Conteudo({ searchParams }: Pick<PageProps<"/relatar">, "searchParams">) {
   await connection();
@@ -16,7 +17,7 @@ export default function Page({ searchParams }: PageProps<"/relatar">) {
       <p className="text-lg text-zinc-600">
         Conte o que aconteceu. A tela em que você estava vai junto.
       </p>
-      <Suspense fallback={<p className="text-lg text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Conteudo searchParams={searchParams} />
       </Suspense>
     </section>

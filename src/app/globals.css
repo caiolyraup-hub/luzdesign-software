@@ -1,29 +1,342 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Visual da Luz Design (dia 16): branco quente, amarelo, marrom e cobre (a cor do logo e do PDF).
+ * Todas as cores vêm daqui; nenhum componente usa cor solta. As escalas `zinc` (neutros) e `amber`
+ * (destaque) do Tailwind foram REDEFINIDAS para a paleta da marca: o código que já usa
+ * `text-zinc-600`, `border-zinc-300`, `bg-amber-50` ganha o visual novo sem mudar de classe.
+ *
+ * Regras de cor: amarelo NUNCA é cor de texto sobre branco (contraste 1,8:1). No botão amarelo o
+ * texto é marrom escuro (7,4:1). Textos e links usam marrom ou cobre escuro (>= 5:1).
+ */
+@theme {
+  /* marca */
+  --color-branco: #ffffff;
+  --color-branco-quente: #fffdf8;
+  --color-amarelo: #f2b705;
+  --color-amarelo-claro: #fdf1c7;
+  --color-marrom: #3e2a1e;
+  --color-marrom-titulo: #6b4a35;
+  --color-cobre: #9f5f47;
+  --color-cobre-escuro: #8a4f39;
+  /* papéis (use estes nos componentes novos) */
+  --color-primario: #f2b705;
+  --color-sobre-primario: #3e2a1e;
+  --color-fundo: #fffdf8;
+  --color-texto: #3e2a1e;
+  --color-texto-suave: #6b5646;
+  --color-borda: #d9c9af;
+  --color-borda-campo: #8c7660;
+
+  /* neutros quentes no lugar do cinza do Tailwind */
+  --color-zinc-50: #fbf7ef;
+  --color-zinc-100: #f5eedf;
+  --color-zinc-200: #e9decb;
+  --color-zinc-300: #d9c9af;
+  --color-zinc-400: #a8927a;
+  --color-zinc-500: #84705c;
+  --color-zinc-600: #6b5646;
+  --color-zinc-700: #55422f;
+  --color-zinc-800: #46341f;
+  --color-zinc-900: #3e2a1e;
+
+  /* destaque: do amarelo claro ao marrom */
+  --color-amber-50: #fef7db;
+  --color-amber-100: #fdf1c7;
+  --color-amber-200: #fbe59a;
+  --color-amber-300: #f7d25b;
+  --color-amber-600: #b0663f;
+  --color-amber-700: #8a4f39; /* texto, ícone e contorno de destaque (cobre escuro) */
+  --color-amber-800: #6b4a35;
+  --color-amber-900: #4a3123;
+  --color-amber-950: #3e2a1e;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-titulo:
+    var(--font-montserrat), -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui,
+    "Segoe UI", Roboto, sans-serif;
+
+  /* escala de espaçamento da marca: 4, 8, 12, 16, 24, 32 */
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 24px;
+  --espaco-6: 32px;
+
+  --raio: 12px;
+  --sombra-leve: 0 1px 2px rgb(62 42 30 / 6%), 0 4px 14px rgb(62 42 30 / 6%);
+  --sombra-forte: 0 10px 40px rgb(62 42 30 / 18%);
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+:root {
+  color-scheme: light;
 }
 
 html {
   font-size: 16px;
+  background: var(--color-fundo);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  color: var(--color-texto);
   font-family: var(--font-sans);
   font-size: 1rem;
+  background-color: var(--color-fundo);
+  /* Fundo do app: branco quente com manchas leves de amarelo claro e cobre, fixo atrás de tudo. */
+  background-image:
+    radial-gradient(60rem 36rem at 0% -5%, rgb(253 241 199 / 85%), transparent 62%),
+    radial-gradient(48rem 30rem at 105% 8%, rgb(159 95 71 / 9%), transparent 60%),
+    radial-gradient(52rem 34rem at 50% 108%, rgb(242 183 5 / 10%), transparent 62%);
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
+/* Títulos em Montserrat; texto em San Francisco pela pilha do sistema (sem arquivo da Apple no site). */
+h1,
+h2,
+h3 {
+  font-family: var(--font-titulo);
+  color: var(--color-marrom-titulo);
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-weight: 700;
+}
+h2,
+h3 {
+  font-weight: 600;
+}
+
+/* Campos: 16 px no mínimo (o iPhone não dá zoom) e borda com contraste de componente (>= 3:1). */
 input,
 select,
 textarea {
   font-size: 1rem;
+  background-color: rgb(255 255 255 / 92%);
+}
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border-color: var(--color-borda-campo);
+}
+
+/* Dinheiro e códigos alinham em colunas. */
+.numero,
+.codigo {
+  font-variant-numeric: tabular-nums;
+}
+.codigo {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Foco visível: anel amarelo com contorno marrom (teclado). */
+:focus-visible {
+  outline: 2px solid var(--color-marrom);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--color-amarelo);
+  border-radius: 8px;
+}
+
+/* ------------------------------------------------------------------ vidro
+ * Utilitário único. `.vidro` serve a barras, painéis e folhas (poucos elementos por tela);
+ * `.vidro-forte` a modais. NUNCA em cada linha de lista: as linhas ficam opacas (ver `.linha` abaixo)
+ * e só o cartão de fora tem vidro, para o Android simples não engasgar.
+ */
+.vidro,
+.vidro-forte {
+  background: rgb(255 255 255 / 72%);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid rgb(255 255 255 / 70%);
+  box-shadow: var(--sombra-leve);
+}
+.vidro-forte {
+  background: rgb(255 255 255 / 84%);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow: var(--sombra-forte);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidro,
+  .vidro-forte {
+    background: rgb(255 253 248 / 97%);
+  }
+}
+
+/* Linha de lista e cartão que já existem no código (borda zinc-200 + rounded-lg): translúcidos, sem
+ * blur por linha, com a sombra leve da marca. */
+[class*="rounded-lg"][class*="border-zinc-200"] {
+  background-color: rgb(255 255 255 / 88%);
+  border-color: rgb(217 201 175 / 70%);
+  box-shadow: var(--sombra-leve);
+}
+
+/* ------------------------------------------------------------------ botões
+ * Principal = amarelo com texto marrom. O código antigo `bg-amber-700 text-white` foi trocado por
+ * `bg-primario text-sobre-primario`; esta regra cuida do hover/toque sem animar nada além de transform. */
+button:not(:disabled),
+a[class*="rounded-lg"],
+summary {
+  transition:
+    transform 160ms var(--ease),
+    opacity 160ms var(--ease);
+}
+@media (hover: hover) {
+  button:not(:disabled):hover,
+  a[class*="rounded-lg"]:hover {
+    transform: translateY(-1px);
+  }
+}
+button:not(:disabled):active,
+a[class*="rounded-lg"]:active {
+  transform: scale(0.98);
+}
+.bg-primario {
+  box-shadow: 0 1px 0 rgb(62 42 30 / 25%);
+}
+
+/* ------------------------------------------------------------------ movimento (150 a 300 ms; só transform e opacity) */
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes escala {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes selo {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes brilho-passa {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(220%);
+  }
+}
+
+/* Troca de página: fade e leve deslize (template.tsx). */
+.pagina-entra {
+  animation: entrada 220ms var(--ease) both;
+}
+/* Listas e cartões entram em cascata curta (até 8 itens). */
+.cascata > * {
+  animation: entrada 240ms var(--ease) both;
+}
+.cascata > *:nth-child(2) {
+  animation-delay: 30ms;
+}
+.cascata > *:nth-child(3) {
+  animation-delay: 60ms;
+}
+.cascata > *:nth-child(4) {
+  animation-delay: 90ms;
+}
+.cascata > *:nth-child(5) {
+  animation-delay: 120ms;
+}
+.cascata > *:nth-child(6) {
+  animation-delay: 150ms;
+}
+.cascata > *:nth-child(7) {
+  animation-delay: 180ms;
+}
+.cascata > *:nth-child(n + 8) {
+  animation-delay: 210ms;
+}
+/* Folhas e modais. */
+.folha-entra {
+  animation: subir 260ms var(--ease) both;
+}
+.modal-entra {
+  animation: escala 200ms var(--ease) both;
+}
+.fundo-entra {
+  animation: entrada 180ms linear both;
+}
+/* Selo de status que acabou de mudar; Fechado ganha um brilho amarelo discreto. */
+.selo-muda {
+  animation: selo 280ms var(--ease) both;
+}
+.selo-brilho {
+  position: relative;
+  overflow: hidden;
+}
+.selo-brilho::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(242 183 5 / 55%), transparent);
+  animation: brilho-passa 900ms var(--ease) 200ms 1 both;
+  pointer-events: none;
+}
+/* Esqueleto: brilho que passa (em vez de "Carregando..."). */
+.esqueleto {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-zinc-200);
+  border-radius: var(--raio);
+}
+.esqueleto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 60%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 65%), transparent);
+  animation: brilho-passa 1.2s linear infinite;
+}
+
+/* Quem prefere menos movimento: tudo instantâneo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  button:not(:disabled):hover,
+  button:not(:disabled):active,
+  a[class*="rounded-lg"]:hover,
+  a[class*="rounded-lg"]:active {
+    transform: none !important;
+  }
 }

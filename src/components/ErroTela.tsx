@@ -29,7 +29,7 @@ export function ErroTela({
       <button
         type="button"
         onClick={tentarDeNovo}
-        className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white"
+        className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold"
       >
         Tentar de novo
       </button>

@@ -275,7 +275,7 @@ export function FormularioArquiteto({
         <button
           type="submit"
           disabled={ocupado}
-          className="min-h-14 flex-[2] rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white disabled:opacity-50"
+          className="bg-primario text-sobre-primario min-h-14 flex-[2] rounded-lg px-4 text-lg font-semibold disabled:opacity-50"
         >
           {ocupado ? "Salvando..." : "Salvar"}
         </button>

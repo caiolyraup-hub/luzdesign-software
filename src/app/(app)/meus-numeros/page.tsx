@@ -7,6 +7,7 @@ import { carregarMetricas, carregarSerieSemanal } from "@/lib/metricas/carregar"
 import { resolverPeriodo } from "@/lib/metricas/periodo";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 const um = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -49,7 +50,7 @@ export default function Page({ searchParams }: PageProps<"/meus-numeros">) {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Meus números</h1>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <Numeros searchParams={searchParams} />
       </Suspense>
     </section>

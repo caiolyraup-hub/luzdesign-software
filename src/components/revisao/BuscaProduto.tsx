@@ -109,12 +109,16 @@ export function BuscaProduto({ titulo, onEscolher, onFechar, continuo = false, c
               className="flex min-h-16 w-full items-start justify-between gap-3 py-3 text-left"
             >
               <span className="min-w-0">
-                <span className="block text-lg font-medium">{p.descricao}</span>
+                <span className="codigo block text-xl">Cód. {p.codigo}</span>
+                <span className="block text-base font-medium">{p.descricao}</span>
                 <span className="block text-base text-zinc-600">
-                  Cód. {p.codigo}
-                  {p.categoria ? ` · ${p.categoria}` : ""}
-                  {p.marca ? ` · ${p.marca}` : ""}
-                  {p.estoque_disponivel !== null ? ` · estoque ${p.estoque_disponivel}` : ""}
+                  {[
+                    p.categoria,
+                    p.marca,
+                    p.estoque_disponivel !== null ? `estoque ${p.estoque_disponivel}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
                 {adicionados.get(p.codigo) ? (
                   <span className="block text-base font-medium text-emerald-800">

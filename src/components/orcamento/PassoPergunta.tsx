@@ -109,7 +109,7 @@ export function PassoPergunta({
                 type="button"
                 onClick={onUsarCliente}
                 aria-pressed={clienteEmUso}
-                className="min-h-14 w-full rounded-lg bg-amber-700 px-4 text-lg font-semibold text-white"
+                className="bg-primario text-sobre-primario min-h-14 w-full rounded-lg px-4 text-lg font-semibold"
               >
                 {clienteEmUso ? "Usando cliente cadastrado" : "Usar cliente já cadastrado"}:{" "}
                 {clienteEncontrado.nome}

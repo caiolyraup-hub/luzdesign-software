@@ -39,11 +39,10 @@ async function Lista({ searchParams }: Pick<PageProps<"/produtos">, "searchParam
         {produtos.map((p) => (
           <li key={p.codigo} className="flex flex-wrap items-start justify-between gap-3 py-3">
             <div className="min-w-0">
-              <p className="text-lg font-medium">{p.descricao}</p>
+              <p className="codigo text-xl">Cód. {p.codigo}</p>
+              <p className="text-base font-medium">{p.descricao}</p>
               <p className="text-base text-zinc-600">
-                Cód. {p.codigo}
-                {p.categoria ? ` · ${p.categoria}` : ""}
-                {p.marca ? ` · ${p.marca}` : ""}
+                {[p.categoria, p.marca].filter(Boolean).join(" · ")}
               </p>
               {gerencia ? <EditarDescricao codigo={p.codigo} descricao={p.descricao} /> : null}
             </div>
@@ -120,7 +119,7 @@ export default function Page({ searchParams }: PageProps<"/produtos">) {
         />
         <button
           type="submit"
-          className="min-h-14 rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white"
+          className="bg-primario text-sobre-primario min-h-14 rounded-lg px-5 text-lg font-semibold"
         >
           Buscar
         </button>

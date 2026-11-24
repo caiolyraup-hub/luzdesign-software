@@ -7,11 +7,13 @@ import { formatarDataHora } from "@/lib/formatar";
 import { BadgeValidade } from "@/components/orcamento/BadgeValidade";
 import { formatarMoeda, isoParaBR } from "@/lib/formatar";
 import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
+import { ListaVazia } from "@/components/ui/ListaVazia";
 import { BotaoRegistrarEnvio } from "@/components/orcamento/RegistrarEnvio";
 import { paraRegistrarEnvio } from "@/lib/orcamento/para-registrar-envio";
 import { paraRenovarDeHoje } from "@/lib/orcamento/para-renovar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 
 interface Rascunho {
   id: string;
@@ -101,7 +103,7 @@ async function ParaRenovar() {
             <div className="grid grid-cols-2 gap-3">
               <Link
                 href={`/orcamentos/${r.id}?renovar=1`}
-                className="flex min-h-12 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+                className="bg-primario text-sobre-primario flex min-h-12 items-center justify-center rounded-lg text-lg font-semibold"
               >
                 Renovar
               </Link>
@@ -175,9 +177,10 @@ async function RascunhosParaTerminar() {
     <section className="space-y-3">
       <h2 className="text-xl font-semibold">Rascunhos para terminar</h2>
       {rascunhos.length === 0 ? (
-        <p className="text-lg text-zinc-600">
-          Nenhum rascunho. Toque em Novo orçamento para começar.
-        </p>
+        <ListaVazia
+          titulo="Nenhum rascunho"
+          texto="Quando você começar um orçamento e não terminar, ele aparece aqui."
+        />
       ) : (
         <ul className="space-y-3">
           {rascunhos.map((r) => {
@@ -195,7 +198,7 @@ async function RascunhosParaTerminar() {
                 </div>
                 <Link
                   href={`/orcamentos/${r.id}/editar`}
-                  className="flex min-h-14 shrink-0 items-center rounded-lg bg-amber-700 px-5 text-lg font-semibold text-white"
+                  className="bg-primario text-sobre-primario flex min-h-14 shrink-0 items-center rounded-lg px-5 text-lg font-semibold"
                 >
                   Continuar
                 </Link>
@@ -214,14 +217,14 @@ export default function Page() {
       <h1 className="text-2xl font-semibold">Para hoje</h1>
       <Link
         href="/orcamentos/novo"
-        className="flex min-h-14 items-center justify-center rounded-lg bg-amber-700 text-lg font-semibold text-white"
+        className="bg-primario text-sobre-primario flex min-h-14 items-center justify-center rounded-lg text-lg font-semibold"
       >
         Novo orçamento
       </Link>
       <Suspense fallback={null}>
         <RegistrarEnvio />
       </Suspense>
-      <Suspense fallback={<p className="text-zinc-600">Carregando...</p>}>
+      <Suspense fallback={<EsqueletoLista />}>
         <FollowupsDeHoje />
       </Suspense>
       <Suspense fallback={null}>

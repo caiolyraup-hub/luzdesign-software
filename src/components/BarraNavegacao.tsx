@@ -58,7 +58,7 @@ export function BarraNavegacao({
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)]"
+      className="vidro fixed inset-x-0 bottom-0 z-10 rounded-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto flex max-w-3xl">
         {itens.map((item) => (
