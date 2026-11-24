@@ -14,7 +14,10 @@ export interface LogoPlanilha {
   format: "png" | "jpg";
 }
 
-const COLUNAS = ["QT", "PRODUTO", "DESCRIÇÃO", "AMBIENTE", "UNIT", "TOTAL"] as const;
+/** Com descrição (configuração da loja) a planilha tem 6 colunas; por padrão, só o código: 5. */
+const COLUNAS_COM_DESCRICAO = ["QT", "PRODUTO", "DESCRIÇÃO", "AMBIENTE", "UNIT", "TOTAL"] as const;
+const COLUNAS_SO_CODIGO = ["QT", "CÓDIGO", "AMBIENTE", "UNIT", "TOTAL"] as const;
+const letra = (n: number) => String.fromCharCode(64 + n);
 const FORMATO_REAIS = '"R$" #,##0.00';
 const COR_CABECALHO = `FF${COR_DESTAQUE.replace("#", "").toUpperCase()}`;
 const COR_SUAVE = "FFF6EDE8";
@@ -45,6 +48,14 @@ export async function gerarPlanilhaOrcamento(
   const wb = new ExcelJS.Workbook();
   wb.creator = dados.loja.nome_fantasia;
   wb.created = new Date();
+  const comDescricao = dados.mostrarDescricao;
+  const COLUNAS = comDescricao ? COLUNAS_COM_DESCRICAO : COLUNAS_SO_CODIGO;
+  const nCols = COLUNAS.length;
+  const U = letra(nCols); // última coluna (TOTAL)
+  const cAmb = comDescricao ? 4 : 3;
+  const cUnit = comDescricao ? 5 : 4;
+  const LA = letra(cAmb);
+  const LU = letra(cUnit);
   const ws = wb.addWorksheet("ORÇAMENTO", {
     pageSetup: {
       paperSize: 9, // A4
@@ -59,14 +70,8 @@ export async function gerarPlanilhaOrcamento(
     },
     views: [{ showGridLines: false }],
   });
-  ws.columns = [
-    { width: 8 },
-    { width: 24 },
-    { width: 58 },
-    { width: 20 },
-    { width: 15 },
-    { width: 16 },
-  ];
+  ws.columns = (comDescricao ? [8, 24, 58, 20, 15, 16] : [8, 34, 28, 18, 18]) // só código: o código ganha o espaço da descrição
+    .map((width) => ({ width }));
 
   // ---- cabeçalho: logo (se houver) e dados da loja
   let linha = 1;
@@ -87,12 +92,12 @@ export async function gerarPlanilhaOrcamento(
     [loja.telefone, loja.whatsapp, loja.instagram, loja.site].filter(Boolean).join(" · ") || null,
   ].filter((t): t is string => Boolean(t));
 
-  ws.mergeCells("C1:F1");
+  ws.mergeCells(`C1:${U}1`);
   ws.getCell("C1").value = loja.nome_fantasia.toUpperCase();
   ws.getCell("C1").font = { bold: true, size: 15, color: { argb: COR_CABECALHO } };
   ws.getCell("C1").alignment = { horizontal: "right", vertical: "middle" };
   linhasLoja.forEach((t, i) => {
-    ws.mergeCells(`C${i + 2}:F${i + 2}`);
+    ws.mergeCells(`C${i + 2}:${U}${i + 2}`);
     const c = ws.getCell(`C${i + 2}`);
     c.value = t;
     c.font = { size: 9, color: { argb: "FF6B6B6B" } };
@@ -120,7 +125,7 @@ export async function gerarPlanilhaOrcamento(
     const r = ws.getCell(`A${linha}`);
     r.value = rotulo;
     r.font = { bold: true, size: 9, color: { argb: COR_CABECALHO } };
-    ws.mergeCells(`C${linha}:F${linha}`);
+    ws.mergeCells(`C${linha}:${U}${linha}`);
     const v = ws.getCell(`C${linha}`);
     v.value = valor || "—";
     v.font = { size: 10 };
@@ -149,22 +154,23 @@ export async function gerarPlanilhaOrcamento(
     for (const item of amb.itens) {
       const r = ws.getRow(linha);
       r.getCell(1).value = item.quantidade;
-      r.getCell(2).value = textoProduto(item);
-      r.getCell(3).value = item.descricao;
-      r.getCell(4).value = amb.nome;
-      r.getCell(5).value = reais(item.precoCentavos);
-      r.getCell(6).value = {
-        formula: `ROUND(A${linha}*E${linha},2)`,
+      r.getCell(2).value = comDescricao ? textoProduto(item) : item.codigoExibicao;
+      if (comDescricao) r.getCell(3).value = item.descricao;
+      r.getCell(cAmb).value = amb.nome;
+      r.getCell(cUnit).value = reais(item.precoCentavos);
+      r.getCell(nCols).value = {
+        formula: `ROUND(A${linha}*${LU}${linha},2)`,
         result: reais(item.totalCentavos),
       };
       r.getCell(1).alignment = { horizontal: "center", vertical: "top" };
-      r.getCell(3).alignment = { wrapText: true, vertical: "top" };
-      for (const col of [2, 4]) r.getCell(col).alignment = { vertical: "top", wrapText: true };
-      for (const col of [5, 6]) {
+      if (comDescricao) r.getCell(3).alignment = { wrapText: true, vertical: "top" };
+      for (const col of [2, cAmb]) r.getCell(col).alignment = { vertical: "top", wrapText: true };
+      if (!comDescricao) r.getCell(2).font = { bold: true, size: 11 };
+      for (const col of [cUnit, nCols]) {
         r.getCell(col).numFmt = FORMATO_REAIS;
         r.getCell(col).alignment = { horizontal: "right", vertical: "top" };
       }
-      for (let col = 1; col <= 6; col++) r.getCell(col).border = { bottom: FINA };
+      for (let col = 1; col <= nCols; col++) r.getCell(col).border = { bottom: FINA };
       linha++;
     }
   }
@@ -174,12 +180,12 @@ export async function gerarPlanilhaOrcamento(
   // ---- totais
   linha++;
   const faixa = (rotulo: string, formula: string, resultado: number, forte = false) => {
-    ws.mergeCells(`A${linha}:E${linha}`);
+    ws.mergeCells(`A${linha}:${letra(nCols - 1)}${linha}`);
     const r = ws.getCell(`A${linha}`);
     r.value = rotulo;
     r.alignment = { horizontal: "right" };
     r.font = { bold: forte, size: forte ? 11 : 10 };
-    const v = ws.getCell(`F${linha}`);
+    const v = ws.getCell(`${U}${linha}`);
     v.value = { formula, result: resultado };
     v.numFmt = FORMATO_REAIS;
     v.alignment = { horizontal: "right" };
@@ -189,7 +195,7 @@ export async function gerarPlanilhaOrcamento(
       color: forte ? { argb: COR_CABECALHO } : undefined,
     };
     if (forte) {
-      for (let col = 1; col <= 6; col++) {
+      for (let col = 1; col <= nCols; col++) {
         ws.getCell(linha, col).fill = {
           type: "pattern",
           pattern: "solid",
@@ -201,37 +207,42 @@ export async function gerarPlanilhaOrcamento(
   };
   const faixaTotal = faixa(
     "TOTAL",
-    semItens ? "0" : `SUM(F${primeira}:F${ultima})`,
+    semItens ? "0" : `SUM(${U}${primeira}:${U}${ultima})`,
     reais(dados.totais.totalCentavos),
   );
   const pct = dados.totais.percentual;
   const faixaDesc = faixa(
     `DESCONTO À VISTA (${String(pct).replace(".", ",")}%)`,
-    `-ROUND(F${faixaTotal}*${pct}/100,2)`,
+    `-ROUND(${U}${faixaTotal}*${pct}/100,2)`,
     -reais(dados.totais.descontoCentavos),
   );
-  faixa("TOTAL À VISTA", `F${faixaTotal}+F${faixaDesc}`, reais(dados.totais.aVistaCentavos), true);
+  faixa(
+    "TOTAL À VISTA",
+    `${U}${faixaTotal}+${U}${faixaDesc}`,
+    reais(dados.totais.aVistaCentavos),
+    true,
+  );
 
   // ---- subtotais por ambiente (SOMASE)
   linha++;
-  ws.mergeCells(`A${linha}:F${linha}`);
+  ws.mergeCells(`A${linha}:${U}${linha}`);
   const titulo = ws.getCell(`A${linha}`);
   titulo.value = "SUBTOTAIS POR AMBIENTE";
   titulo.font = { bold: true, size: 9, color: { argb: COR_CABECALHO } };
   linha++;
   for (const amb of dados.ambientes) {
-    ws.mergeCells(`A${linha}:C${linha}`);
+    if (cAmb > 2) ws.mergeCells(`A${linha}:${letra(cAmb - 1)}${linha}`);
     const nome = ws.getCell(`A${linha}`);
     nome.value = amb.nome;
     // O nome fica também em D, para a SOMASE comparar com a coluna AMBIENTE da tabela.
-    const chave = ws.getCell(`D${linha}`);
+    const chave = ws.getCell(`${LA}${linha}`);
     chave.value = amb.nome;
     chave.font = { size: 9, color: { argb: "FF6B6B6B" } };
-    const v = ws.getCell(`F${linha}`);
+    const v = ws.getCell(`${U}${linha}`);
     v.value = {
       formula: semItens
         ? "0"
-        : `SUMIF($D$${primeira}:$D$${ultima},D${linha},$F$${primeira}:$F$${ultima})`,
+        : `SUMIF($${LA}$${primeira}:$${LA}$${ultima},${LA}${linha},$${U}$${primeira}:$${U}$${ultima})`,
       result: reais(amb.subtotalCentavos),
     };
     v.numFmt = FORMATO_REAIS;
@@ -242,13 +253,13 @@ export async function gerarPlanilhaOrcamento(
   // ---- condições
   if (dados.rodape.length > 0) {
     linha++;
-    ws.mergeCells(`A${linha}:F${linha}`);
+    ws.mergeCells(`A${linha}:${U}${linha}`);
     const c = ws.getCell(`A${linha}`);
     c.value = "CONDIÇÕES";
     c.font = { bold: true, size: 9, color: { argb: COR_CABECALHO } };
     linha++;
     for (const texto of dados.rodape) {
-      ws.mergeCells(`A${linha}:F${linha}`);
+      ws.mergeCells(`A${linha}:${U}${linha}`);
       const t = ws.getCell(`A${linha}`);
       t.value = `• ${texto}`;
       t.font = { size: 9 };

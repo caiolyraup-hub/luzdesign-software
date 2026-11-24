@@ -68,6 +68,8 @@ const dados = montarDadosPdf({
   config: {
     validade_dias: 7,
     desconto_avista_pct: 10,
+    // --com-descricao: o formato ANTIGO (com a descrição), para comparar; o padrão é só o código.
+    mostrar_descricao: process.argv.includes("--com-descricao"),
     linhas_rodape:
       "À vista, desconto de 10%\nOrçamento válido por 7 dias\nPrazo de entrega: 30 a 45 dias úteis após o pagamento\nNão fazemos trocas de peças por encomenda\nMercadoria frágil",
   },
@@ -87,9 +89,10 @@ const dados = montarDadosPdf({
 mkdirSync("dados", { recursive: true });
 const logo = await carregarLogo();
 const pdf = await renderizarPdf(dados, logo);
-writeFileSync("dados/exemplo-orcamento.pdf", pdf);
-console.log(`dados/exemplo-orcamento.pdf (${(pdf.length / 1024).toFixed(1)} KB)`);
+const sufixo = process.argv.includes("--com-descricao") ? "-com-descricao" : "";
+writeFileSync(`dados/exemplo-orcamento${sufixo}.pdf`, pdf);
+console.log(`dados/exemplo-orcamento${sufixo}.pdf (${(pdf.length / 1024).toFixed(1)} KB)`);
 
 const planilha = await gerarPlanilhaOrcamento(dados, logo);
-writeFileSync("dados/exemplo-orcamento.xlsx", planilha);
-console.log(`dados/exemplo-orcamento.xlsx (${(planilha.length / 1024).toFixed(1)} KB)`);
+writeFileSync(`dados/exemplo-orcamento${sufixo}.xlsx`, planilha);
+console.log(`dados/exemplo-orcamento${sufixo}.xlsx (${(planilha.length / 1024).toFixed(1)} KB)`);

@@ -17,12 +17,16 @@ export interface ConfigPdf {
   validade_dias: number;
   desconto_avista_pct: number;
   linhas_rodape: string;
+  /** Configuração da loja: mostrar a descrição dos produtos no PDF e na planilha (padrão: só o código). */
+  mostrar_descricao?: boolean;
 }
 
 export interface ItemPdf {
   quantidade: number;
   unidade: "un" | "m";
   codigo: string | null;
+  /** O que a coluna CÓDIGO mostra: o código do produto; no item avulso, o texto curto da vendedora. */
+  codigoExibicao: string;
   descricao: string;
   categoria: string | null;
   precoCentavos: number;
@@ -55,6 +59,8 @@ export interface DadosPdf {
   ambientes: AmbientePdf[];
   totais: TotaisOrcamento;
   rodape: string[];
+  /** Com false (padrão), o documento mostra só o código. */
+  mostrarDescricao: boolean;
 }
 
 export interface EntradaDadosPdf {
@@ -75,6 +81,12 @@ export interface EntradaDadosPdf {
   /** Ordem preferida dos ambientes (os que não aparecerem vão depois). */
   ambientes?: string[];
   agora?: Date;
+}
+
+/** Texto da coluna CÓDIGO do item avulso (não tem código): o que a vendedora escreveu, curto. */
+export function textoAvulsoCurto(descricao: string, max = 40): string {
+  const t = descricao.replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t || "Item avulso";
 }
 
 const numeroBR = (n: number) => String(n).replace(".", ",");
@@ -101,6 +113,7 @@ export function montarDadosPdf(e: EntradaDadosPdf): DadosPdf {
       quantidade: i.quantidade,
       unidade: i.unidade,
       codigo: i.avulso ? null : i.codigo,
+      codigoExibicao: i.avulso ? textoAvulsoCurto(i.descricao) : (i.codigo ?? ""),
       descricao: i.descricao,
       categoria: i.avulso ? null : (i.categoria ?? null),
       precoCentavos: Math.round(i.preco * 100),
@@ -129,5 +142,6 @@ export function montarDadosPdf(e: EntradaDadosPdf): DadosPdf {
     ambientes,
     totais,
     rodape: linhasDoRodape(e.config),
+    mostrarDescricao: e.config.mostrar_descricao === true,
   };
 }

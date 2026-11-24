@@ -174,7 +174,8 @@ export async function gerarOrcamento(
 
   // Padronização de texto (só texto): descrição dos produtos e nome dos ambientes.
   let textos: TextosPadronizados = { descricoes: new Map(), ambientes: new Map() };
-  if (deps.padronizar) {
+  // Sem descrição no documento (padrão), a IA não é chamada ao gerar: mais rápido e sem custo.
+  if (deps.padronizar && cfg.documento_mostrar_descricao === true) {
     try {
       const codigos = [
         ...new Set(
@@ -217,6 +218,7 @@ export async function gerarOrcamento(
     validade_dias: cfg.validade_dias,
     desconto_avista_pct: Number(cfg.desconto_avista_pct),
     linhas_rodape: cfg.linhas_rodape ?? "",
+    mostrar_descricao: cfg.documento_mostrar_descricao === true,
   };
   const loja: LojaPdf = {
     nome_fantasia: cfg.nome_fantasia,

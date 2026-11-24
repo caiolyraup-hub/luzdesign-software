@@ -129,6 +129,7 @@ export async function renovarOrcamento(
     validade_dias: cfg.validade_dias,
     desconto_avista_pct: Number(cfg.desconto_avista_pct),
     linhas_rodape: cfg.linhas_rodape ?? "",
+    mostrar_descricao: cfg.documento_mostrar_descricao === true,
   };
   const loja: LojaPdf = {
     nome_fantasia: cfg.nome_fantasia,

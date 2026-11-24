@@ -18,6 +18,7 @@ const loja = {
 const config = {
   validade_dias: 7,
   desconto_avista_pct: 10,
+  mostrar_descricao: true, // os testes de layout completo; o padrão (só código) está em so-codigo.test.ts
   linhas_rodape: "À vista, desconto de {desconto}%\nOrçamento válido por {validade_dias} dias",
 };
 

@@ -63,3 +63,4 @@ supabase/.temp/
 # Backups do banco e do Storage (dados reais): fora do git
 /dados/backups/
 /dados/limpeza-*.md
+/dados/exemplo-orcamento-com-descricao.*

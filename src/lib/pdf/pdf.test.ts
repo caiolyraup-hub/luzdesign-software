@@ -18,6 +18,7 @@ const loja = {
 const config = {
   validade_dias: 7,
   desconto_avista_pct: 10,
+  mostrar_descricao: true, // os testes de layout completo; o padrão (só código) está em so-codigo.test.ts
   linhas_rodape:
     "À vista, desconto de 10%\nOrçamento válido por 7 dias\nPrazo de entrega: 30 a 45 dias úteis após o pagamento\nNão fazemos trocas de peças por encomenda\nMercadoria frágil",
 };
