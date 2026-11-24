@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Suspense } from "react";
 import { ProvedorToast } from "@/components/ui/Toast";
 import { EsqueletoLista } from "@/components/ui/Esqueleto";
@@ -30,11 +29,13 @@ async function Moldura({ children }: { children: React.ReactNode }) {
       <header className="vidro sticky top-0 z-20 rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-2">
           <span className="flex min-w-0 items-center gap-2 text-base font-medium">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element -- 32 px; o otimizador do next/image pesava mais que o arquivo */}
+            <img
               src="/marca/logo-quadrado.jpg"
               alt="Luz Design"
               width={32}
               height={32}
+              decoding="async"
               className="size-8 rounded-md"
             />
             <span className="truncate">{usuario.nome}</span>

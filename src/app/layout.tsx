@@ -6,7 +6,7 @@ import "./globals.css";
 const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
-  display: "swap",
+  display: "optional", // sem troca de fonte depois do carregamento (evita reflow); a fonte vem pré-carregada
   variable: "--font-montserrat",
 });
 

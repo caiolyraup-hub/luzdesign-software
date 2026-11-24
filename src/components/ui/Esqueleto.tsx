@@ -4,7 +4,7 @@ export function Esqueleto({ className = "h-5 w-full" }: { className?: string }) 
 }
 
 /** Várias linhas de cartão esqueleto (listas e Para hoje). */
-export function EsqueletoLista({ linhas = 3 }: { linhas?: number }) {
+export function EsqueletoLista({ linhas = 2 }: { linhas?: number }) {
   return (
     <div role="status" aria-label="Carregando" className="space-y-3">
       {Array.from({ length: linhas }, (_, i) => (

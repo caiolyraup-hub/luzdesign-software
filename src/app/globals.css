@@ -84,14 +84,22 @@ body {
   color: var(--color-texto);
   font-family: var(--font-sans);
   font-size: 1rem;
-  background-color: var(--color-fundo);
-  /* Fundo do app: branco quente com manchas leves de amarelo claro e cobre, fixo atrás de tudo. */
+  min-height: 100vh;
+}
+
+/* Fundo do app: branco quente com manchas leves de amarelo claro e cobre. Fica numa camada fixa própria
+ * (composta pela GPU) em vez de `background-attachment: fixed`, que repinta a tela inteira e pesa no Android. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(60rem 36rem at 0% -5%, rgb(253 241 199 / 85%), transparent 62%),
     radial-gradient(48rem 30rem at 105% 8%, rgb(159 95 71 / 9%), transparent 60%),
     radial-gradient(52rem 34rem at 50% 108%, rgb(242 183 5 / 10%), transparent 62%);
-  background-attachment: fixed;
-  min-height: 100vh;
+  transform: translateZ(0);
 }
 
 /* Títulos em Montserrat; texto em San Francisco pela pilha do sistema (sem arquivo da Apple no site). */
@@ -148,16 +156,24 @@ textarea {
  */
 .vidro,
 .vidro-forte {
-  background: rgb(255 255 255 / 72%);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-  backdrop-filter: blur(14px) saturate(1.3);
+  background: rgb(255 255 255 / 90%);
   border: 1px solid rgb(255 255 255 / 70%);
   box-shadow: var(--sombra-leve);
 }
+/* O desfoque só entra onde há GPU de sobra (tela larga com mouse): no Android simples ele pesaria na barra
+ * e no cabeçalho, que ficam sempre na tela. No celular o vidro é translúcido, sem blur. */
+@media (min-width: 768px) and (hover: hover) {
+  .vidro {
+    background: rgb(255 255 255 / 72%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+/* Modais, folhas e avisos (aparecem sob demanda): blur em qualquer aparelho. */
 .vidro-forte {
-  background: rgb(255 255 255 / 84%);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  backdrop-filter: blur(22px) saturate(1.4);
+  background: rgb(255 255 255 / 86%);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   box-shadow: var(--sombra-forte);
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -202,8 +218,8 @@ a[class*="rounded-lg"]:active {
 /* ------------------------------------------------------------------ movimento (150 a 300 ms; só transform e opacity) */
 @keyframes entrada {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    opacity: 0.55; /* não parte de zero: o conteúdo conta como pintado já no primeiro quadro (LCP) */
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -256,10 +272,10 @@ a[class*="rounded-lg"]:active {
  * `backwards`: depois do fim não sobra transform no elemento (senão ele viraria o contêiner dos elementos
  * `fixed` de dentro, como a barra de navegação e a barra de total da revisão). */
 .pagina-entra {
-  animation: entrada 220ms var(--ease) backwards;
+  animation: entrada 180ms var(--ease) backwards;
 }
 /* Listas e cartões entram em cascata curta (até 8 itens). */
-.cascata > * {
+.cascata > *:nth-child(-n + 8) {
   animation: entrada 240ms var(--ease) backwards;
 }
 .cascata > *:nth-child(2) {
@@ -310,20 +326,21 @@ a[class*="rounded-lg"]:active {
   animation: brilho-passa 900ms var(--ease) 200ms 1 both;
   pointer-events: none;
 }
-/* Esqueleto: brilho que passa (em vez de "Carregando..."). */
+/* Esqueleto: bloco que pulsa de leve (só opacity, composto pela GPU) em vez de "Carregando...". Um brilho que
+ * corre por dentro de cada barra pesava na carga em aparelho simples, então o brilho é o pulso. */
+@keyframes pulso {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
 .esqueleto {
-  position: relative;
-  overflow: hidden;
   background: var(--color-zinc-200);
   border-radius: var(--raio);
-}
-.esqueleto::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 60%;
-  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 65%), transparent);
-  animation: brilho-passa 1.2s linear infinite;
+  animation: pulso 1.4s ease-in-out infinite;
 }
 
 /* Quem prefere menos movimento: tudo instantâneo. */
