@@ -187,6 +187,6 @@ Migrations `20261113000600_perfil_dono.sql` e `20261113000700_comissoes.sql`.
 ## Dia 15 e 16 (`20261123000100_apagar_orcamentos.sql`, `20261124000100_documento_sem_descricao.sql`, `20261124000200_envio_registrado.sql`)
 
 - `apagar_todos_orcamentos(p_executar, p_incluir_piloto, p_apagar_clientes, p_reiniciar_contador)`: só service role; simula por padrão e, ao executar, apaga numa transação o que depende de orçamento. Catálogo, usuários, arquitetos, percentuais e configurações ficam. Ver `pnpm orcamentos:apagar-todos`.
-- `configuracoes_loja.documento_mostrar_descricao boolean not null default false`: com `false` (padrão) o PDF e o XLSX do orçamento mostram só o código do produto; com `true` voltam a ter a descrição. A IA só é chamada ao gerar quando está ligado.
+- `configuracoes_loja.documento_mostrar_descricao`: **sem uso desde 25/11/2026** (o PDF sempre mostra código e tipo; a planilha do estoque sempre mostra tudo). A coluna fica no banco com o padrão `false`.
 - `mudar_status_orcamento(..., p_data_envio date default null)`: fechar ou perder um orçamento que ainda não tem envio registrado exige a data do envio (`ENVIO_OBRIGATORIO`; mesmas regras de `marcar_enviado`). O gatilho `carimbar_status_orcamento` nunca deixa `fechado` ou `perdido` com `enviado_em` vazio (rede de segurança para caminhos do servidor).
 - `orcamentos.piloto`, `orcamento_itens.origem = 'kit'` e o filtro "Piloto" da lista vieram no dia 14 (`20261118000200_piloto.sql`, `20261119000100_kit_piloto_filtro.sql`).

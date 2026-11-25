@@ -207,7 +207,7 @@ test("vendedora: do formulário ao fechamento, passando por produtos, IA, PDF, e
   expect(t).not.toContain("JRN-55123");
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(
-    (await lerDownload(page, "Baixar planilha (XLSX)")) as unknown as ExcelJS.Buffer,
+    (await lerDownload(page, "Baixar planilha do estoque (XLSX)")) as unknown as ExcelJS.Buffer,
   );
   expect(wb.getWorksheet("ORÇAMENTO")).toBeTruthy();
 

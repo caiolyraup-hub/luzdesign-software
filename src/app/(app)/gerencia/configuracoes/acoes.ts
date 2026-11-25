@@ -37,7 +37,6 @@ const schema = z
       .min(0, "O desconto vai de 0 a 100%.")
       .max(100, "O desconto vai de 0 a 100%."),
     linhas_rodape: z.string().max(2000, "Use no máximo 2000 caracteres."),
-    documento_mostrar_descricao: z.boolean(),
     followup_d5_dias: z.coerce
       .number()
       .int("Use um número inteiro de dias.")
@@ -87,7 +86,6 @@ export async function salvarConfiguracoes(
   );
   const r = schema.safeParse({
     ...bruto,
-    documento_mostrar_descricao: formData.get("documento_mostrar_descricao") === "on",
   });
   if (!r.success) return { ok: false, erro: r.error.issues[0].message };
 

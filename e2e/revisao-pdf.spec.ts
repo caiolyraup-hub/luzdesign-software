@@ -243,7 +243,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   ]);
   // Nome no costume da loja: NOME DO CLIENTE DD.MM.AA.pdf
   expect(download.suggestedFilename()).toMatch(
-    new RegExp(`^${NOME} \\d{2}\\.\\d{2}\\.\\d{2}\\.pdf$`),
+    new RegExp(`^estoque-${NOME} \\d{2}\\.\\d{2}\\.\\d{2}\\.pdf$`),
   );
   const stream = await download.createReadStream();
   const partes: Buffer[] = [];
@@ -271,7 +271,7 @@ test("Aline monta à mão, revisa, gera o PDF, vê o status Gerado e baixa o PDF
   // Planilha XLSX do mesmo orçamento, com fórmulas.
   const [baixaXlsx] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("link", { name: "Baixar planilha (XLSX)" }).click(),
+    page.getByRole("link", { name: "Baixar planilha do estoque (XLSX)" }).click(),
   ]);
   expect(baixaXlsx.suggestedFilename()).toMatch(
     new RegExp(`^${NOME} \\d{2}\\.\\d{2}\\.\\d{2}\\.xlsx$`),

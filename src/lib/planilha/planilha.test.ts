@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import type { ItemRevisao } from "../orcamento/itens";
 import { montarDadosPdf, type EntradaDadosPdf } from "../pdf/dados";
-import { dimensoesPng, gerarPlanilhaOrcamento, textoProduto } from "./orcamento";
+import { dimensoesPng, gerarPlanilhaOrcamento } from "./orcamento";
 
 const loja = {
   nome_fantasia: "Luz Design",
@@ -18,7 +18,6 @@ const loja = {
 const config = {
   validade_dias: 7,
   desconto_avista_pct: 10,
-  mostrar_descricao: true, // os testes de layout completo; o padrão (só código) está em so-codigo.test.ts
   linhas_rodape: "À vista, desconto de {desconto}%\nOrçamento válido por {validade_dias} dias",
 };
 
@@ -110,7 +109,7 @@ describe("endereço da obra na planilha", () => {
 });
 
 describe("planilha XLSX do orçamento", () => {
-  it("tem cabeçalho, identificação e a tabela QT | PRODUTO | DESCRIÇÃO | AMBIENTE | UNIT | TOTAL", async () => {
+  it("tem cabeçalho, identificação e a tabela do estoque", async () => {
     const dados = montarDadosPdf(entrada());
     const ws = await abrir(await gerarPlanilhaOrcamento(dados, null));
 
@@ -122,10 +121,16 @@ describe("planilha XLSX do orçamento", () => {
     expect(ws.getCell(linhaCom(ws, 1, "VALIDADE"), 3).value).toBe(dados.validade);
 
     const cab = linhaCom(ws, 1, "QT");
-    expect([1, 2, 3, 4, 5, 6].map((c) => ws.getCell(cab, c).value)).toEqual([
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((c) => ws.getCell(cab, c).value)).toEqual([
       "QT",
-      "PRODUTO",
+      "CÓDIGO",
+      "TIPO",
       "DESCRIÇÃO",
+      "FABRICANTE",
+      "REFERÊNCIA",
+      "MODELO",
+      "TAMANHO",
+      "VOLTAGEM",
       "AMBIENTE",
       "UNIT",
       "TOTAL",
@@ -135,21 +140,41 @@ describe("planilha XLSX do orçamento", () => {
     expect(ws.views[0]).toMatchObject({ state: "frozen", ySplit: cab });
   });
 
-  it("uma linha por item, ordenada por ambiente, com PRODUTO = categoria + código e UNIT do catálogo", async () => {
+  it("uma linha por item, ordenada por ambiente, com código, tipo, descrição e UNIT do catálogo", async () => {
     const dados = montarDadosPdf(entrada());
     const ws = await abrir(await gerarPlanilhaOrcamento(dados, null));
     const cab = linhaCom(ws, 1, "QT");
     const linhas = [1, 2, 3, 4, 5].map((i) =>
-      [1, 2, 3, 4, 5].map((c) => ws.getCell(cab + i, c).value),
+      [1, 2, 3, 4, 10, 11].map((c) => ws.getCell(cab + i, c).value),
     );
     expect(linhas).toEqual([
-      [2, "EMBUTIDO 10001", "PRODUTO 1 6W 2.7K", "Sala", 11.5],
-      [3, "EMBUTIDO 10002", "PRODUTO 2 6W 2.7K", "Sala", 12.5],
-      [8.5, "FITA LED 10003", "PRODUTO 3 6W 2.7K", "Cozinha", 20],
-      [2, "FONTE 10004", "PRODUTO 4 6W 2.7K", "Cozinha", 52.9],
-      [1, "AVULSO", "Pendente 3 globos, vidro fumê", "Cozinha", 890],
+      [2, "10001", "EMBUTIDO", "PRODUTO 1 6W 2.7K", "Sala", 11.5],
+      [3, "10002", "EMBUTIDO", "PRODUTO 2 6W 2.7K", "Sala", 12.5],
+      [8.5, "10003", "FITA LED", "PRODUTO 3 6W 2.7K", "Cozinha", 20],
+      [2, "10004", "FONTE", "PRODUTO 4 6W 2.7K", "Cozinha", 52.9],
+      [1, "AVULSO", "—", "Pendente 3 globos, vidro fumê", "Cozinha", 890],
     ]);
-    expect(textoProduto({ categoria: null, codigo: "12345" })).toBe("12345");
+  });
+
+  it("fabricante, referência, modelo, tamanho e voltagem vêm dos dados do estoque; sem dado, travessão", async () => {
+    const estoque = new Map([
+      [
+        "10001",
+        {
+          fabricante: "Usina",
+          referencia: "30865/3000",
+          modelo: "Bob",
+          tamanho: "3 m",
+          voltagem: "220V",
+        },
+      ],
+    ]);
+    const ws = await abrir(await gerarPlanilhaOrcamento(montarDadosPdf(entrada()), null, estoque));
+    const cab = linhaCom(ws, 1, "QT");
+    const dadosDa = (l: number) => [5, 6, 7, 8, 9].map((c) => ws.getCell(l, c).value);
+    expect(dadosDa(cab + 1)).toEqual(["Usina", "30865/3000", "Bob", "3 m", "220V"]);
+    expect(dadosDa(cab + 2)).toEqual(["—", "—", "—", "—", "—"]);
+    expect(String(ws.getCell("A5").value)).toContain("NÃO ENVIAR AO CLIENTE");
   });
 
   it("TOTAL de cada linha, total geral, desconto e à vista são fórmulas com o resultado já gravado", async () => {
@@ -163,27 +188,30 @@ describe("planilha XLSX do orçamento", () => {
     dados.ambientes
       .flatMap((a) => a.itens)
       .forEach((it, i) => {
-        const celula = formula(ws.getCell(primeira + i, 6));
-        expect(celula.formula).toBe(`ROUND(A${primeira + i}*E${primeira + i},2)`);
+        const celula = formula(ws.getCell(primeira + i, 12));
+        expect(celula.formula).toBe(`ROUND(A${primeira + i}*K${primeira + i},2)`);
         expect(celula.result).toBeCloseTo(it.totalCentavos / 100, 2);
       });
 
     const total = linhaCom(ws, 1, "TOTAL");
-    expect(formula(ws.getCell(total, 6)).formula).toBe(`SUM(F${primeira}:F${ultima})`);
-    expect(formula(ws.getCell(total, 6)).result).toBeCloseTo(dados.totais.totalCentavos / 100, 2);
+    expect(formula(ws.getCell(total, 12)).formula).toBe(`SUM(L${primeira}:L${ultima})`);
+    expect(formula(ws.getCell(total, 12)).result).toBeCloseTo(dados.totais.totalCentavos / 100, 2);
     const desc = linhaCom(ws, 1, "DESCONTO À VISTA (10%)");
-    expect(formula(ws.getCell(desc, 6)).formula).toBe(`-ROUND(F${total}*10/100,2)`);
-    expect(formula(ws.getCell(desc, 6)).result).toBeCloseTo(
+    expect(formula(ws.getCell(desc, 12)).formula).toBe(`-ROUND(L${total}*10/100,2)`);
+    expect(formula(ws.getCell(desc, 12)).result).toBeCloseTo(
       -dados.totais.descontoCentavos / 100,
       2,
     );
     const avista = linhaCom(ws, 1, "TOTAL À VISTA");
-    expect(formula(ws.getCell(avista, 6)).formula).toBe(`F${total}+F${desc}`);
-    expect(formula(ws.getCell(avista, 6)).result).toBeCloseTo(dados.totais.aVistaCentavos / 100, 2);
+    expect(formula(ws.getCell(avista, 12)).formula).toBe(`L${total}+L${desc}`);
+    expect(formula(ws.getCell(avista, 12)).result).toBeCloseTo(
+      dados.totais.aVistaCentavos / 100,
+      2,
+    );
 
     // Totais iguais aos do PDF: 2*11,5 + 3*12,5 + 8,5*20 + 2*52,9 + 890 = 23 + 37,5 + 170 + 105,8 + 890.
     expect(dados.totais.totalCentavos).toBe(122630);
-    expect(formula(ws.getCell(total, 6)).result).toBe(1226.3);
+    expect(formula(ws.getCell(total, 12)).result).toBe(1226.3);
   });
 
   it("subtotais por ambiente usam SOMASE sobre a coluna AMBIENTE e batem com o PDF", async () => {
@@ -196,9 +224,9 @@ describe("planilha XLSX do orçamento", () => {
     dados.ambientes.forEach((amb, i) => {
       const r = titulo + 1 + i;
       expect(ws.getCell(r, 1).value).toBe(amb.nome);
-      const c = formula(ws.getCell(r, 6));
+      const c = formula(ws.getCell(r, 12));
       expect(c.formula).toBe(
-        `SUMIF($D$${cab + 1}:$D$${cab + 5},D${r},$F$${cab + 1}:$F$${cab + 5})`,
+        `SUMIF($J$${cab + 1}:$J$${cab + 5},J${r},$L$${cab + 1}:$L$${cab + 5})`,
       );
       expect(c.result).toBeCloseTo(amb.subtotalCentavos / 100, 2);
     });
@@ -208,8 +236,8 @@ describe("planilha XLSX do orçamento", () => {
     const dados = montarDadosPdf(entrada());
     const ws = await abrir(await gerarPlanilhaOrcamento(dados, null));
     const cab = linhaCom(ws, 1, "QT");
-    expect(ws.getCell(cab + 1, 5).numFmt).toContain("R$");
-    expect(ws.getCell(cab + 1, 6).numFmt).toContain("R$");
+    expect(ws.getCell(cab + 1, 11).numFmt).toContain("R$");
+    expect(ws.getCell(cab + 1, 12).numFmt).toContain("R$");
     expect(ws.getCell(linhaCom(ws, 1, "CONDIÇÕES") + 1, 1).value).toBe(
       "• À vista, desconto de 10%",
     );
@@ -218,7 +246,7 @@ describe("planilha XLSX do orçamento", () => {
       fitToPage: true,
       fitToWidth: 1,
       fitToHeight: 0,
-      orientation: "portrait",
+      orientation: "landscape",
     });
     expect(ws.pageSetup.printTitlesRow).toBe(`${cab}:${cab}`);
   });
@@ -240,6 +268,6 @@ describe("planilha XLSX do orçamento", () => {
     const ws = await abrir(
       await gerarPlanilhaOrcamento(montarDadosPdf(entrada({ itens: [] })), null),
     );
-    expect(formula(ws.getCell(linhaCom(ws, 1, "TOTAL"), 6)).formula).toBe("0");
+    expect(formula(ws.getCell(linhaCom(ws, 1, "TOTAL"), 12)).formula).toBe("0");
   });
 });

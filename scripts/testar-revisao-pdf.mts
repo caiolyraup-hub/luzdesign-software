@@ -85,6 +85,7 @@ const deps = (p: Pessoa) => ({
   sessao: p.cliente,
   renderizar: (d: Parameters<typeof renderizarPdf>[0]) => renderizarPdf(d, null),
   gerarPlanilha: (d: Parameters<typeof renderizarPdf>[0]) => gerarPlanilhaOrcamento(d, null),
+  lerEstoque: async () => new Map(),
 });
 
 async function criarOrcamento(dono: Pessoa, usandoAdmin: boolean, sufixo: string) {

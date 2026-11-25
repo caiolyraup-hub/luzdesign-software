@@ -1,5 +1,6 @@
 import "server-only";
 import { ehGerencia } from "../dominio";
+import type { MapaEstoque } from "../estoque/dados-estoque";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { adicionarDiasISO, hojeMaceioISO } from "../formatar";
 import { carregarItensRevisao } from "../orcamento/carregar-itens";
@@ -19,7 +20,9 @@ export interface DepsRenovar {
    */
   armazenamento: SupabaseClient;
   renderizar: (dados: DadosPdf) => Promise<Uint8Array>;
-  gerarPlanilha: (dados: DadosPdf) => Promise<Uint8Array>;
+  gerarPlanilha: (dados: DadosPdf, estoque: MapaEstoque) => Promise<Uint8Array>;
+  /** Dados do estoque dos códigos do orçamento (lidos no servidor). */
+  lerEstoque: (codigos: string[]) => Promise<MapaEstoque>;
   agora?: () => Date;
 }
 
@@ -129,7 +132,6 @@ export async function renovarOrcamento(
     validade_dias: cfg.validade_dias,
     desconto_avista_pct: Number(cfg.desconto_avista_pct),
     linhas_rodape: cfg.linhas_rodape ?? "",
-    mostrar_descricao: cfg.documento_mostrar_descricao === true,
   };
   const loja: LojaPdf = {
     nome_fantasia: cfg.nome_fantasia,
@@ -166,7 +168,11 @@ export async function renovarOrcamento(
   let pdf: Uint8Array;
   let planilha: Uint8Array;
   try {
-    [pdf, planilha] = await Promise.all([deps.renderizar(dados), deps.gerarPlanilha(dados)]);
+    const estoque = await deps.lerEstoque(itens.flatMap((i) => (i.codigo ? [i.codigo] : [])));
+    [pdf, planilha] = await Promise.all([
+      deps.renderizar(dados),
+      deps.gerarPlanilha(dados, estoque),
+    ]);
   } catch {
     return falha("Não foi possível montar o PDF e a planilha agora. Tente de novo.");
   }

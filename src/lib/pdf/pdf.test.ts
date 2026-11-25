@@ -18,7 +18,6 @@ const loja = {
 const config = {
   validade_dias: 7,
   desconto_avista_pct: 10,
-  mostrar_descricao: true, // os testes de layout completo; o padrão (só código) está em so-codigo.test.ts
   linhas_rodape:
     "À vista, desconto de 10%\nOrçamento válido por 7 dias\nPrazo de entrega: 30 a 45 dias úteis após o pagamento\nNão fazemos trocas de peças por encomenda\nMercadoria frágil",
 };
@@ -178,7 +177,7 @@ describe("PDF", () => {
     expect(paginas).toBeLessThanOrEqual(5);
     // Todos os itens e todos os códigos estão presentes, cada um uma vez.
     for (let n = 1; n <= 60; n++) {
-      expect(texto).toContain(`ITEM ${n} DESCRICAO`);
+      expect(texto).toContain(String(10000 + n));
       expect(texto.split(String(10000 + n)).length - 1).toBe(1);
     }
     expect(texto).toContain(`Página 1 de ${paginas}`);
@@ -217,7 +216,8 @@ describe("PDF sem análise do ambiente nem motivo dos produtos (dia 8)", () => {
     );
     const { texto } = await ler(await renderizarPdf(dados, null));
     expect(texto.replaceAll(" ", "")).not.toContain("ANÁLISEDOAMBIENTE");
-    expect(texto).toContain("PRODUTO DE TESTE 1 6W 2.7K");
+    expect(texto).toContain("10001");
+    expect(texto).not.toContain("PRODUTO DE TESTE");
   });
 
   it("60 itens em 6 ambientes paginam sem cortar item", async () => {
@@ -232,7 +232,7 @@ describe("PDF sem análise do ambiente nem motivo dos produtos (dia 8)", () => {
     const { texto, paginas } = await ler(pdf);
     expect(paginas).toBeGreaterThanOrEqual(2);
     expect(paginas).toBeLessThanOrEqual(6);
-    for (let n = 1; n <= 60; n++) expect(texto).toContain(`ITEM ${n} DESCRICAO`);
+    for (let n = 1; n <= 60; n++) expect(texto).toContain(String(10000 + n));
     for (const n of nomes) expect(texto).toContain(`Subtotal ${n}`);
   }, 90_000);
 });

@@ -1,6 +1,7 @@
 "use server";
 import { ehGerencia } from "@/lib/dominio";
 
+import { lerDadosEstoque } from "@/lib/estoque/dados-estoque";
 import { gerarPlanilhaOrcamento } from "@/lib/planilha/orcamento";
 import { carregarLogo, renderizarPdf } from "@/lib/pdf/renderizar";
 import { renovarOrcamento } from "@/lib/pdf/renovar";
@@ -98,7 +99,8 @@ export async function renovarValidade(
         sessao,
         armazenamento: criarClienteAdmin(),
         renderizar: (dados) => renderizarPdf(dados, logo),
-        gerarPlanilha: (dados) => gerarPlanilhaOrcamento(dados, logo),
+        gerarPlanilha: (dados, estoque) => gerarPlanilhaOrcamento(dados, logo, estoque),
+        lerEstoque: (codigos) => lerDadosEstoque(criarClienteAdmin(), codigos),
       },
       { id: usuario.id, perfil: usuario.perfil },
       orcamentoId,

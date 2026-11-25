@@ -7,6 +7,8 @@ import {
   MENSAGEM_D5_PADRAO,
   montarMensagemFollowup,
   textoPrazoFollowup,
+  proximoContato,
+  textoProximoContato,
 } from "./followup";
 
 // Maceió é UTC-3 o ano todo.
@@ -160,5 +162,32 @@ describe("texto e mensagem", () => {
       "https://wa.me/5582999991234?text=Ol%C3%A1%2C%20Maria!%20Tudo%20bem%3F",
     );
     expect(linkWhatsapp(null, "x")).toBe("https://wa.me/?text=x");
+  });
+});
+
+describe("próximo contato", () => {
+  const base = { ultimoEnvioEm: "2026-11-20T15:00:00Z" };
+  const em = (status: string, dia: string) =>
+    proximoContato({ ...base, status, agora: new Date(`${dia}T15:00:00Z`) });
+
+  it("mostra o contato que ainda vai vencer, o de hoje e o atrasado", () => {
+    expect(textoProximoContato(em("enviado", "2026-11-22")!)).toBe(
+      "Próximo contato (D+5): 25/11 · em 3 dias",
+    );
+    expect(textoProximoContato(em("enviado", "2026-11-25")!)).toBe(
+      "Próximo contato (D+5): 25/11 · vence hoje",
+    );
+    expect(textoProximoContato(em("followup_d5", "2026-12-01")!)).toBe(
+      "Próximo contato (D+10): 30/11 · atrasado 1 dia",
+    );
+    expect(textoProximoContato(em("followup_d10", "2026-12-04")!)).toBe(
+      "Decidir se encerra: 05/12 · em 1 dia",
+    );
+  });
+
+  it("sem envio, rascunho, fechado ou perdido não há lembrete", () => {
+    for (const status of ["gerado", "rascunho", "fechado", "perdido"])
+      expect(em(status, "2026-11-25")).toBeNull();
+    expect(proximoContato({ status: "enviado", ultimoEnvioEm: null })).toBeNull();
   });
 });

@@ -1,12 +1,14 @@
 import ExcelJS from "exceljs";
+import type { MapaEstoque } from "../estoque/dados-estoque";
 import type { DadosPdf } from "../pdf/dados";
 import { COR_DESTAQUE } from "../pdf/tema";
 
 /**
- * Planilha do orçamento (XLSX), com o mesmo conteúdo do PDF e pensada para ser EDITADA: o TOTAL de
- * cada linha, o total geral, o desconto à vista e os subtotais por ambiente são fórmulas de
- * verdade. O resultado calculado também é gravado em cada fórmula, para a planilha abrir certa até
- * em visualizador que não recalcula (WhatsApp, celular).
+ * Planilha do ESTOQUE (XLSX): o mesmo orçamento do PDF com tudo que o estoque precisa para separar o
+ * material (descrição, fabricante, referência, modelo, tamanho e voltagem). Uso interno: não vai ao
+ * cliente. Pensada para ser EDITADA: o TOTAL de cada linha, o total geral, o desconto à vista e os
+ * subtotais por ambiente são fórmulas de verdade. O resultado calculado também é gravado em cada
+ * fórmula, para a planilha abrir certa até em visualizador que não recalcula (WhatsApp, celular).
  */
 
 export interface LogoPlanilha {
@@ -14,9 +16,21 @@ export interface LogoPlanilha {
   format: "png" | "jpg";
 }
 
-/** Com descrição (configuração da loja) a planilha tem 6 colunas; por padrão, só o código: 5. */
-const COLUNAS_COM_DESCRICAO = ["QT", "PRODUTO", "DESCRIÇÃO", "AMBIENTE", "UNIT", "TOTAL"] as const;
-const COLUNAS_SO_CODIGO = ["QT", "CÓDIGO", "AMBIENTE", "UNIT", "TOTAL"] as const;
+export const COLUNAS = [
+  "QT",
+  "CÓDIGO",
+  "TIPO",
+  "DESCRIÇÃO",
+  "FABRICANTE",
+  "REFERÊNCIA",
+  "MODELO",
+  "TAMANHO",
+  "VOLTAGEM",
+  "AMBIENTE",
+  "UNIT",
+  "TOTAL",
+] as const;
+const LARGURAS = [7, 11, 14, 42, 15, 17, 13, 11, 11, 18, 13, 15];
 const letra = (n: number) => String.fromCharCode(64 + n);
 const FORMATO_REAIS = '"R$" #,##0.00';
 const COR_CABECALHO = `FF${COR_DESTAQUE.replace("#", "").toUpperCase()}`;
@@ -35,31 +49,24 @@ export function dimensoesPng(dados: Uint8Array): { largura: number; altura: numb
   return { largura: v.getUint32(16), altura: v.getUint32(20) };
 }
 
-/** Texto da coluna PRODUTO: categoria + código, como nas planilhas antigas da loja. */
-export function textoProduto(item: { categoria: string | null; codigo: string | null }): string {
-  if (!item.codigo) return "AVULSO";
-  return [comoTexto(item.categoria), item.codigo].filter(Boolean).join(" ");
-}
-
 export async function gerarPlanilhaOrcamento(
   dados: DadosPdf,
   logo?: LogoPlanilha | null,
+  estoque: MapaEstoque = new Map(),
 ): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
   wb.creator = dados.loja.nome_fantasia;
   wb.created = new Date();
-  const comDescricao = dados.mostrarDescricao;
-  const COLUNAS = comDescricao ? COLUNAS_COM_DESCRICAO : COLUNAS_SO_CODIGO;
   const nCols = COLUNAS.length;
   const U = letra(nCols); // última coluna (TOTAL)
-  const cAmb = comDescricao ? 4 : 3;
-  const cUnit = comDescricao ? 5 : 4;
+  const cAmb = COLUNAS.indexOf("AMBIENTE") + 1;
+  const cUnit = COLUNAS.indexOf("UNIT") + 1;
   const LA = letra(cAmb);
   const LU = letra(cUnit);
   const ws = wb.addWorksheet("ORÇAMENTO", {
     pageSetup: {
       paperSize: 9, // A4
-      orientation: "portrait",
+      orientation: "landscape",
       fitToPage: true,
       fitToWidth: 1,
       fitToHeight: 0,
@@ -70,8 +77,7 @@ export async function gerarPlanilhaOrcamento(
     },
     views: [{ showGridLines: false }],
   });
-  ws.columns = (comDescricao ? [8, 24, 58, 20, 15, 16] : [8, 34, 28, 18, 18]) // só código: o código ganha o espaço da descrição
-    .map((width) => ({ width }));
+  ws.columns = LARGURAS.map((width) => ({ width }));
 
   // ---- cabeçalho: logo (se houver) e dados da loja
   let linha = 1;
@@ -107,7 +113,12 @@ export async function gerarPlanilhaOrcamento(
   ws.getRow(2).height = 18;
   ws.getRow(3).height = 18;
   ws.getRow(4).height = 18;
-  linha = 6;
+  ws.mergeCells(`A5:${U}5`);
+  const aviso = ws.getCell("A5");
+  aviso.value = "PLANILHA DO ESTOQUE · USO INTERNO · NÃO ENVIAR AO CLIENTE";
+  aviso.font = { bold: true, size: 10, color: { argb: COR_CABECALHO } };
+  aviso.alignment = { horizontal: "center" };
+  linha = 7;
 
   // ---- identificação do orçamento
   const pares: [string, string][] = [
@@ -153,19 +164,30 @@ export async function gerarPlanilhaOrcamento(
   for (const amb of dados.ambientes) {
     for (const item of amb.itens) {
       const r = ws.getRow(linha);
-      r.getCell(1).value = item.quantidade;
-      r.getCell(2).value = comDescricao ? textoProduto(item) : item.codigoExibicao;
-      if (comDescricao) r.getCell(3).value = item.descricao;
-      r.getCell(cAmb).value = amb.nome;
-      r.getCell(cUnit).value = reais(item.precoCentavos);
+      const e = item.codigo ? estoque.get(item.codigo) : undefined;
+      [
+        item.quantidade,
+        item.codigo ?? "AVULSO",
+        comoTexto(item.categoria),
+        item.descricao,
+        e?.fabricante,
+        e?.referencia,
+        e?.modelo,
+        e?.tamanho,
+        e?.voltagem,
+        amb.nome,
+        reais(item.precoCentavos),
+      ].forEach((valor, i) => {
+        const c = r.getCell(i + 1);
+        c.value = typeof valor === "number" ? valor : valor || "—";
+        c.alignment = { vertical: "top", wrapText: true };
+      });
       r.getCell(nCols).value = {
         formula: `ROUND(A${linha}*${LU}${linha},2)`,
         result: reais(item.totalCentavos),
       };
       r.getCell(1).alignment = { horizontal: "center", vertical: "top" };
-      if (comDescricao) r.getCell(3).alignment = { wrapText: true, vertical: "top" };
-      for (const col of [2, cAmb]) r.getCell(col).alignment = { vertical: "top", wrapText: true };
-      if (!comDescricao) r.getCell(2).font = { bold: true, size: 11 };
+      r.getCell(2).font = { bold: true, size: 11 };
       for (const col of [cUnit, nCols]) {
         r.getCell(col).numFmt = FORMATO_REAIS;
         r.getCell(col).alignment = { horizontal: "right", vertical: "top" };

@@ -17,8 +17,6 @@ export interface ConfigPdf {
   validade_dias: number;
   desconto_avista_pct: number;
   linhas_rodape: string;
-  /** Configuração da loja: mostrar a descrição dos produtos no PDF e na planilha (padrão: só o código). */
-  mostrar_descricao?: boolean;
 }
 
 export interface ItemPdf {
@@ -27,6 +25,7 @@ export interface ItemPdf {
   codigo: string | null;
   /** O que a coluna CÓDIGO mostra: o código do produto; no item avulso, o texto curto da vendedora. */
   codigoExibicao: string;
+  /** Só a planilha do estoque mostra; o PDF do cliente nunca. */
   descricao: string;
   categoria: string | null;
   precoCentavos: number;
@@ -59,8 +58,6 @@ export interface DadosPdf {
   ambientes: AmbientePdf[];
   totais: TotaisOrcamento;
   rodape: string[];
-  /** Com false (padrão), o documento mostra só o código. */
-  mostrarDescricao: boolean;
 }
 
 export interface EntradaDadosPdf {
@@ -142,6 +139,5 @@ export function montarDadosPdf(e: EntradaDadosPdf): DadosPdf {
     ambientes,
     totais,
     rodape: linhasDoRodape(e.config),
-    mostrarDescricao: e.config.mostrar_descricao === true,
   };
 }

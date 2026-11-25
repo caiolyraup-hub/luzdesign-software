@@ -1,4 +1,5 @@
-// Dia 11C: PDF e XLSX do orçamento nunca mostram fabricante, modelo nem referência do catálogo.
+// O PDF do cliente nunca mostra fabricante, modelo nem referência do catálogo, e a descrição comercial
+// (a que as telas da vendedora usam) também não os traz. A planilha do estoque os recebe à parte.
 import ExcelJS from "exceljs";
 import { extractText, getDocumentProxy } from "unpdf";
 import { describe, expect, it } from "vitest";
@@ -63,7 +64,6 @@ const dados = montarDadosPdf({
     validade_dias: 7,
     desconto_avista_pct: 10,
     linhas_rodape: "Mercadoria frágil",
-    mostrar_descricao: true, // a descrição é opcional (dia 16); o padrão só com código está no teste abaixo
   },
   numero: "2026-0099",
   versao: 1,
@@ -77,30 +77,19 @@ const acha = (texto: string) =>
   PROIBIDOS.filter((p) => new RegExp(`(?<![A-Za-z0-9])${p}(?![A-Za-z0-9])`, "i").test(texto));
 
 describe("documentos do cliente", () => {
-  it("o PDF mostra o código interno e a descrição comercial, sem fabricante nem referência", async () => {
+  it("o PDF mostra o código interno e o tipo, sem descrição, fabricante nem referência", async () => {
     const pdf = await renderizarPdf(dados, null);
     const { text } = await extractText(await getDocumentProxy(new Uint8Array(pdf)), {
       mergePages: true,
     });
     const t = text.replace(/\s+/g, " ");
     expect(t).toContain("10338");
-    expect(t).toContain("FONTE 24W");
-    expect(acha(t)).toEqual([]);
-  });
-
-  it("no padrão (só código) o PDF e o XLSX também não trazem fabricante nem referência, nem a descrição", async () => {
-    const semDescricao = { ...dados, mostrarDescricao: false };
-    const pdf = await renderizarPdf(semDescricao, null);
-    const { text } = await extractText(await getDocumentProxy(new Uint8Array(pdf)), {
-      mergePages: true,
-    });
-    const t = text.replace(/\s+/g, " ");
-    expect(t).toContain("10338");
+    expect(t).toContain("FONTE");
     expect(t).not.toContain("FONTE 24W");
     expect(acha(t)).toEqual([]);
   });
 
-  it("o XLSX também não", async () => {
+  it("sem os dados do estoque, a descrição comercial não traz fabricante nem referência", async () => {
     const bytes = await gerarPlanilhaOrcamento(dados, null);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(Buffer.from(bytes) as unknown as ExcelJS.Buffer);

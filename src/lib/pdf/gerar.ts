@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { MapaEstoque } from "../estoque/dados-estoque";
 import { adicionarDiasISO, hojeMaceioISO } from "../formatar";
 import { carregarItensRevisao } from "../orcamento/carregar-itens";
 import { ambientesDasRespostas, type ItemRevisao } from "../orcamento/itens";
@@ -7,34 +8,15 @@ import type { Respostas } from "../orcamento/perguntas";
 import { motivosBloqueioGerar, totaisDoOrcamento } from "../orcamento/totais";
 import { montarDadosPdf, type ConfigPdf, type DadosPdf, type LojaPdf } from "./dados";
 
-/** Resultado da padronização de texto (feita pela IA, só texto). Qualquer falha cai no catálogo. */
-export interface TextosPadronizados {
-  /** código -> descrição final (padronizada, ou a do catálogo). */
-  descricoes: Map<string, string>;
-  /** nome do ambiente -> nome padronizado (só os que mudaram). */
-  ambientes: Map<string, string>;
-}
-
 export interface DepsGerarOrcamento {
   /** Cliente Supabase da PRÓPRIA vendedora: a RLS vale (orçamento, itens, Storage). */
   sessao: SupabaseClient;
   /** Gera os bytes do PDF. Em produção, `renderizarPdf`; nos testes, qualquer coisa. */
   renderizar: (dados: DadosPdf) => Promise<Uint8Array>;
-  /** Gera os bytes da planilha XLSX (mesmos dados do PDF). */
-  gerarPlanilha: (dados: DadosPdf) => Promise<Uint8Array>;
-  /**
-   * Padroniza descrição dos produtos e nome dos ambientes (opcional). Nunca bloqueia: se faltar
-   * ou falhar, valem a descrição do catálogo e o nome digitado.
-   */
-  padronizar?: (entrada: {
-    produtos: {
-      codigo: string;
-      categoria?: string | null;
-      descricao: string;
-      atualizado_em?: string;
-    }[];
-    ambientes: string[];
-  }) => Promise<TextosPadronizados>;
+  /** Gera os bytes da planilha do estoque (mesmo orçamento, com os dados do estoque). */
+  gerarPlanilha: (dados: DadosPdf, estoque: MapaEstoque) => Promise<Uint8Array>;
+  /** Fabricante, referência, tamanho e voltagem dos códigos do orçamento (lidos no servidor). */
+  lerEstoque: (codigos: string[]) => Promise<MapaEstoque>;
   agora?: () => Date;
 }
 
@@ -107,14 +89,12 @@ interface LinhaOrcamento {
 
 /**
  * Item com o preço e a descrição que serão congelados. O preço é SEMPRE o do catálogo. A descrição
- * é a que a vendedora escreveu (se escreveu), senão a padronizada, senão a do catálogo.
+ * é a que a vendedora escreveu (se escreveu), senão a do catálogo.
  */
-function congelar(itens: ItemRevisao[], textos: Map<string, string>): ItemRevisao[] {
+function congelar(itens: ItemRevisao[]): ItemRevisao[] {
   return itens.map((i) => {
     if (i.avulso || i.precoCatalogo === null) return i;
-    const descricao = i.descricaoManual
-      ? i.descricao
-      : (textos.get(i.codigo ?? "") ?? i.descricaoCatalogo ?? i.descricao);
+    const descricao = i.descricaoManual ? i.descricao : (i.descricaoCatalogo ?? i.descricao);
     return { ...i, preco: i.precoCatalogo, descricao };
   });
 }
@@ -172,53 +152,14 @@ export async function gerarOrcamento(
     ...(o.montagem?.ambientes_extras ?? []),
   ];
 
-  // Padronização de texto (só texto): descrição dos produtos e nome dos ambientes.
-  let textos: TextosPadronizados = { descricoes: new Map(), ambientes: new Map() };
-  // Sem descrição no documento (padrão), a IA não é chamada ao gerar: mais rápido e sem custo.
-  if (deps.padronizar && cfg.documento_mostrar_descricao === true) {
-    try {
-      const codigos = [
-        ...new Set(
-          itensBanco
-            .filter((i) => !i.avulso && !i.descricaoManual && i.codigo)
-            .map((i) => i.codigo!),
-        ),
-      ];
-      const { data: produtos } = codigos.length
-        ? await sessao
-            .from("produtos")
-            .select("codigo, categoria, descricao, atualizado_em")
-            .in("codigo", codigos)
-        : { data: [] };
-      const nomes = [
-        ...new Set([...ambientesBase, ...itensBanco.map((i) => i.ambiente)].filter(Boolean)),
-      ];
-      textos = await deps.padronizar({
-        produtos: (produtos ?? []).map((p) => ({
-          codigo: p.codigo as string,
-          categoria: p.categoria as string | null,
-          descricao: p.descricao as string,
-          atualizado_em: p.atualizado_em as string,
-        })),
-        ambientes: nomes,
-      });
-    } catch {
-      // A padronização nunca bloqueia: ficam as descrições do catálogo.
-    }
-  }
-
-  const itens = congelar(itensBanco, textos.descricoes).map((i) => ({
-    ...i,
-    ambiente: textos.ambientes.get(i.ambiente) ?? i.ambiente,
-  }));
-  const ambientes = ambientesBase.map((a) => textos.ambientes.get(a) ?? a);
+  const itens = congelar(itensBanco);
+  const ambientes = ambientesBase;
 
   const versao = o.pdf_versao + 1;
   const config: ConfigPdf = {
     validade_dias: cfg.validade_dias,
     desconto_avista_pct: Number(cfg.desconto_avista_pct),
     linhas_rodape: cfg.linhas_rodape ?? "",
-    mostrar_descricao: cfg.documento_mostrar_descricao === true,
   };
   const loja: LojaPdf = {
     nome_fantasia: cfg.nome_fantasia,
@@ -254,7 +195,11 @@ export async function gerarOrcamento(
   let pdf: Uint8Array;
   let planilha: Uint8Array;
   try {
-    [pdf, planilha] = await Promise.all([deps.renderizar(dados), deps.gerarPlanilha(dados)]);
+    const estoque = await deps.lerEstoque(itens.flatMap((i) => (i.codigo ? [i.codigo] : [])));
+    [pdf, planilha] = await Promise.all([
+      deps.renderizar(dados),
+      deps.gerarPlanilha(dados, estoque),
+    ]);
   } catch {
     return falha("falha", "Não foi possível montar o PDF e a planilha agora. Tente de novo.");
   }

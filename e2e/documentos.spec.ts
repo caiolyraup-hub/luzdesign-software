@@ -124,7 +124,7 @@ async function gerarOrcamento(
   const { text } = await extractText(new Uint8Array(pdf), { mergePages: true });
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(
-    (await lerDownload(page, "Baixar planilha (XLSX)")) as unknown as ExcelJS.Buffer,
+    (await lerDownload(page, "Baixar planilha do estoque (XLSX)")) as unknown as ExcelJS.Buffer,
   );
   const celulas: string[] = [];
   wb.getWorksheet("ORÇAMENTO")!.eachRow((r) =>

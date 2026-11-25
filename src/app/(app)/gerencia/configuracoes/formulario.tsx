@@ -104,24 +104,6 @@ export function FormularioConfiguracoes({ config }: { config: ConfiguracoesLoja 
         </span>
       </label>
 
-      <fieldset className="space-y-3 rounded-lg border border-zinc-300 p-4">
-        <legend className="px-2 text-lg font-semibold">Documento do cliente</legend>
-        <label className="flex min-h-14 items-center gap-3 text-lg">
-          <input
-            type="checkbox"
-            name="documento_mostrar_descricao"
-            defaultChecked={config.documento_mostrar_descricao}
-            className="size-6"
-          />
-          Mostrar a descrição dos produtos no PDF e na planilha
-        </label>
-        <p className="text-base text-zinc-600">
-          Desligado (padrão): o PDF e a planilha mostram só o código de cada produto. Vale para os
-          próximos orçamentos gerados; os que já foram gerados não mudam. As telas do sistema
-          continuam mostrando a descrição.
-        </p>
-      </fieldset>
-
       <fieldset className="space-y-4 rounded-lg border border-zinc-300 p-4">
         <legend className="px-2 text-lg font-semibold">Follow-up</legend>
         <p className="text-base text-zinc-600">

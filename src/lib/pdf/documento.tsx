@@ -67,18 +67,15 @@ const estilos = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: COR_LINHA,
   },
-  colQtd: { width: "11%" },
-  colCodigo: { width: "11%" },
-  colDescricao: { width: "47%", paddingRight: 8 },
-  colUnit: { width: "15%", textAlign: "right" },
-  colTotal: { width: "16%", textAlign: "right" },
-  // Só código (descrição fora do documento): o código ganha o espaço e fica maior.
-  colQtdC: { width: "13%" },
-  colCodigoC: { width: "43%", paddingRight: 8 },
-  colUnitC: { width: "22%", textAlign: "right" },
-  colTotalC: { width: "22%", textAlign: "right" },
+  // Documento do cliente: só o código e o tipo do produto (nunca descrição, tamanho, voltagem,
+  // referência ou fabricante; esses saem na planilha do estoque).
+  colQtd: { width: "12%" },
+  colCodigo: { width: "24%", paddingRight: 8 },
+  colTipo: { width: "30%", paddingRight: 8 },
+  colAvulso: { width: "54%", paddingRight: 8 },
+  colUnit: { width: "16%", textAlign: "right" },
+  colTotal: { width: "18%", textAlign: "right" },
   codigoGrande: { fontFamily: "Helvetica-Bold", fontSize: 11.5 },
-  marcaItem: { fontSize: 8, color: COR_TEXTO_SUAVE, marginTop: 1 },
   subtotal: { flexDirection: "row", justifyContent: "flex-end", paddingTop: 5, fontSize: 9 },
   subtotalRotulo: { color: COR_TEXTO_SUAVE, marginRight: 8 },
   subtotalValor: { fontFamily: "Helvetica-Bold" },
@@ -223,48 +220,29 @@ export function DocumentoOrcamento({ dados, logo }: { dados: DadosPdf; logo: Log
             {/* Título + cabeçalho da tabela + 1ª linha nunca ficam sozinhos no pé da página. */}
             <View wrap={false} minPresenceAhead={70}>
               <Text style={estilos.tituloAmbiente}>{ambiente.nome}</Text>
-              {dados.mostrarDescricao ? (
-                <View style={estilos.cabecaTabela}>
-                  <Text style={estilos.colQtd}>Qtd</Text>
-                  <Text style={estilos.colCodigo}>Código</Text>
-                  <Text style={estilos.colDescricao}>Descrição</Text>
-                  <Text style={estilos.colUnit}>Unit.</Text>
-                  <Text style={estilos.colTotal}>Total</Text>
-                </View>
-              ) : (
-                <View style={estilos.cabecaTabela}>
-                  <Text style={estilos.colQtdC}>Qtd</Text>
-                  <Text style={estilos.colCodigoC}>Código</Text>
-                  <Text style={estilos.colUnitC}>Unit.</Text>
-                  <Text style={estilos.colTotalC}>Total</Text>
-                </View>
-              )}
+              <View style={estilos.cabecaTabela}>
+                <Text style={estilos.colQtd}>Qtd</Text>
+                <Text style={estilos.colCodigo}>Código</Text>
+                <Text style={estilos.colTipo}>Tipo</Text>
+                <Text style={estilos.colUnit}>Unit.</Text>
+                <Text style={estilos.colTotal}>Total</Text>
+              </View>
             </View>
-            {ambiente.itens.map((item, i) =>
-              dados.mostrarDescricao ? (
-                <View key={`${ambiente.nome}-${i}`} style={estilos.linha} wrap={false}>
-                  <Text style={estilos.colQtd}>{quantidadeTexto(item)}</Text>
-                  <Text style={estilos.colCodigo}>{item.codigo ?? "—"}</Text>
-                  <View style={estilos.colDescricao}>
-                    <Text>{item.descricao}</Text>
-                    {item.categoria ? (
-                      <Text style={estilos.marcaItem}>{item.categoria}</Text>
-                    ) : null}
-                  </View>
-                  <Text style={estilos.colUnit}>{moedaCentavos(item.precoCentavos)}</Text>
-                  <Text style={estilos.colTotal}>{moedaCentavos(item.totalCentavos)}</Text>
-                </View>
-              ) : (
-                <View key={`${ambiente.nome}-${i}`} style={estilos.linha} wrap={false}>
-                  <Text style={estilos.colQtdC}>{quantidadeTexto(item)}</Text>
-                  <Text style={[estilos.colCodigoC, item.codigo ? estilos.codigoGrande : {}]}>
-                    {item.codigoExibicao}
-                  </Text>
-                  <Text style={estilos.colUnitC}>{moedaCentavos(item.precoCentavos)}</Text>
-                  <Text style={estilos.colTotalC}>{moedaCentavos(item.totalCentavos)}</Text>
-                </View>
-              ),
-            )}
+            {ambiente.itens.map((item, i) => (
+              <View key={`${ambiente.nome}-${i}`} style={estilos.linha} wrap={false}>
+                <Text style={estilos.colQtd}>{quantidadeTexto(item)}</Text>
+                {item.codigo ? (
+                  <>
+                    <Text style={[estilos.colCodigo, estilos.codigoGrande]}>{item.codigo}</Text>
+                    <Text style={estilos.colTipo}>{item.categoria ?? "—"}</Text>
+                  </>
+                ) : (
+                  <Text style={estilos.colAvulso}>{item.codigoExibicao}</Text>
+                )}
+                <Text style={estilos.colUnit}>{moedaCentavos(item.precoCentavos)}</Text>
+                <Text style={estilos.colTotal}>{moedaCentavos(item.totalCentavos)}</Text>
+              </View>
+            ))}
             <View style={estilos.subtotal} wrap={false}>
               <Text style={estilos.subtotalRotulo}>Subtotal {ambiente.nome}</Text>
               <Text style={estilos.subtotalValor}>{moedaCentavos(ambiente.subtotalCentavos)}</Text>

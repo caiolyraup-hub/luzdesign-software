@@ -48,13 +48,21 @@ export function diasEntreDatas(de: string, ate: string): number {
   return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / 86_400_000);
 }
 
+export interface ProximoContato {
+  etapa: EtapaFollowup;
+  /** Dia do contato (AAAA-MM-DD, Maceió). */
+  venceEm: string;
+  /** Negativo = ainda falta; 0 = hoje; positivo = atrasado. */
+  diasAtraso: number;
+}
+
 /**
- * Follow-up que vence hoje ou já venceu, ou null.
- *  - enviado: D+5 vence em ultimo envio + d5Dias;
- *  - followup_d5: D+10 vence em ultimo envio + d10Dias (e, passados 5 dias, sugere perdido);
- *  - followup_d10: nada a fazer, a não ser encerrar: passados d10Dias + 5, aparece "encerrar".
+ * Próximo contato de um orçamento enviado (vencido ou não), ou null se não há o que lembrar:
+ *  - enviado: D+5 em ultimo envio + d5Dias;
+ *  - followup_d5: D+10 em ultimo envio + d10Dias;
+ *  - followup_d10: decidir se encerra, em ultimo envio + d10Dias + 5.
  */
-export function followupDeHoje(e: EntradaFollowup): FollowupDeHoje | null {
+export function proximoContato(e: EntradaFollowup): ProximoContato | null {
   if (!e.ultimoEnvioEm) return null;
   const { d5Dias, d10Dias } = e.config ?? CONFIG_FOLLOWUP_PADRAO;
   const hoje = hojeMaceioISO(e.agora ?? new Date());
@@ -74,16 +82,27 @@ export function followupDeHoje(e: EntradaFollowup): FollowupDeHoje | null {
   } else {
     return null;
   }
+  return { etapa, venceEm, diasAtraso: diasEntreDatas(venceEm, hoje) };
+}
 
-  const diasAtraso = diasEntreDatas(venceEm, hoje);
-  if (diasAtraso < 0) return null;
+/** Follow-up que vence hoje ou já venceu, ou null. Passados 5 dias do D+10, sugere perdido. */
+export function followupDeHoje(e: EntradaFollowup): FollowupDeHoje | null {
+  const p = proximoContato(e);
+  if (!p || p.diasAtraso < 0) return null;
   return {
-    etapa,
-    venceEm,
-    diasAtraso,
+    ...p,
     sugerirPerdido:
-      etapa === "ENCERRAR" || (etapa === "D+10" && diasAtraso >= DIAS_PARA_SUGERIR_PERDIDO),
+      p.etapa === "ENCERRAR" || (p.etapa === "D+10" && p.diasAtraso >= DIAS_PARA_SUGERIR_PERDIDO),
   };
+}
+
+/** "Próximo contato (D+5): 30/11 · em 5 dias". */
+export function textoProximoContato(p: ProximoContato): string {
+  const [, mes, dia] = p.venceEm.split("-");
+  const rotulo = p.etapa === "ENCERRAR" ? "Decidir se encerra" : `Próximo contato (${p.etapa})`;
+  const falta = -p.diasAtraso;
+  const prazo = falta > 0 ? `em ${falta} ${falta === 1 ? "dia" : "dias"}` : textoPrazoFollowup(p);
+  return `${rotulo}: ${dia}/${mes} · ${prazo}`;
 }
 
 /** "vence hoje" ou "atrasado N dias". */

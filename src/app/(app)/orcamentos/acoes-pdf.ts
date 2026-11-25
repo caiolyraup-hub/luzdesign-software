@@ -1,12 +1,8 @@
 "use server";
 
-import { criarClienteIA } from "@/lib/ia/cliente";
-import { lerConfigIA } from "@/lib/ia/config";
-import { criarExecutorFerramentas } from "@/lib/ia/ferramentas";
-import { formatarTextos } from "@/lib/ia/formatacao";
-import { criarRepositorioIA } from "@/lib/ia/repositorio-ia";
+import { lerDadosEstoque } from "@/lib/estoque/dados-estoque";
 import { gerarPlanilhaOrcamento } from "@/lib/planilha/orcamento";
-import { gerarOrcamento, type DepsGerarOrcamento } from "@/lib/pdf/gerar";
+import { gerarOrcamento } from "@/lib/pdf/gerar";
 import { carregarLogo, renderizarPdf } from "@/lib/pdf/renderizar";
 import { obterUsuarioAtual } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -16,33 +12,13 @@ export type RespostaGerarOrcamento =
   { ok: true; versao: number } | { ok: false; erro: string; bloqueios?: string[] };
 
 /**
- * Gera uma nova versão do orçamento (PDF e planilha XLSX). Roda no servidor com a sessão da
- * vendedora (RLS); a rota que chama esta ação define maxDuration. A IA só padroniza texto
- * (descrição dos produtos e nome dos ambientes) e nunca bloqueia a geração.
+ * Gera uma nova versão do orçamento: o PDF do cliente (só código e tipo do produto) e a planilha do
+ * estoque (com fabricante e referência). Roda no servidor com a sessão da vendedora (RLS); a service
+ * role só lê os dados do estoque dos códigos do próprio orçamento. A rota que chama define maxDuration.
  */
 export async function gerarOrcamentoCompleto(orcamentoId: string): Promise<RespostaGerarOrcamento> {
   const usuario = await obterUsuarioAtual();
   const sessao = await criarClienteServidor();
-
-  // Sem chave da OpenAI, a geração segue com as descrições do catálogo.
-  let padronizar: DepsGerarOrcamento["padronizar"];
-  try {
-    const ia = criarClienteIA();
-    const repo = criarRepositorioIA(sessao, criarClienteAdmin());
-    const config = lerConfigIA();
-    const executor = criarExecutorFerramentas(sessao);
-    padronizar = async (entrada) => {
-      const r = await formatarTextos(
-        { repo, ia, executor, config },
-        usuario.id,
-        orcamentoId,
-        entrada,
-      );
-      return { descricoes: r.descricoes, ambientes: r.ambientes };
-    };
-  } catch {
-    padronizar = undefined;
-  }
 
   try {
     const logo = await carregarLogo();
@@ -50,8 +26,8 @@ export async function gerarOrcamentoCompleto(orcamentoId: string): Promise<Respo
       {
         sessao,
         renderizar: (dados) => renderizarPdf(dados, logo),
-        gerarPlanilha: (dados) => gerarPlanilhaOrcamento(dados, logo),
-        padronizar,
+        gerarPlanilha: (dados, estoque) => gerarPlanilhaOrcamento(dados, logo, estoque),
+        lerEstoque: (codigos) => lerDadosEstoque(criarClienteAdmin(), codigos),
       },
       { id: usuario.id, nome: usuario.nome },
       orcamentoId,

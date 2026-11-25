@@ -6,7 +6,8 @@ import { CartaoFollowup } from "@/components/orcamento/CartaoFollowup";
 import { formatarDataHora } from "@/lib/formatar";
 import { BadgeValidade } from "@/components/orcamento/BadgeValidade";
 import { formatarMoeda, isoParaBR } from "@/lib/formatar";
-import { followupsDeHoje } from "@/lib/orcamento/followups-hoje";
+import { followupsDeHoje, proximosContatos } from "@/lib/orcamento/followups-hoje";
+import { textoProximoContato } from "@/lib/orcamento/followup";
 import { ListaVazia } from "@/components/ui/ListaVazia";
 import { BotaoRegistrarEnvio } from "@/components/orcamento/RegistrarEnvio";
 import { paraRegistrarEnvio } from "@/lib/orcamento/para-registrar-envio";
@@ -33,6 +34,37 @@ async function FollowupsDeHoje() {
       <ul className="space-y-3">
         {cartoes.map((c) => (
           <CartaoFollowup key={c.id} d={c} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+async function ProximosContatos() {
+  const usuario = await obterUsuarioAtual();
+  const supabase = await criarClienteServidor();
+  const lista = await proximosContatos(supabase, usuario);
+  if (lista.length === 0) return null;
+  return (
+    <section aria-label="Próximos contatos" className="space-y-3">
+      <h2 className="text-xl font-semibold">Próximos contatos ({lista.length})</h2>
+      <ul className="space-y-3">
+        {lista.map((r) => (
+          <li key={r.id} className="rounded-lg border border-zinc-200 p-4">
+            <Link href={`/orcamentos/${r.id}`} className="block space-y-1">
+              <span className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-lg font-medium">{r.clienteNome}</span>
+                {r.valorTotal > 0 ? (
+                  <span className="shrink-0 text-lg font-semibold">
+                    {formatarMoeda(r.valorTotal)}
+                  </span>
+                ) : null}
+              </span>
+              <span className="block text-base text-zinc-600">
+                {r.numero} · {textoProximoContato(r.contato)}
+              </span>
+            </Link>
+          </li>
         ))}
       </ul>
     </section>
@@ -229,6 +261,9 @@ export default function Page() {
       </Suspense>
       <Suspense fallback={null}>
         <ParaRenovar />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ProximosContatos />
       </Suspense>
       <Suspense fallback={null}>
         <Aniversarios />

@@ -7,6 +7,7 @@ import { rotuloMotivo } from "@/lib/orcamento/status";
 import { avisoValidade } from "@/lib/orcamento/validade";
 import { BadgeValidade } from "./BadgeValidade";
 import { envioNaoRegistrado, textoEnvio } from "@/lib/orcamento/envio";
+import { LinhaProximoContato } from "./LinhaProximoContato";
 import { BotaoRegistrarEnvio } from "./RegistrarEnvio";
 import { StatusAcoes } from "./StatusAcoes";
 
@@ -66,6 +67,7 @@ export function CartaoOrcamento({
         {textoEnvio(d) && d.status !== "gerado" ? (
           <span className="block text-base text-zinc-600">{textoEnvio(d)}</span>
         ) : null}
+        <LinhaProximoContato status={d.status} ultimoEnvioEm={d.ultimoEnvioEm} config={config} />
         <span className="flex flex-wrap items-center gap-2">
           <BadgeStatus status={d.status} />
           {d.status === "perdido" && d.motivoPerda ? (

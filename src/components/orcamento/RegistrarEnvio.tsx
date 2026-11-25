@@ -35,10 +35,11 @@ export function BotaoRegistrarEnvio({
   );
 }
 
-const ACOES_QUE_ENVIAM = /baixar pdf|baixar planilha|compartilhar|whatsapp/i;
+// A planilha é do estoque: baixá-la não é enviar ao cliente.
+const ACOES_QUE_ENVIAM = /baixar pdf|compartilhar|whatsapp/i;
 
 /**
- * Envolve os botões do PDF: depois de Baixar PDF, Baixar XLSX, Compartilhar ou Abrir WhatsApp num
+ * Envolve os botões do PDF: depois de Baixar PDF, Compartilhar ou Abrir WhatsApp num
  * orçamento gerado, aparece a folha "Você já mandou para o cliente?". Não muda o que os botões fazem.
  */
 export function EnvioAposAcao({

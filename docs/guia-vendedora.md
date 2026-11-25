@@ -30,7 +30,8 @@ Você não vê marca nem referência dos produtos: é assim mesmo, de propósito
 ## 4. Gerar e mandar para o cliente
 
 1. Confira os itens e o total e toque em **Gerar orçamento**.
-2. Baixe o **PDF** (para o cliente) e a **planilha** (se precisar editar).
+2. Baixe o **PDF** (para o cliente: só código e tipo do produto) e a **planilha do estoque** (descrição, fabricante, referência, tamanho e voltagem). A planilha é interna: **não envie ao cliente**.
+3. Em cada orçamento enviado aparece o **próximo contato** (data e prazo); em **Para hoje** há a lista dos próximos.
 3. Toque em **Compartilhar no WhatsApp** para mandar.
 4. Depois de mandar, toque em **Marquei como enviado** e confirme a data.
 
@@ -38,7 +39,7 @@ Depois de enviado, os produtos não mudam mais. Para alterar, toque em **Editar 
 
 ### Registrar o envio
 
-Depois de **Baixar PDF**, **Baixar planilha**, **Compartilhar** ou **Abrir WhatsApp**, o sistema pergunta: **"Você já mandou para o cliente?"**
+Depois de **Baixar PDF**, **Compartilhar** ou **Abrir WhatsApp**, o sistema pergunta: **"Você já mandou para o cliente?"**
 
 - **Enviei agora**: grava o envio com a hora de agora.
 - **Enviei em outra data**: escolha o dia (não pode ser futuro nem antes de o orçamento ser gerado).

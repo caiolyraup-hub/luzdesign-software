@@ -16,6 +16,8 @@ import { PreviaPdf } from "@/components/orcamento/PreviaPdf";
 import { formatarDataBR, formatarDataHora, isoParaBR } from "@/lib/formatar";
 import { nomeArquivoOrcamento } from "@/lib/orcamento/arquivos";
 import { montarLinhaDoTempo } from "@/lib/orcamento/linha-do-tempo";
+import { LinhaProximoContato } from "@/components/orcamento/LinhaProximoContato";
+import { lerConfigFollowup } from "@/lib/orcamento/config-followup";
 import { rotuloMotivo } from "@/lib/orcamento/status";
 import { descontoAvistaCentavos, moedaCentavos } from "@/lib/orcamento/totais";
 import { obterUsuarioAtual } from "@/lib/sessao";
@@ -62,7 +64,7 @@ async function Detalhe({
   const versoes = ((orc.pdf_versoes ?? []) as VersaoPdf[]).sort((a, b) => b.versao - a.versao);
   const temPdf = Boolean(orc.pdf_caminho);
 
-  const [{ data: eventos }, { data: cfg }] = await Promise.all([
+  const [{ data: eventos }, { data: cfg }, configFollowup] = await Promise.all([
     supabase
       .from("eventos")
       .select("de_status, para_status, criado_em")
@@ -73,10 +75,11 @@ async function Detalhe({
       .select("nome_fantasia, desconto_avista_pct")
       .eq("id", true)
       .maybeSingle(),
+    lerConfigFollowup(supabase),
   ]);
 
   const nomePdf = nomeArquivoOrcamento(cliente?.nome, orc.gerado_em, orc.numero, "pdf");
-  const nomeXlsx = nomeArquivoOrcamento(cliente?.nome, orc.gerado_em, orc.numero, "xlsx");
+  const nomeXlsx = `estoque-${nomeArquivoOrcamento(cliente?.nome, orc.gerado_em, orc.numero, "xlsx")}`;
   let urlPdf: string | null = null;
   let urlDownload: string | null = null;
   let urlXlsx: string | null = null;
@@ -108,13 +111,13 @@ async function Detalhe({
           }),
           v.xlsx_caminho
             ? supabase.storage.from("pdfs").createSignedUrl(v.xlsx_caminho, VALIDADE_URL_SEGUNDOS, {
-                download: nomeArquivoOrcamento(
+                download: `estoque-${nomeArquivoOrcamento(
                   cliente?.nome,
                   v.gerado_em,
                   orc.numero,
                   "xlsx",
                   v.versao,
-                ),
+                )}`,
               })
             : Promise.resolve({ data: null }),
         ]);
@@ -180,6 +183,11 @@ async function Detalhe({
             </span>
           ) : null}
         </div>
+        <LinhaProximoContato
+          status={orc.status}
+          ultimoEnvioEm={orc.ultimo_envio_em}
+          config={configFollowup}
+        />
         {aviso?.tipo === "vencido" && orc.validade ? (
           <p
             role="alert"
@@ -324,10 +332,11 @@ async function Detalhe({
                   download={nomeXlsx}
                   className="flex min-h-14 items-center justify-center rounded-lg border border-zinc-300 text-lg"
                 >
-                  Baixar planilha (XLSX)
+                  Baixar planilha do estoque (XLSX)
                 </a>
                 <p className="text-base text-zinc-600">
-                  Se editar a planilha, lembre de informar o valor final ao marcar Fechado.
+                  Para o estoque: tem fabricante e referência. Não envie ao cliente. Se editar a
+                  planilha, lembre de informar o valor final ao marcar Fechado.
                 </p>
               </div>
             ) : null}
@@ -360,7 +369,7 @@ async function Detalhe({
                   <>
                     {" · "}
                     <a href={v.urlXlsx} download className="min-h-11 text-amber-700 underline">
-                      planilha (XLSX)
+                      planilha do estoque
                     </a>
                   </>
                 ) : null}
